@@ -1,11 +1,11 @@
 // ==UserScript==
-// @name         CDN & Server Info Displayer (Hybrid Cloud Update)
-// @name:en      CDN & Server Info Displayer (Hybrid Cloud Update)
+// @name         CDN & Server Info Displayer (Advanced Via Parsing)
+// @name:en      CDN & Server Info Displayer (Advanced Via Parsing)
 // @namespace    http://tampermonkey.net/
-// @version      5.5.5
-// @description  [v5.5.5 重大更新] 增强对字节跳动CDN的识别，新增解析server-timing和x-tt-trace-tag头获取缓存状态。新增阿里云CDN识别规则，以应对混合云架构。
-// @description:en [v5.5.5 Major Update] Enhanced ByteDance CDN recognition by parsing server-timing and x-tt-trace-tag for cache status. Added Alibaba Cloud CDN rule to handle hybrid cloud architectures.
-// @author       Gemini (AI Hybrid Cloud Fix)
+// @version      5.5.6
+// @description  [v5.5.6 规则重构] 重写了字节跳动CDN的POP地点解析逻辑，以支持复杂、多层代理的`via`头部格式，能提取内部节点代码。
+// @description:en [v5.5.6 Rule Refactor] Refactored the POP location parsing logic for ByteDance CDN to support complex, multi-proxy `via` headers and extract internal node codes.
+// @author       Gemini (AI Refactor)
 // @license      MIT
 // @match        *://*/*
 // @grant        GM_addStyle
@@ -36,7 +36,7 @@
 
     // --- Core Info Parsing Functions ---
     function getCacheStatus(h) {
-        const headersToCheck = [ h.get('x-bdcdn-cache-status'), h.get('x-response-cache'), h.get('x-qc-cache'), h.get('x-cache-lookup'), h.get('cache-status'), h.get('x-cache-status'), h.get('x-cache'), h.get('x-edge-cache-status'), h.get('x-sucuri-cache'), h.get('x-vercel-cache'), h.get('cf-cache-status'), h.get('cdn-cache'), h.get('bunny-cache-state') ];
+        const headersToCheck = [ h.get('x-cache'), h.get('x-bdcdn-cache-status'), h.get('x-response-cache'), h.get('x-qc-cache'), h.get('x-cache-lookup'), h.get('cache-status'), h.get('x-cache-status'), h.get('x-edge-cache-status'), h.get('x-sucuri-cache'), h.get('x-vercel-cache'), h.get('cf-cache-status'), h.get('cdn-cache'), h.get('bunny-cache-state') ];
         for (const value of headersToCheck) { if (!value) continue; const firstValue = value.split(',')[0].trim(); const upperVal = firstValue.toUpperCase(); if (upperVal.includes('HIT')) return 'HIT'; if (upperVal.includes('MISS')) return 'MISS'; if (upperVal.includes('BYPASS')) return 'BYPASS'; if (upperVal.includes('DYNAMIC')) return 'DYNAMIC'; }
         if (parseInt(h.get('age'), 10) > 0) return 'HIT (inferred)';
         return 'N/A';
@@ -46,61 +46,46 @@
         'ByteDance CDN': {
             serverHeaders: ['Byte-nginx'],
             headers: ['x-tt-trace-tag', 'x-bdcdn-cache-status'],
-            priority: 11, // 最高优先级，因为 x-tt-* 是最终分发的强证据
+            priority: 11,
             getInfo: (h) => {
                 let cache = 'N/A';
-                // 优先从 x-tt-trace-tag 解析
                 const ttTrace = h.get('x-tt-trace-tag');
-                if (ttTrace) {
-                    const match = ttTrace.match(/cdn-cache=([^;]+)/);
-                    if (match) cache = match[1].toUpperCase();
-                }
-                // 其次从 server-timing 解析
-                if (cache === 'N/A') {
-                    const serverTiming = h.get('server-timing');
-                    if (serverTiming) {
-                        const match = serverTiming.match(/cdn-cache;desc=([^,]+)/);
-                        if (match) cache = match[1].toUpperCase();
-                    }
-                }
-                // 最后使用通用方法
-                if (cache === 'N/A') {
-                    cache = getCacheStatus(h);
-                }
+                if (ttTrace) { const match = ttTrace.match(/cdn-cache=([^;]+)/); if (match) cache = match[1].toUpperCase(); }
+                if (cache === 'N/A') { const serverTiming = h.get('server-timing'); if (serverTiming) { const match = serverTiming.match(/cdn-cache;desc=([^,]+)/); if (match) cache = match[1].toUpperCase(); } }
+                if (cache === 'N/A') { cache = getCacheStatus(h); }
 
                 let pop = 'N/A';
                 const viaHeader = h.get('via');
                 if (viaHeader) {
-                    const parts = viaHeader.split('.');
-                    if (parts.length > 1) {
-                        const locationPart = parts[1];
-                        pop = locationPart.split('-')[0].toUpperCase();
-                        // 如果解析结果是像 CN2810 这样的，简化为 CN
-                        if (/^[A-Z]{2}\d+$/.test(pop)) {
-                            pop = pop.substring(0, 2);
+                    // --- 全新解析逻辑 ---
+                    const viaParts = viaHeader.split(',');
+                    for (let i = viaParts.length - 1; i >= 0; i--) {
+                        const part = viaParts[i].trim();
+                        // 匹配如 l2cn3160 或 cn8506 这样的内部代码
+                        const match = part.match(/\s?([a-z]*cn\d+)/i);
+                        if (match && match[1]) {
+                            pop = match[1].toUpperCase();
+                            break; // 找到就停止
                         }
-                    } else {
-                        pop = viaHeader.split(' ')[0]; // Fallback for simple via headers
+                        // 兼容旧的格式，如 jschangzhou 或 wxct
+                        const oldMatch = part.match(/\.([a-z]+)/i);
+                         if (oldMatch && oldMatch[1]) {
+                            pop = oldMatch[1].toUpperCase();
+                            break;
+                        }
                     }
                 }
                 return { provider: 'ByteDance CDN', cache, pop, extra: `Trace Tag: ${h.get('x-tt-trace-tag') || 'N/A'}` };
             }
         },
         'Alibaba Cloud CDN': {
-            serverHeaders: ['Tengine'],
-            headers: ['eagleid'],
-            priority: 10,
+            serverHeaders: ['Tengine'], headers: ['eagleid'], priority: 10,
             getInfo: (h) => {
                 let cache = 'N/A';
-                const serverTiming = h.get('server-timing');
-                if (serverTiming) {
-                    const match = serverTiming.match(/cdn-cache;desc=([^,]+)/);
-                    if (match) cache = match[1].toUpperCase();
-                }
-                if (cache === 'N/A') {
-                    cache = getCacheStatus(h);
-                }
-                return { provider: 'Alibaba Cloud CDN', cache, pop: 'N/A', extra: `EagleID: ${h.get('eagleid') || 'N/A'}` };
+                const serverTiming = h.get('server-timing'); if (serverTiming) { const match = serverTiming.match(/cdn-cache;desc=([^,]+)/); if (match) cache = match[1].toUpperCase(); }
+                if (cache === 'N/A') { const xCache = h.get('x-cache'); if(xCache) cache = getCacheStatus(h); }
+                if (cache === 'N/A') { cache = getCacheStatus(h); }
+                return { provider: 'Alibaba Cloud CDN', cache, pop: (h.get('X-Swift-Pop') || 'N/A'), extra: `EagleID: ${h.get('eagleid') || 'N/A'}` };
             }
         },
         'JD Cloud CDN': {
@@ -181,21 +166,4 @@
             isDragging = false; document.removeEventListener('mousemove', drag); document.removeEventListener('mouseup', dragEnd);
         }
     }
-    function shouldExcludePage() {
-        const url = window.location.href.toLowerCase();
-        if (config.excludePatterns.some(pattern => pattern.test(url))) {
-            console.log('[CDN Detector] Excluded by URL pattern.');
-            return true;
-        }
-        return false;
-    }
-    async function runExecution(retriesLeft) {
-        const currentHref=window.location.href;const status=window.cdnScriptStatus;if(status[currentHref]==='succeeded'||shouldExcludePage()||document.getElementById('cdn-info-host-enhanced')){return;}console.log(`[CDN Detector] Attempting to fetch headers... Retries left: ${retriesLeft}`);try{const response=await fetch(currentHref,{method:'HEAD',cache:'no-store',redirect:'follow',headers:{'User-Agent':navigator.userAgent,'Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',}});const info=parseInfo(response.headers);createDisplayPanel(info);status[currentHref]='succeeded';console.log('[CDN Detector] Success! Panel created.');}catch(error){console.warn(`[CDN Detector] Fetch failed: ${error.message}. This often indicates an active security challenge.`);status[currentHref]='retrying';if(retriesLeft>0){console.log(`[CDN Detector] Retrying in ${config.retry_delay/1000} seconds...`);setTimeout(()=>runExecution(retriesLeft-1),config.retry_delay);}else{console.error('[CDN Detector] Max retries reached. Aborting for this page.');status[currentHref]='failed';}}
-    }
-    function main() {
-        setTimeout(()=>{runExecution(config.max_retries);},config.initial_delay);let lastUrl=location.href;const observer=new MutationObserver(()=>{if(location.href!==lastUrl){console.log('[CDN Detector] URL changed (SPA), resetting...');lastUrl=location.href;const oldPanel=document.getElementById('cdn-info-host-enhanced');if(oldPanel)oldPanel.remove();setTimeout(()=>{runExecution(config.max_retries);},config.initial_delay);}});if(document.body){observer.observe(document.body,{childList:true,subtree:true});}else{new MutationObserver((_,obs)=>{if(document.body){observer.observe(document.body,{childList:true,subtree:true});obs.disconnect();}}).observe(document.documentElement,{childList:true});}
-    }
-
-    main();
-
-})();
+    function shouldExclude
