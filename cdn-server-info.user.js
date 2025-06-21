@@ -1,11 +1,11 @@
 // ==UserScript==
-// @name         CDN & Server Info Displayer (Advanced Via Parsing)
-// @name:en      CDN & Server Info Displayer (Advanced Via Parsing)
+// @name         CDN & Server Info Displayer (POP Display Tweak)
+// @name:en      CDN & Server Info Displayer (POP Display Tweak)
 // @namespace    http://tampermonkey.net/
-// @version      5.5.6
-// @description  [v5.5.6 规则重构] 重写了字节跳动CDN的POP地点解析逻辑，以支持复杂、多层代理的`via`头部格式，能提取内部节点代码。
-// @description:en [v5.5.6 Rule Refactor] Refactored the POP location parsing logic for ByteDance CDN to support complex, multi-proxy `via` headers and extract internal node codes.
-// @author       Gemini (AI Refactor)
+// @version      5.5.7
+// @description  [v5.5.7 微调] 根据反馈优化字节跳动CDN的POP显示逻辑：当无法识别明确城市名而只能获取到内部节点代码（如cn8506）时，仅显示国家代码“CN”。
+// @description:en [v5.5.7 Tweak] Optimized ByteDance CDN's POP display logic per feedback: When only an internal node code (e.g., cn8506) is available instead of a clear city name, it will only display the country code "CN".
+// @author       Gemini (AI Polish)
 // @license      MIT
 // @match        *://*/*
 // @grant        GM_addStyle
@@ -57,20 +57,22 @@
                 let pop = 'N/A';
                 const viaHeader = h.get('via');
                 if (viaHeader) {
-                    // --- 全新解析逻辑 ---
                     const viaParts = viaHeader.split(',');
                     for (let i = viaParts.length - 1; i >= 0; i--) {
                         const part = viaParts[i].trim();
-                        // 匹配如 l2cn3160 或 cn8506 这样的内部代码
-                        const match = part.match(/\s?([a-z]*cn\d+)/i);
-                        if (match && match[1]) {
-                            pop = match[1].toUpperCase();
-                            break; // 找到就停止
+                        // 1. 优先尝试匹配明确的城市/地区代码 (e.g., jschangzhou, wxct)
+                        const cityMatch = part.match(/\.([a-zA-Z]+)/);
+                        if (cityMatch && cityMatch[1]) {
+                            // 确保它不是一个内部代码格式
+                            if (!/cn\d+/.test(cityMatch[1])) {
+                                 pop = cityMatch[1].split('-')[0].toUpperCase();
+                                 break;
+                            }
                         }
-                        // 兼容旧的格式，如 jschangzhou 或 wxct
-                        const oldMatch = part.match(/\.([a-z]+)/i);
-                         if (oldMatch && oldMatch[1]) {
-                            pop = oldMatch[1].toUpperCase();
+                        // 2. 如果没找到城市代码，再匹配内部节点代码 (e.g., l2cn3160, cn8506)
+                        const internalCodeMatch = part.match(/\b([a-z]*cn\d+)\b/i);
+                        if (internalCodeMatch && internalCodeMatch[1]) {
+                            pop = 'CN'; // 按要求简化为 CN
                             break;
                         }
                     }
@@ -166,4 +168,21 @@
             isDragging = false; document.removeEventListener('mousemove', drag); document.removeEventListener('mouseup', dragEnd);
         }
     }
-    function shouldExclude
+    function shouldExcludePage() {
+        const url = window.location.href.toLowerCase();
+        if (config.excludePatterns.some(pattern => pattern.test(url))) {
+            console.log('[CDN Detector] Excluded by URL pattern.');
+            return true;
+        }
+        return false;
+    }
+    async function runExecution(retriesLeft) {
+        const currentHref=window.location.href;const status=window.cdnScriptStatus;if(status[currentHref]==='succeeded'||shouldExcludePage()||document.getElementById('cdn-info-host-enhanced')){return;}console.log(`[CDN Detector] Attempting to fetch headers... Retries left: ${retriesLeft}`);try{const response=await fetch(currentHref,{method:'HEAD',cache:'no-store',redirect:'follow',headers:{'User-Agent':navigator.userAgent,'Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',}});const info=parseInfo(response.headers);createDisplayPanel(info);status[currentHref]='succeeded';console.log('[CDN Detector] Success! Panel created.');}catch(error){console.warn(`[CDN Detector] Fetch failed: ${error.message}. This often indicates an active security challenge.`);status[currentHref]='retrying';if(retriesLeft>0){console.log(`[CDN Detector] Retrying in ${config.retry_delay/1000} seconds...`);setTimeout(()=>runExecution(retriesLeft-1),config.retry_delay);}else{console.error('[CDN Detector] Max retries reached. Aborting for this page.');status[currentHref]='failed';}}
+    }
+    function main() {
+        setTimeout(()=>{runExecution(config.max_retries);},config.initial_delay);let lastUrl=location.href;const observer=new MutationObserver(()=>{if(location.href!==lastUrl){console.log('[CDN Detector] URL changed (SPA), resetting...');lastUrl=location.href;const oldPanel=document.getElementById('cdn-info-host-enhanced');if(oldPanel)oldPanel.remove();setTimeout(()=>{runExecution(config.max_retries);},config.initial_delay);}});if(document.body){observer.observe(document.body,{childList:true,subtree:true});}else{new MutationObserver((_,obs)=>{if(document.body){observer.observe(document.body,{childList:true,subtree:true});obs.disconnect();}}).observe(document.documentElement,{childList:true});}
+    }
+
+    main();
+
+})();
