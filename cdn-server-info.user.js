@@ -1,11 +1,11 @@
 // ==UserScript==
-// @name         CDN & Server Info Displayer (Robust POP Parsing)
-// @name:en      CDN & Server Info Displayer (Robust POP Parsing)
+// @name         CDN & Server Info Displayer (Hybrid Cloud Update)
+// @name:en      CDN & Server Info Displayer (Hybrid Cloud Update)
 // @namespace    http://tampermonkey.net/
-// @version      5.5.4
-// @description  [v5.5.4 规则优化] 优化了字节跳动CDN的POP地点解析逻辑，使其能兼容多种不同的`via`头部格式。
-// @description:en [v5.5.4 Rule Enhancement] Optimized the POP location parsing logic for ByteDance CDN to make it compatible with various `via` header formats.
-// @author       Gemini (AI Robustness Fix)
+// @version      5.5.5
+// @description  [v5.5.5 重大更新] 增强对字节跳动CDN的识别，新增解析server-timing和x-tt-trace-tag头获取缓存状态。新增阿里云CDN识别规则，以应对混合云架构。
+// @description:en [v5.5.5 Major Update] Enhanced ByteDance CDN recognition by parsing server-timing and x-tt-trace-tag for cache status. Added Alibaba Cloud CDN rule to handle hybrid cloud architectures.
+// @author       Gemini (AI Hybrid Cloud Fix)
 // @license      MIT
 // @match        *://*/*
 // @grant        GM_addStyle
@@ -45,27 +45,62 @@
     const cdnProviders = {
         'ByteDance CDN': {
             serverHeaders: ['Byte-nginx'],
-            headers: ['x-bdcdn-cache-status', 'x-tt-trace-tag'],
-            priority: 10,
+            headers: ['x-tt-trace-tag', 'x-bdcdn-cache-status'],
+            priority: 11, // 最高优先级，因为 x-tt-* 是最终分发的强证据
             getInfo: (h) => {
+                let cache = 'N/A';
+                // 优先从 x-tt-trace-tag 解析
+                const ttTrace = h.get('x-tt-trace-tag');
+                if (ttTrace) {
+                    const match = ttTrace.match(/cdn-cache=([^;]+)/);
+                    if (match) cache = match[1].toUpperCase();
+                }
+                // 其次从 server-timing 解析
+                if (cache === 'N/A') {
+                    const serverTiming = h.get('server-timing');
+                    if (serverTiming) {
+                        const match = serverTiming.match(/cdn-cache;desc=([^,]+)/);
+                        if (match) cache = match[1].toUpperCase();
+                    }
+                }
+                // 最后使用通用方法
+                if (cache === 'N/A') {
+                    cache = getCacheStatus(h);
+                }
+
                 let pop = 'N/A';
                 const viaHeader = h.get('via');
                 if (viaHeader) {
-                    // 鲁棒性优化：先按点分割，再在第二部分中按横线分割取第一部分
-                    // 'cache10.jschangzhou-ct09' -> 'jschangzhou-ct09' -> 'jschangzhou'
-                    // 'cache04.wxct' -> 'wxct' -> 'wxct'
                     const parts = viaHeader.split('.');
                     if (parts.length > 1) {
                         const locationPart = parts[1];
                         pop = locationPart.split('-')[0].toUpperCase();
+                        // 如果解析结果是像 CN2810 这样的，简化为 CN
+                        if (/^[A-Z]{2}\d+$/.test(pop)) {
+                            pop = pop.substring(0, 2);
+                        }
+                    } else {
+                        pop = viaHeader.split(' ')[0]; // Fallback for simple via headers
                     }
                 }
-                return {
-                    provider: 'ByteDance CDN',
-                    cache: getCacheStatus(h),
-                    pop: pop,
-                    extra: `Trace Tag: ${h.get('x-tt-trace-tag') || 'N/A'}`
-                };
+                return { provider: 'ByteDance CDN', cache, pop, extra: `Trace Tag: ${h.get('x-tt-trace-tag') || 'N/A'}` };
+            }
+        },
+        'Alibaba Cloud CDN': {
+            serverHeaders: ['Tengine'],
+            headers: ['eagleid'],
+            priority: 10,
+            getInfo: (h) => {
+                let cache = 'N/A';
+                const serverTiming = h.get('server-timing');
+                if (serverTiming) {
+                    const match = serverTiming.match(/cdn-cache;desc=([^,]+)/);
+                    if (match) cache = match[1].toUpperCase();
+                }
+                if (cache === 'N/A') {
+                    cache = getCacheStatus(h);
+                }
+                return { provider: 'Alibaba Cloud CDN', cache, pop: 'N/A', extra: `EagleID: ${h.get('eagleid') || 'N/A'}` };
             }
         },
         'JD Cloud CDN': {
