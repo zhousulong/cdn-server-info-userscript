@@ -1,11 +1,11 @@
 // ==UserScript==
-// @name         CDN & Server Info Displayer (WP Admin Fix)
-// @name:en      CDN & Server Info Displayer (WP Admin Fix)
+// @name         CDN & Server Info Displayer (Robust POP Parsing)
+// @name:en      CDN & Server Info Displayer (Robust POP Parsing)
 // @namespace    http://tampermonkey.net/
-// @version      5.5.1
-// @description  [v5.5.1 兼容性修复] 新增WordPress后台排除规则，解决了因脚本在/wp-admin/下运行导致的安全令牌失效和登录循环问题。
-// @description:en [v5.5.1 Compatibility Fix] Added exclusion rules for WordPress backend to resolve the login loop issue caused by nonce invalidation in /wp-admin/.
-// @author       Gemini (AI Compatibility Fix)
+// @version      5.5.4
+// @description  [v5.5.4 规则优化] 优化了字节跳动CDN的POP地点解析逻辑，使其能兼容多种不同的`via`头部格式。
+// @description:en [v5.5.4 Rule Enhancement] Optimized the POP location parsing logic for ByteDance CDN to make it compatible with various `via` header formats.
+// @author       Gemini (AI Robustness Fix)
 // @license      MIT
 // @match        *://*/*
 // @grant        GM_addStyle
@@ -16,7 +16,7 @@
 (function() {
     'use strict';
 
-    // --- Configuration ---
+    // --- Configuration (Unchanged) ---
     const config = {
         initialPosition: { bottom: '20px', right: '20px' },
         minWindowSize: { width: 400, height: 300 },
@@ -24,37 +24,69 @@
         retry_delay: 7000,
         max_retries: 4,
         excludePatterns: [
-            // --- 新增规则 ---
-            /\/wp-admin/i,     // 排除整个WordPress后台
-            /\/wp-login\.php/i, // 排除WordPress登录页
-            // --- 已有规则 ---
-            /(\/|&)pay(pal|ment)/i,
-            /\/checkout|\/billing/i,
-            /\/login|\/signin|\/auth/i, // 这个通用规则其实已覆盖wp-login，但明确写出更好
-            /\/phpmyadmin/i,
-            /(\/ads\/|ad_id=|advertisement)/i,
+            /\/wp-admin/i, /\/wp-login\.php/i,
+            /(\/|&)pay(pal|ment)/i, /\/checkout|\/billing/i,
+            /\/login|\/signin|\/auth/i,
+            /\/phpmyadmin/i, /(\/ads\/|ad_id=|advertisement)/i,
             /doubleclick\.net/i,
         ]
     };
 
     window.cdnScriptStatus = window.cdnScriptStatus || {};
 
-    // --- Core Info Parsing Functions (Unchanged) ---
+    // --- Core Info Parsing Functions ---
     function getCacheStatus(h) {
-        const headersToCheck = [ h.get('x-qc-cache'), h.get('x-cache-lookup'), h.get('cache-status'), h.get('x-cache-status'), h.get('x-cache'), h.get('x-edge-cache-status'), h.get('x-sucuri-cache'), h.get('x-vercel-cache'), h.get('cf-cache-status'), h.get('x-response-cache'), h.get('x-bdcdn-cache-status'), h.get('cdn-cache'), h.get('bunny-cache-state') ];
+        const headersToCheck = [ h.get('x-bdcdn-cache-status'), h.get('x-response-cache'), h.get('x-qc-cache'), h.get('x-cache-lookup'), h.get('cache-status'), h.get('x-cache-status'), h.get('x-cache'), h.get('x-edge-cache-status'), h.get('x-sucuri-cache'), h.get('x-vercel-cache'), h.get('cf-cache-status'), h.get('cdn-cache'), h.get('bunny-cache-state') ];
         for (const value of headersToCheck) { if (!value) continue; const firstValue = value.split(',')[0].trim(); const upperVal = firstValue.toUpperCase(); if (upperVal.includes('HIT')) return 'HIT'; if (upperVal.includes('MISS')) return 'MISS'; if (upperVal.includes('BYPASS')) return 'BYPASS'; if (upperVal.includes('DYNAMIC')) return 'DYNAMIC'; }
-        if (parseInt(h.get('age'), 10) > 0) return 'HIT (inferred)'; return 'N/A';
+        if (parseInt(h.get('age'), 10) > 0) return 'HIT (inferred)';
+        return 'N/A';
     }
+
     const cdnProviders = {
-        'QUIC.cloud': { headers: ['x-qc-pop', 'x-qc-cache'], priority: 9, getInfo: (h) => { let pop = 'N/A'; const popHeader = h.get('x-qc-pop'); if (popHeader) { const parts = popHeader.split('-'); if (parts.length >= 3) { pop = parts[2].toUpperCase(); } else { pop = parts.length >= 2 ? parts[1].toUpperCase() : popHeader; } } return { provider: 'QUIC.cloud', cache: h.get('x-qc-cache')?.toUpperCase() || getCacheStatus(h), pop: pop, extra: `POP Str: ${popHeader || 'N/A'}` }; } },
-        'Tencent EdgeOne': { serverHeaders: ['edgeone-pages'], headers: ['x-nws-log-uuid'], priority: 10, getInfo: (h) => { let cache = 'N/A'; const lookup = h.get('x-cache-lookup'); if (lookup) { const firstPart = lookup.split(',')[0].trim(); cache = firstPart.replace('Cache ', '').toUpperCase(); } else { cache = getCacheStatus(h); } return { provider: 'Tencent EdgeOne', cache: cache, pop: 'N/A', extra: `Log-UUID: ${h.get('x-nws-log-uuid') || 'N/A'}` }; } },
+        'ByteDance CDN': {
+            serverHeaders: ['Byte-nginx'],
+            headers: ['x-bdcdn-cache-status', 'x-tt-trace-tag'],
+            priority: 10,
+            getInfo: (h) => {
+                let pop = 'N/A';
+                const viaHeader = h.get('via');
+                if (viaHeader) {
+                    // 鲁棒性优化：先按点分割，再在第二部分中按横线分割取第一部分
+                    // 'cache10.jschangzhou-ct09' -> 'jschangzhou-ct09' -> 'jschangzhou'
+                    // 'cache04.wxct' -> 'wxct' -> 'wxct'
+                    const parts = viaHeader.split('.');
+                    if (parts.length > 1) {
+                        const locationPart = parts[1];
+                        pop = locationPart.split('-')[0].toUpperCase();
+                    }
+                }
+                return {
+                    provider: 'ByteDance CDN',
+                    cache: getCacheStatus(h),
+                    pop: pop,
+                    extra: `Trace Tag: ${h.get('x-tt-trace-tag') || 'N/A'}`
+                };
+            }
+        },
+        'JD Cloud CDN': {
+            headers: ['x-jss-request-id'], customCheck: (h) => (h.get('via') || '').includes('(jcs'), priority: 10,
+            getInfo: (h) => { let pop = 'N/A'; const viaHeader = h.get('via'); if (viaHeader) { const match = viaHeader.match(/\s([A-Z]{2,3})-[A-Z]{2,}/); if (match && match[1]) { pop = match[1]; } } return { provider: 'JD Cloud CDN', cache: getCacheStatus(h), pop: pop, extra: `Req ID: ${h.get('x-jss-request-id') || 'N/A'}` }; }
+        },
+        'QUIC.cloud': {
+            headers: ['x-qc-pop', 'x-qc-cache'], priority: 9,
+            getInfo: (h) => { let pop = 'N/A'; const popHeader = h.get('x-qc-pop'); if (popHeader) { const parts = popHeader.split('-'); if (parts.length >= 3) { pop = parts[2].toUpperCase(); } else { pop = parts.length >= 2 ? parts[1].toUpperCase() : popHeader; } } return { provider: 'QUIC.cloud', cache: h.get('x-qc-cache')?.toUpperCase() || getCacheStatus(h), pop: pop, extra: `POP Str: ${popHeader || 'N/A'}` }; }
+        },
+        'Tencent EdgeOne': {
+            serverHeaders: ['edgeone-pages'], headers: ['x-nws-log-uuid'], priority: 10,
+            getInfo: (h) => { let cache = 'N/A'; const lookup = h.get('x-cache-lookup'); if (lookup) { const firstPart = lookup.split(',')[0].trim(); cache = firstPart.replace('Cache ', '').toUpperCase(); } else { cache = getCacheStatus(h); } return { provider: 'Tencent EdgeOne', cache: cache, pop: 'N/A', extra: `Log-UUID: ${h.get('x-nws-log-uuid') || 'N/A'}` }; }
+        },
         'Cloudflare':{headers:['cf-ray'],serverHeaders:['cloudflare'],priority:10,getInfo:(h)=>({provider:'Cloudflare',cache:h.get('cf-cache-status')?.toUpperCase()||'N/A',pop:h.get('cf-ray')?.slice(-3).toUpperCase()||'N/A',extra:`Ray ID: ${h.get('cf-ray')||'N/A'}`})},
         'AWS CloudFront':{headers:['x-amz-cf-pop','x-amz-cf-id'],priority:9,getInfo:(h)=>({provider:'AWS CloudFront',cache:getCacheStatus(h),pop:(h.get('x-amz-cf-pop')||'N/A').substring(0,3),extra:`CF ID: ${h.get('x-amz-cf-id')||'N/A'}`})},
         'Fastly':{headers:['x-fastly-request-id','x-served-by'],priority:9,getInfo:(h)=>({provider:'Fastly',cache:getCacheStatus(h),pop:h.get('x-served-by')?.split('-').pop()||'N/A',extra:`ReqID: ${h.get('x-fastly-request-id')||'N/A'}`})},
         'Vercel':{headers:['x-vercel-id'],priority:10,getInfo:(h)=>{let pop='N/A';const vercelId=h.get('x-vercel-id');if(vercelId){const regionPart=vercelId.split('::')[0];const match=regionPart.match(/^[a-zA-Z]+/);if(match)pop=match[0].toUpperCase();}return{provider:'Vercel',cache:getCacheStatus(h),pop:pop,extra:`ID: ${h.get('x-vercel-id')||'N/A'}`};}},
     };
     function parseInfo(h) {
-        const lowerCaseHeaders=new Map();for(const[key,value]of h.entries()){lowerCaseHeaders.set(key.toLowerCase(),value);}let detectedProviders=[];for(const[_,cdn]of Object.entries(cdnProviders)){let isMatch=false;if(cdn.headers?.some(header=>lowerCaseHeaders.has(header.toLowerCase())))isMatch=true;if(!isMatch&&cdn.serverHeaders?.some(server=>(lowerCaseHeaders.get('server')||'').toLowerCase().includes(server.toLowerCase())))isMatch=true;if(isMatch)detectedProviders.push({...cdn.getInfo(lowerCaseHeaders),priority:cdn.priority||5});}if(detectedProviders.length>0){detectedProviders.sort((a,b)=>b.priority-a.priority);return detectedProviders[0];}const server=lowerCaseHeaders.get('server');if(server)return{provider:server,cache:getCacheStatus(lowerCaseHeaders),pop:'N/A',extra:'No CDN detected'};return{provider:'Unknown',cache:'N/A',pop:'N/A',extra:'No CDN or Server info'};
+        const lowerCaseHeaders=new Map();for(const[key,value]of h.entries()){lowerCaseHeaders.set(key.toLowerCase(),value);}let detectedProviders=[];for(const[_,cdn]of Object.entries(cdnProviders)){let isMatch=false;if(cdn.customCheck&&cdn.customCheck(lowerCaseHeaders)){isMatch=true;}if(!isMatch&&cdn.headers?.some(header=>lowerCaseHeaders.has(header.toLowerCase())))isMatch=true;if(!isMatch&&cdn.serverHeaders?.some(server=>(lowerCaseHeaders.get('server')||'').toLowerCase().includes(server.toLowerCase())))isMatch=true;if(isMatch)detectedProviders.push({...cdn.getInfo(lowerCaseHeaders),priority:cdn.priority||5});}if(detectedProviders.length>0){detectedProviders.sort((a,b)=>b.priority-a.priority);return detectedProviders[0];}const server=lowerCaseHeaders.get('server');if(server)return{provider:server,cache:getCacheStatus(lowerCaseHeaders),pop:'N/A',extra:'No CDN detected'};return{provider:'Unknown',cache:'N/A',pop:'N/A',extra:'No CDN or Server info'};
     }
 
     // --- UI & Execution Functions (Unchanged) ---
@@ -81,7 +113,7 @@
         const styleEl = document.createElement('style'); styleEl.textContent = getPanelCSS(); shadowRoot.appendChild(styleEl);
         const panel = document.createElement('div'); panel.id = 'cdn-info-panel-enhanced';
         const cacheStatus = info.cache.toUpperCase();
-        const providerLabel = info.provider.includes('CDN') || info.provider.includes('Cloud') || info.provider.includes('EdgeOne') ? 'CDN Provider' : 'Server';
+        const providerLabel = info.provider.includes('CDN') || info.provider.includes('Cloud') || info.provider.includes('Edge') ? 'CDN Provider' : 'Server';
         panel.innerHTML = `
             <button class="close-btn" title="Close">×</button>
             <div class="panel-header">CDN & Server Information</div>
