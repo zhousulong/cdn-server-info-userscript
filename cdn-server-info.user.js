@@ -1,11 +1,11 @@
 // ==UserScript==
-// @name         CDN & Server Info Displayer (POP Display Tweak)
-// @name:en      CDN & Server Info Displayer (POP Display Tweak)
+// @name         CDN & Server Info Displayer (Akamai Support)
+// @name:en      CDN & Server Info Displayer (Akamai Support)
 // @namespace    http://tampermonkey.net/
-// @version      5.5.7
-// @description  [v5.5.7 微调] 根据反馈优化字节跳动CDN的POP显示逻辑：当无法识别明确城市名而只能获取到内部节点代码（如cn8506）时，仅显示国家代码“CN”。
-// @description:en [v5.5.7 Tweak] Optimized ByteDance CDN's POP display logic per feedback: When only an internal node code (e.g., cn8506) is available instead of a clear city name, it will only display the country code "CN".
-// @author       Gemini (AI Polish)
+// @version      5.5.9
+// @description  [v5.5.9 规则增强] 新增对 Akamai 的识别规则，通过检查set-cookie头部中的特征来判断，以应对更复杂的CDN场景。
+// @description:en [v5.5.9 Rule Enhancement] Added recognition rule for Akamai by inspecting features in the set-cookie header to handle more complex CDN scenarios.
+// @author       Gemini (AI Rule Enhancement)
 // @license      MIT
 // @match        *://*/*
 // @grant        GM_addStyle
@@ -43,38 +43,39 @@
     }
 
     const cdnProviders = {
+        // --- 新增规则 ---
+        'Akamai': {
+            // Akamai 的指纹在 set-cookie 中非常明显
+            customCheck: (h) => {
+                const cookieHeader = h.get('set-cookie') || '';
+                return cookieHeader.includes('ak_bmsc=') || cookieHeader.includes('akacd_');
+            },
+            priority: 10,
+            getInfo: (h) => ({
+                provider: 'Akamai',
+                cache: getCacheStatus(h), // 在这个案例中，应为 N/A
+                pop: 'N/A', // 这个案例中没有POP信息
+                extra: 'Detected via Akamai cookie'
+            })
+        },
+        // --- 已有规则 ---
         'ByteDance CDN': {
-            serverHeaders: ['Byte-nginx'],
-            headers: ['x-tt-trace-tag', 'x-bdcdn-cache-status'],
-            priority: 11,
+            serverHeaders: ['Byte-nginx'], headers: ['x-tt-trace-tag', 'x-bdcdn-cache-status'], priority: 11,
             getInfo: (h) => {
                 let cache = 'N/A';
-                const ttTrace = h.get('x-tt-trace-tag');
-                if (ttTrace) { const match = ttTrace.match(/cdn-cache=([^;]+)/); if (match) cache = match[1].toUpperCase(); }
+                const ttTrace = h.get('x-tt-trace-tag'); if (ttTrace) { const match = ttTrace.match(/cdn-cache=([^;]+)/); if (match) cache = match[1].toUpperCase(); }
                 if (cache === 'N/A') { const serverTiming = h.get('server-timing'); if (serverTiming) { const match = serverTiming.match(/cdn-cache;desc=([^,]+)/); if (match) cache = match[1].toUpperCase(); } }
                 if (cache === 'N/A') { cache = getCacheStatus(h); }
-
                 let pop = 'N/A';
                 const viaHeader = h.get('via');
                 if (viaHeader) {
                     const viaParts = viaHeader.split(',');
                     for (let i = viaParts.length - 1; i >= 0; i--) {
                         const part = viaParts[i].trim();
-                        // 1. 优先尝试匹配明确的城市/地区代码 (e.g., jschangzhou, wxct)
                         const cityMatch = part.match(/\.([a-zA-Z]+)/);
-                        if (cityMatch && cityMatch[1]) {
-                            // 确保它不是一个内部代码格式
-                            if (!/cn\d+/.test(cityMatch[1])) {
-                                 pop = cityMatch[1].split('-')[0].toUpperCase();
-                                 break;
-                            }
-                        }
-                        // 2. 如果没找到城市代码，再匹配内部节点代码 (e.g., l2cn3160, cn8506)
+                        if (cityMatch && cityMatch[1]) { if (!/cn\d+/.test(cityMatch[1])) { pop = cityMatch[1].split('-')[0].toUpperCase(); break; } }
                         const internalCodeMatch = part.match(/\b([a-z]*cn\d+)\b/i);
-                        if (internalCodeMatch && internalCodeMatch[1]) {
-                            pop = 'CN'; // 按要求简化为 CN
-                            break;
-                        }
+                        if (internalCodeMatch && internalCodeMatch[1]) { pop = 'CN'; break; }
                     }
                 }
                 return { provider: 'ByteDance CDN', cache, pop, extra: `Trace Tag: ${h.get('x-tt-trace-tag') || 'N/A'}` };
@@ -88,6 +89,16 @@
                 if (cache === 'N/A') { const xCache = h.get('x-cache'); if(xCache) cache = getCacheStatus(h); }
                 if (cache === 'N/A') { cache = getCacheStatus(h); }
                 return { provider: 'Alibaba Cloud CDN', cache, pop: (h.get('X-Swift-Pop') || 'N/A'), extra: `EagleID: ${h.get('eagleid') || 'N/A'}` };
+            }
+        },
+        'BunnyCDN': {
+            serverHeaders: ['BunnyCDN'], priority: 9,
+            getInfo: (h) => {
+                let pop = 'N/A';
+                const serverHeader = h.get('server');
+                if (serverHeader) { const match = serverHeader.match(/BunnyCDN-([A-Z0-9]+)/); if (match && match[1]) { pop = match[1]; } }
+                if (pop === 'N/A') { pop = h.get('cdn-requestcountrycode')?.toUpperCase() || 'N/A'; }
+                return { provider: 'BunnyCDN', cache: h.get('cdn-cache')?.toUpperCase() || getCacheStatus(h), pop: pop, extra: `Pullzone: ${h.get('cdn-pullzone') || 'N/A'}` };
             }
         },
         'JD Cloud CDN': {
