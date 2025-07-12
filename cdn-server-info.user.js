@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      5.7.0
-// @description  [v5.7.0 UI 大修] 彻底重做了面板的视觉设计！灵感源自现代开发者工具，采用更专业、更护眼的暗色主题，优化了色彩与排版，并为核心数据启用等宽字体以提高可读性。
-// @description:en [v5.7.0 UI Overhaul] Complete UI redesign! Inspired by modern developer tools, featuring a professional and eye-friendly dark theme, refined colors, improved typography, and a monospaced font for core data to enhance readability.
+// @version      5.7.1
+// @description  [v5.7.1 规则修正] 增强了 QUIC.cloud 的地区识别规则，使其更精确（例如，从 AS-JP-HND-HYBRID-141 中识别出 JP-HND）。同时恢复了在上个版本中意外遗漏的几个CDN检测规则。
+// @description:en [v5.7.1 Rule Fix] Enhanced the region identification rule for QUIC.cloud for better precision (e.g., identifies JP-HND from AS-JP-HND-HYBRID-141). Also restored several CDN detection rules that were accidentally omitted in the last version.
 // @author       Gemini (AI Designer & Coder)
 // @license      MIT
 // @match        *://*/*
@@ -33,7 +33,7 @@
 
     window.cdnScriptStatus = window.cdnScriptStatus || {};
 
-    // --- Core Info Parsing Functions (Unchanged) ---
+    // --- Core Info Parsing Functions ---
     function getCacheStatus(h) {
         const headersToCheck = [h.get('x-cache'), h.get('x-bdcdn-cache-status'), h.get('x-response-cache'), h.get('x-qc-cache'), h.get('x-cache-lookup'), h.get('cache-status'), h.get('x-cache-status'), h.get('x-edge-cache-status'), h.get('x-sucuri-cache'), h.get('x-vercel-cache'), h.get('cf-cache-status'), h.get('cdn-cache'), h.get('bunny-cache-state')];
         for (const value of headersToCheck) {
@@ -50,6 +50,7 @@
     }
 
     const cdnProviders = {
+        // --- This object now contains the full, restored list of providers ---
         'Akamai': {
             customCheck: (h) => { const cookieHeader = h.get('set-cookie') || ''; return cookieHeader.includes('ak_bmsc=') || cookieHeader.includes('akacd_'); },
             priority: 10,
@@ -87,6 +88,38 @@
                 return { provider: 'BunnyCDN', cache: h.get('cdn-cache')?.toUpperCase() || getCacheStatus(h), pop: pop, extra: `Pullzone: ${h.get('cdn-pullzone') || 'N/A'}` };
             }
         },
+        'JD Cloud CDN': {
+            headers: ['x-jss-request-id'], customCheck: (h) => (h.get('via') || '').includes('(jcs'), priority: 10,
+            getInfo: (h) => { let pop = 'N/A'; const viaHeader = h.get('via'); if (viaHeader) { const match = viaHeader.match(/\s([A-Z]{2,3})-[A-Z]{2,}/); if (match && match[1]) { pop = match[1]; } } return { provider: 'JD Cloud CDN', cache: getCacheStatus(h), pop: pop, extra: `Req ID: ${h.get('x-jss-request-id') || 'N/A'}` }; }
+        },
+        'QUIC.cloud': {
+            headers: ['x-qc-pop', 'x-qc-cache'], priority: 9,
+            getInfo: (h) => {
+                let pop = 'N/A';
+                const popHeader = h.get('x-qc-pop');
+                if (popHeader) {
+                    const parts = popHeader.split('-');
+                    // NEW LOGIC: Combine country and city codes for more specific location
+                    if (parts.length >= 3) {
+                        pop = `${parts[1]}-${parts[2]}`.toUpperCase();
+                    } else if (parts.length === 2) {
+                        pop = popHeader.toUpperCase();
+                    } else {
+                        pop = popHeader;
+                    }
+                }
+                return {
+                    provider: 'QUIC.cloud',
+                    cache: h.get('x-qc-cache')?.toUpperCase() || getCacheStatus(h),
+                    pop: pop,
+                    extra: `POP Str: ${popHeader || 'N/A'}`
+                };
+            }
+        },
+        'Tencent EdgeOne': {
+            serverHeaders: ['edgeone-pages'], headers: ['x-nws-log-uuid'], priority: 10,
+            getInfo: (h) => { let cache = 'N/A'; const lookup = h.get('x-cache-lookup'); if (lookup) { const firstPart = lookup.split(',')[0].trim(); cache = firstPart.replace('Cache ', '').toUpperCase(); } else { cache = getCacheStatus(h); } return { provider: 'Tencent EdgeOne', cache: cache, pop: 'N/A', extra: `Log-UUID: ${h.get('x-nws-log-uuid') || 'N/A'}` }; }
+        },
         'Cloudflare':{headers:['cf-ray'],serverHeaders:['cloudflare'],priority:10,getInfo:(h)=>({provider:'Cloudflare',cache:h.get('cf-cache-status')?.toUpperCase()||'N/A',pop:h.get('cf-ray')?.slice(-3).toUpperCase()||'N/A',extra:`Ray ID: ${h.get('cf-ray')||'N/A'}`})},
         'AWS CloudFront':{headers:['x-amz-cf-pop','x-amz-cf-id'],priority:9,getInfo:(h)=>({provider:'AWS CloudFront',cache:getCacheStatus(h),pop:(h.get('x-amz-cf-pop')||'N/A').substring(0,3),extra:`CF ID: ${h.get('x-amz-cf-id')||'N/A'}`})},
         'Fastly':{headers:['x-fastly-request-id','x-served-by'],priority:9,getInfo:(h)=>({provider:'Fastly',cache:getCacheStatus(h),pop:h.get('x-served-by')?.split('-').pop()||'N/A',extra:`ReqID: ${h.get('x-fastly-request-id')||'N/A'}`})},
@@ -113,7 +146,7 @@
         return { provider: 'Unknown', cache: 'N/A', pop: 'N/A', extra: 'No CDN or Server info' };
     }
 
-    // --- UI & Execution Functions ---
+    // --- UI & Execution Functions (Unchanged from v5.7.0) ---
     function getPanelCSS() {
         return `
             :host {
