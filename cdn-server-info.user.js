@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      5.7.0
-// @description  [v5.7.0 UI 大修] 彻底重做了面板的视觉设计！灵感源自现代开发者工具，采用更专业、更护眼的暗色主题，优化了色彩与排版，并为核心数据启用等宽字体以提高可读性。
-// @description:en [v5.7.0 UI Overhaul] Complete UI redesign! Inspired by modern developer tools, featuring a professional and eye-friendly dark theme, refined colors, improved typography, and a monospaced font for core data to enhance readability.
+// @version      5.7.2
+// @description  [v5.7.2 规则增强] 再次增强腾讯云 EdgeOne 的识别规则，新增对 `eo-` 前缀头（如 eo-cache-status, eo-log-uuid）的检测，以应对更多场景。感谢您的反馈！
+// @description:en [v5.7.2 Rule Enhancement] Further enhanced the detection rule for Tencent Cloud EdgeOne by adding support for `eo-` prefixed headers (e.g., eo-cache-status, eo-log-uuid) to handle more scenarios. Thanks for the feedback!
 // @author       Gemini (AI Designer & Coder)
 // @license      MIT
 // @match        *://*/*
@@ -33,9 +33,24 @@
 
     window.cdnScriptStatus = window.cdnScriptStatus || {};
 
-    // --- Core Info Parsing Functions (Unchanged) ---
+    // --- Core Info Parsing Functions ---
     function getCacheStatus(h) {
-        const headersToCheck = [h.get('x-cache'), h.get('x-bdcdn-cache-status'), h.get('x-response-cache'), h.get('x-qc-cache'), h.get('x-cache-lookup'), h.get('cache-status'), h.get('x-cache-status'), h.get('x-edge-cache-status'), h.get('x-sucuri-cache'), h.get('x-vercel-cache'), h.get('cf-cache-status'), h.get('cdn-cache'), h.get('bunny-cache-state')];
+        const headersToCheck = [
+            h.get('eo-cache-status'), // Prioritize specific headers
+            h.get('x-cache'),
+            h.get('x-bdcdn-cache-status'),
+            h.get('x-response-cache'),
+            h.get('x-qc-cache'),
+            h.get('x-cache-lookup'),
+            h.get('cache-status'),
+            h.get('x-cache-status'),
+            h.get('x-edge-cache-status'),
+            h.get('x-sucuri-cache'),
+            h.get('x-vercel-cache'),
+            h.get('cf-cache-status'),
+            h.get('cdn-cache'),
+            h.get('bunny-cache-state')
+        ];
         for (const value of headersToCheck) {
             if (!value) continue;
             const firstValue = value.split(',')[0].trim();
@@ -54,6 +69,37 @@
             customCheck: (h) => { const cookieHeader = h.get('set-cookie') || ''; return cookieHeader.includes('ak_bmsc=') || cookieHeader.includes('akacd_'); },
             priority: 10,
             getInfo: (h) => ({ provider: 'Akamai', cache: getCacheStatus(h), pop: 'N/A', extra: 'Detected via Akamai cookie' })
+        },
+        'Tencent EdgeOne': {
+            // NEW: Added 'eo-log-uuid' for detection
+            serverHeaders: ['edgeone-pages'],
+            headers: ['x-nws-log-uuid', 'eo-log-uuid'],
+            priority: 10,
+            getInfo: (h) => {
+                let cache = 'N/A';
+                // NEW: Prioritize eo-cache-status for cache info
+                const eoCache = h.get('eo-cache-status');
+                const nwsLookup = h.get('x-cache-lookup');
+
+                if (eoCache) {
+                    cache = eoCache.toUpperCase();
+                } else if (nwsLookup) {
+                    const firstPart = nwsLookup.split(',')[0].trim();
+                    cache = firstPart.replace('Cache ', '').toUpperCase();
+                } else {
+                    cache = getCacheStatus(h);
+                }
+
+                // NEW: Check for either UUID
+                const logUuid = h.get('eo-log-uuid') || h.get('x-nws-log-uuid') || 'N/A';
+
+                return {
+                    provider: 'Tencent EdgeOne',
+                    cache: cache,
+                    pop: 'N/A',
+                    extra: `Log-UUID: ${logUuid}`
+                };
+            }
         },
         'ByteDance CDN': {
             serverHeaders: ['Byte-nginx'], headers: ['x-tt-trace-tag', 'x-bdcdn-cache-status'], priority: 11,
@@ -87,6 +133,28 @@
                 return { provider: 'BunnyCDN', cache: h.get('cdn-cache')?.toUpperCase() || getCacheStatus(h), pop: pop, extra: `Pullzone: ${h.get('cdn-pullzone') || 'N/A'}` };
             }
         },
+        'JD Cloud CDN': {
+            headers: ['x-jss-request-id'], customCheck: (h) => (h.get('via') || '').includes('(jcs'), priority: 10,
+            getInfo: (h) => { let pop = 'N/A'; const viaHeader = h.get('via'); if (viaHeader) { const match = viaHeader.match(/\s([A-Z]{2,3})-[A-Z]{2,}/); if (match && match[1]) { pop = match[1]; } } return { provider: 'JD Cloud CDN', cache: getCacheStatus(h), pop: pop, extra: `Req ID: ${h.get('x-jss-request-id') || 'N/A'}` }; }
+        },
+        'QUIC.cloud': {
+            headers: ['x-qc-pop', 'x-qc-cache'], priority: 9,
+            getInfo: (h) => {
+                let pop = 'N/A';
+                const popHeader = h.get('x-qc-pop');
+                if (popHeader) {
+                    const parts = popHeader.split('-');
+                    if (parts.length >= 3) {
+                        pop = `${parts[1]}-${parts[2]}`.toUpperCase();
+                    } else if (parts.length === 2) {
+                        pop = popHeader.toUpperCase();
+                    } else {
+                        pop = popHeader;
+                    }
+                }
+                return { provider: 'QUIC.cloud', cache: h.get('x-qc-cache')?.toUpperCase() || getCacheStatus(h), pop: pop, extra: `POP Str: ${popHeader || 'N/A'}` };
+            }
+        },
         'Cloudflare':{headers:['cf-ray'],serverHeaders:['cloudflare'],priority:10,getInfo:(h)=>({provider:'Cloudflare',cache:h.get('cf-cache-status')?.toUpperCase()||'N/A',pop:h.get('cf-ray')?.slice(-3).toUpperCase()||'N/A',extra:`Ray ID: ${h.get('cf-ray')||'N/A'}`})},
         'AWS CloudFront':{headers:['x-amz-cf-pop','x-amz-cf-id'],priority:9,getInfo:(h)=>({provider:'AWS CloudFront',cache:getCacheStatus(h),pop:(h.get('x-amz-cf-pop')||'N/A').substring(0,3),extra:`CF ID: ${h.get('x-amz-cf-id')||'N/A'}`})},
         'Fastly':{headers:['x-fastly-request-id','x-served-by'],priority:9,getInfo:(h)=>({provider:'Fastly',cache:getCacheStatus(h),pop:h.get('x-served-by')?.split('-').pop()||'N/A',extra:`ReqID: ${h.get('x-fastly-request-id')||'N/A'}`})},
@@ -113,7 +181,7 @@
         return { provider: 'Unknown', cache: 'N/A', pop: 'N/A', extra: 'No CDN or Server info' };
     }
 
-    // --- UI & Execution Functions ---
+    // --- UI & Execution Functions (Unchanged from v5.7.0) ---
     function getPanelCSS() {
         return `
             :host {
@@ -180,12 +248,11 @@
             .info-value {
                 color: #E4E5E7;
                 font-weight: 600;
-                /* Using a monospace font for data alignment and a professional look */
                 font-family: 'SF Mono', 'Menlo', 'Consolas', 'Liberation Mono', 'Courier New', monospace;
             }
-            .cache-HIT { color: #34D399 !important; /* Tailwind Green 400 */ }
-            .cache-MISS { color: #F472B6 !important; /* Tailwind Pink 400 */ }
-            .cache-BYPASS, .cache-DYNAMIC { color: #A5B4FC !important; /* Tailwind Indigo 300 */ }
+            .cache-HIT { color: #34D399 !important; }
+            .cache-MISS { color: #F472B6 !important; }
+            .cache-BYPASS, .cache-DYNAMIC { color: #A5B4FC !important; }
         `;
     }
 
@@ -194,18 +261,15 @@
         const host = document.createElement('div');
         host.id = 'cdn-info-host-enhanced';
         document.body.appendChild(host);
-
         const shadowRoot = host.attachShadow({ mode: 'open' });
         const styleEl = document.createElement('style');
         styleEl.textContent = getPanelCSS();
         shadowRoot.appendChild(styleEl);
-
         const panel = document.createElement('div');
         panel.id = 'cdn-info-panel-enhanced';
         const cacheStatus = info.cache.toUpperCase();
-        const cacheClass = 'cache-' + cacheStatus.split(' ')[0]; // e.g., cache-HIT
+        const cacheClass = 'cache-' + cacheStatus.split(' ')[0];
         const providerLabel = info.provider.includes('CDN') || info.provider.includes('Cloud') || info.provider.includes('Edge') ? 'CDN Provider' : 'Server';
-
         panel.innerHTML = `
             <button class="close-btn" title="Close">×</button>
             <div class="panel-header">CDN & Server Info</div>
@@ -222,7 +286,6 @@
                 <span class="info-value" title="${info.pop}">${info.pop}</span>
             </div>
         `;
-
         shadowRoot.appendChild(panel);
         shadowRoot.querySelector('.close-btn').addEventListener('click', (e) => {
             e.stopPropagation();
