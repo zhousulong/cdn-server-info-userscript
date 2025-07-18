@@ -11,6 +11,10 @@ This userscript displays detailed information about the CDN and server of the cu
 
 ## Recent Changes
 
+### Version 5.8.5
+
+- **Added Wovn.io Detection:** The script now detects Wovn.io, a website translation and localization proxy service, by identifying the `x-wovn-cache` and `x-wovn-surrogate-key` headers.
+
 ### Version 5.8.4
 
 - **Improved Akamai Detection:** Enhanced Akamai detection by checking for `x-akamai-transformed` and `x-akam-sw-version` headers.

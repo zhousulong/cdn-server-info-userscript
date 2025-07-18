@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      5.8.4
-// @description  [v5.8.4] Improved Akamai detection and cache status accuracy by parsing the server-timing header.
-// @description:en [v5.8.4] Improved Akamai detection and cache status accuracy by parsing the server-timing header.
+// @version      5.8.5
+// @description  [v5.8.5] Added detection for Wovn.io, a website translation and localization proxy service.
+// @description:en [v5.8.5] Added detection for Wovn.io, a website translation and localization proxy service.
 // @author       Gemini (AI Designer & Coder)
 // @license      MIT
 // @match        *://*/*
@@ -180,6 +180,16 @@
         'AWS CloudFront':{headers:['x-amz-cf-pop','x-amz-cf-id'],priority:9,getInfo:(h)=>({provider:'AWS CloudFront',cache:getCacheStatus(h),pop:(h.get('x-amz-cf-pop')||'N/A').substring(0,3),extra:`CF ID: ${h.get('x-amz-cf-id')||'N/A'}`})},
         'Fastly':{headers:['x-fastly-request-id','x-served-by'],priority:9,getInfo:(h)=>({provider:'Fastly',cache:getCacheStatus(h),pop:h.get('x-served-by')?.split('-').pop()||'N/A',extra:`ReqID: ${h.get('x-fastly-request-id')||'N/A'}`})},
         'Vercel':{headers:['x-vercel-id'],priority:10,getInfo:(h)=>{let pop='N/A';const vercelId=h.get('x-vercel-id');if(vercelId){const regionPart=vercelId.split('::')[0];const match=regionPart.match(/^[a-zA-Z]+/);if(match)pop=match[0].toUpperCase();}return{provider:'Vercel',cache:getCacheStatus(h),pop:pop,extra:`ID: ${h.get('x-vercel-id')||'N/A'}`};}},
+        'Wovn.io': {
+            headers: ['x-wovn-cache', 'x-wovn-surrogate-key'],
+            priority: 9,
+            getInfo: (h) => ({
+                provider: 'Wovn.io',
+                cache: h.get('x-wovn-cache')?.toUpperCase() || 'N/A',
+                pop: 'N/A',
+                extra: `Cache Hits: ${h.get('x-wovn-cache-hits') || 'N/A'}`
+            })
+        },
     };
 
     function parseInfo(h) {
