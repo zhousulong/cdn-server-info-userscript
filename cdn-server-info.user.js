@@ -10,7 +10,7 @@
 // @match        *://*/*
 // @downloadURL  https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn-server-info.user.js
 // @updateURL    https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn-server-info.user.js
-// @require      file://C:/Users/ZHIPAI/Documents/GitHub/cdn-server-info-userscript/cdn-headers.js
+// @require      https://raw.githubusercontent.com/shane-zixu/cdn-server-info-userscript/main/cdn-headers.js
 // @grant        GM_addStyle
 // @run-at       document-idle
 // @noframes
