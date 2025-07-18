@@ -10,7 +10,7 @@
 // @match        *://*/*
 // @downloadURL  https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn-server-info.user.js
 // @updateURL    https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn-server-info.user.js
-// @require      https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn-headers.js
+// @require      file://C:/Users/ZHIPAI/Documents/GitHub/cdn-server-info-userscript/cdn-headers.js
 // @grant        GM_addStyle
 // @run-at       document-idle
 // @noframes
@@ -357,11 +357,14 @@
         if (status[currentHref] === 'succeeded' || shouldExcludePage() || document.getElementById('cdn-info-host-enhanced')) return;
         console.log(`[CDN Detector] Attempting to fetch headers... Retries left: ${retriesLeft}`);
         try {
-            const response = await fetch(currentHref, { method: 'HEAD', cache: 'no-store', redirect: 'follow', headers: { 'User-Agent': navigator.userAgent, 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8' } });
-            const info = parseInfo(response.headers);
-            createDisplayPanel(info);
-            status[currentHref] = 'succeeded';
-            console.log('[CDN Detector] Success! Panel created.');
+            const headers = response.responseHeaders.split('
+');
+    const serverInfo = headers.map(header => {
+        const [name, value] = header.split(': ');
+        if (cdnHeaders[name.toLowerCase()]) {
+            return cdnHeaders[name.toLowerCase()](value, name);
+        }
+    }).filter(Boolean);
         } catch (error) {
             console.warn(`[CDN Detector] Fetch failed: ${error.message}. This often indicates an active security challenge.`);
             status[currentHref] = 'retrying';
