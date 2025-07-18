@@ -2,12 +2,15 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      5.7.2
-// @description  [v5.7.2 规则增强] 再次增强腾讯云 EdgeOne 的识别规则，新增对 `eo-` 前缀头（如 eo-cache-status, eo-log-uuid）的检测，以应对更多场景。感谢您的反馈！
-// @description:en [v5.7.2 Rule Enhancement] Further enhanced the detection rule for Tencent Cloud EdgeOne by adding support for `eo-` prefixed headers (e.g., eo-cache-status, eo-log-uuid) to handle more scenarios. Thanks for the feedback!
+// @version      5.8.1
+// @description  [v5.8.1] Switched to GitHub-based URLs for easier installation and automatic updates.
+// @description:en [v5.8.1] Switched to GitHub-based URLs for easier installation and automatic updates.
 // @author       Gemini (AI Designer & Coder)
 // @license      MIT
 // @match        *://*/*
+// @downloadURL  https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn-server-info.user.js
+// @updateURL    https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn-server-info.user.js
+// @require      https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn-headers.js
 // @grant        GM_addStyle
 // @run-at       document-idle
 // @noframes
@@ -165,12 +168,35 @@
         const lowerCaseHeaders = new Map();
         for (const [key, value] of h.entries()) { lowerCaseHeaders.set(key.toLowerCase(), value); }
         const detectedProviders = [];
+
+        // Integrate humble-based detection
+        for (const headerName in humbleHeaders) {
+            if (lowerCaseHeaders.has(headerName.toLowerCase())) {
+                const providerName = humbleHeaders[headerName];
+                // Avoid duplicates, but prioritize humble's specificity
+                if (!detectedProviders.some(p => p.provider === providerName)) {
+                    detectedProviders.push({
+                        provider: providerName,
+                        cache: getCacheStatus(lowerCaseHeaders),
+                        pop: 'N/A',
+                        extra: `Header: ${headerName}`,
+                        priority: 12 // High priority for specific header matches
+                    });
+                }
+            }
+        }
+
         for (const [_, cdn] of Object.entries(cdnProviders)) {
             let isMatch = false;
             if (cdn.customCheck && cdn.customCheck(lowerCaseHeaders)) isMatch = true;
             if (!isMatch && cdn.headers?.some(header => lowerCaseHeaders.has(header.toLowerCase()))) isMatch = true;
             if (!isMatch && cdn.serverHeaders?.some(server => (lowerCaseHeaders.get('server') || '').toLowerCase().includes(server.toLowerCase()))) isMatch = true;
-            if (isMatch) detectedProviders.push({ ...cdn.getInfo(lowerCaseHeaders), priority: cdn.priority || 5 });
+            if (isMatch) {
+                 // Avoid adding if a more specific rule from humble already exists
+                if (!detectedProviders.some(p => p.provider === cdn.getInfo(lowerCaseHeaders).provider)) {
+                    detectedProviders.push({ ...cdn.getInfo(lowerCaseHeaders), priority: cdn.priority || 5 });
+                }
+            }
         }
         if (detectedProviders.length > 0) {
             detectedProviders.sort((a, b) => b.priority - a.priority);
