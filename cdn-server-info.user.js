@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      5.8.1
-// @description  [v5.8.1] Switched to GitHub-based URLs for easier installation and automatic updates.
-// @description:en [v5.8.1] Switched to GitHub-based URLs for easier installation and automatic updates.
+// @version      5.8.2
+// @description  [v5.8.2] Prioritize cloud service information and remove generic server messages for clearer, more accurate server details.
+// @description:en [v5.8.2] Prioritize cloud service information and remove generic server messages for clearer, more accurate server details.
 // @author       Gemini (AI Designer & Coder)
 // @license      MIT
 // @match        *://*/*
@@ -169,23 +169,6 @@
         for (const [key, value] of h.entries()) { lowerCaseHeaders.set(key.toLowerCase(), value); }
         const detectedProviders = [];
 
-        // Integrate humble-based detection
-        for (const headerName in humbleHeaders) {
-            if (lowerCaseHeaders.has(headerName.toLowerCase())) {
-                const providerName = humbleHeaders[headerName];
-                // Avoid duplicates, but prioritize humble's specificity
-                if (!detectedProviders.some(p => p.provider === providerName)) {
-                    detectedProviders.push({
-                        provider: providerName,
-                        cache: getCacheStatus(lowerCaseHeaders),
-                        pop: 'N/A',
-                        extra: `Header: ${headerName}`,
-                        priority: 12 // High priority for specific header matches
-                    });
-                }
-            }
-        }
-
         for (const [_, cdn] of Object.entries(cdnProviders)) {
             let isMatch = false;
             if (cdn.customCheck && cdn.customCheck(lowerCaseHeaders)) isMatch = true;
@@ -204,7 +187,7 @@
         }
         const server = lowerCaseHeaders.get('server');
         if (server) return { provider: server, cache: getCacheStatus(lowerCaseHeaders), pop: 'N/A', extra: 'No CDN detected' };
-        return { provider: 'Unknown', cache: 'N/A', pop: 'N/A', extra: 'No CDN or Server info' };
+        return null;
     }
 
     // --- UI & Execution Functions (Unchanged from v5.7.0) ---
@@ -357,14 +340,15 @@
         if (status[currentHref] === 'succeeded' || shouldExcludePage() || document.getElementById('cdn-info-host-enhanced')) return;
         console.log(`[CDN Detector] Attempting to fetch headers... Retries left: ${retriesLeft}`);
         try {
-            const headers = response.responseHeaders.split('
-');
-    const serverInfo = headers.map(header => {
-        const [name, value] = header.split(': ');
-        if (cdnHeaders[name.toLowerCase()]) {
-            return cdnHeaders[name.toLowerCase()](value, name);
-        }
-    }).filter(Boolean);
+            const response = await fetch(currentHref, { method: 'HEAD', signal: AbortSignal.timeout(config.initial_delay - 500) });
+            const info = parseInfo(response.headers);
+            if (info) {
+                createDisplayPanel(info);
+                status[currentHref] = 'succeeded';
+                console.log('[CDN Detector] Success:', info);
+            } else {
+                throw new Error('No server info found.');
+            }
         } catch (error) {
             console.warn(`[CDN Detector] Fetch failed: ${error.message}. This often indicates an active security challenge.`);
             status[currentHref] = 'retrying';
@@ -377,8 +361,6 @@
             }
         }
     }
-
-    function main() {
         setTimeout(() => runExecution(config.max_retries), config.initial_delay);
         let lastUrl = location.href;
         const observer = new MutationObserver(() => {

@@ -21,7 +21,9 @@ const cdnHeaders = {
         if (value.match(/AliyunOSS/i)) {
             return { provider: 'Alibaba Cloud', cdn: 'Alibaba Cloud OSS' };
         }
-        return { provider: "Generic", cdn: `Generic ${name}` };
+        if (value.includes('Cdn Cache Server')) {
+            return { provider: 'ChinaNet', cdn: 'ChinaNet' };
+        }
     },
     'x-amz-id-2': (value, name) => {
         return { provider: 'Amazon Web Services', cdn: 'Amazon S3' };
@@ -48,9 +50,5 @@ const cdnHeaders = {
         if (value.includes('cloudfront')) {
             return { provider: 'Amazon Web Services', cdn: 'Amazon CloudFront' };
         }
-        if (value.includes('hit') || value.includes('miss')) {
-            return { provider: 'Generic', cdn: 'Varnish Cache' };
-        }
-        return { provider: "Generic", cdn: `Generic ${name}` };
     },
 };
