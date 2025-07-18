@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      5.8.2
-// @description  [v5.8.2] Prioritize cloud service information and remove generic server messages for clearer, more accurate server details.
-// @description:en [v5.8.2] Prioritize cloud service information and remove generic server messages for clearer, more accurate server details.
+// @version      5.8.3
+// @description  [v5.8.3] Fixed a critical syntax error that prevented the script from running.
+// @description:en [v5.8.3] Fixed a critical syntax error that prevented the script from running.
 // @author       Gemini (AI Designer & Coder)
 // @license      MIT
 // @match        *://*/*
@@ -361,6 +361,8 @@
             }
         }
     }
+
+    function main() {
         setTimeout(() => runExecution(config.max_retries), config.initial_delay);
         let lastUrl = location.href;
         const observer = new MutationObserver(() => {

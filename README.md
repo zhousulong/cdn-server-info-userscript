@@ -11,6 +11,10 @@ This userscript displays detailed information about the CDN and server of the cu
 
 ## Recent Changes
 
+### Version 5.8.3
+
+- **Bug Fix:** Fixed a critical syntax error that prevented the script from running.
+
 ### Version 5.8.2
 
 - **Enhanced Server Information:** Prioritizes cloud service details and removes generic messages for more accurate server identification.
