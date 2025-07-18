@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      5.8.3
-// @description  [v5.8.3] Fixed a critical syntax error that prevented the script from running.
-// @description:en [v5.8.3] Fixed a critical syntax error that prevented the script from running.
+// @version      5.8.4
+// @description  [v5.8.4] Improved Akamai detection and cache status accuracy by parsing the server-timing header.
+// @description:en [v5.8.4] Improved Akamai detection and cache status accuracy by parsing the server-timing header.
 // @author       Gemini (AI Designer & Coder)
 // @license      MIT
 // @match        *://*/*
@@ -38,6 +38,13 @@
 
     // --- Core Info Parsing Functions ---
     function getCacheStatus(h) {
+        // 1. Check server-timing first as it's often the most accurate
+        const serverTiming = h.get('server-timing');
+        if (serverTiming) {
+            if (serverTiming.includes('cdn-cache; desc=HIT')) return 'HIT';
+            if (serverTiming.includes('cdn-cache; desc=MISS')) return 'MISS';
+        }
+
         const headersToCheck = [
             h.get('eo-cache-status'), // Prioritize specific headers
             h.get('x-cache'),
@@ -69,9 +76,20 @@
 
     const cdnProviders = {
         'Akamai': {
+            headers: ['x-akamai-transformed', 'x-akam-sw-version'],
             customCheck: (h) => { const cookieHeader = h.get('set-cookie') || ''; return cookieHeader.includes('ak_bmsc=') || cookieHeader.includes('akacd_'); },
             priority: 10,
-            getInfo: (h) => ({ provider: 'Akamai', cache: getCacheStatus(h), pop: 'N/A', extra: 'Detected via Akamai cookie' })
+            getInfo: (h) => {
+                let pop = 'N/A';
+                const servedBy = h.get('x-served-by');
+                if (servedBy) {
+                    const match = servedBy.match(/cache-([a-z0-9]+)-/i);
+                    if (match && match[1]) {
+                        pop = match[1].toUpperCase();
+                    }
+                }
+                return { provider: 'Akamai', cache: getCacheStatus(h), pop: pop, extra: 'Detected via Akamai header/cookie' };
+            }
         },
         'Tencent EdgeOne': {
             // NEW: Added 'eo-log-uuid' for detection

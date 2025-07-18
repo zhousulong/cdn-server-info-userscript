@@ -11,6 +11,12 @@ This userscript displays detailed information about the CDN and server of the cu
 
 ## Recent Changes
 
+### Version 5.8.4
+
+- **Improved Akamai Detection:** Enhanced Akamai detection by checking for `x-akamai-transformed` and `x-akam-sw-version` headers.
+- **Accurate Cache Status:** The script now correctly parses the `server-timing` header to determine the cache status, ensuring greater accuracy.
+- **POP Location from `x-served-by`:** The POP location for Akamai is now extracted from the `x-served-by` header.
+
 ### Version 5.8.3
 
 - **Bug Fix:** Fixed a critical syntax error that prevented the script from running.
