@@ -48,3 +48,12 @@
 ### v5.7.2 规则增强
 - 再次增强腾讯云 EdgeOne 的识别规则
 - 新增对 `eo-` 前缀头（如 eo-cache-status, eo-log-uuid）的检测
+
+## 安装
+
+1. 安装用户脚本管理器，如[Tampermonkey](https://www.tampermonkey.net/)或[Greasemonkey](https://www.greasespot.net/)。
+2. 点击[这里](https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn-server-info.user.js)安装脚本。
+
+## 使用方法
+
+安装后，脚本会自动在大多数网页的右下角显示一个小面板，显示检测到的CDN和服务器信息。

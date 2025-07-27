@@ -2,12 +2,14 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      5.8.0
-// @description  [v5.8.0 Enhancement] Modularized CDN detection rules and added settings panel for customization. Enhanced UI with dark/light theme support.
-// @description:en [v5.8.0 Enhancement] Modularized CDN detection rules and added settings panel for customization. Enhanced UI with dark/light theme support.
+// @version      5.8.5
+// @description  [v5.8.5 Enhancement] Added detection for Wovn.io, a website translation and localization proxy service. Also added settings panel for customization and enhanced UI with dark/light theme support.
+// @description:en [v5.8.5 Enhancement] Added detection for Wovn.io, a website translation and localization proxy service. Also added settings panel for customization and enhanced UI with dark/light theme support.
 // @author       Gemini (AI Designer & Coder)
 // @license      MIT
 // @match        *://*/*
+// @downloadURL  https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn-server-info.user.js
+// @updateURL    https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn-server-info.user.js
 // @grant        GM_addStyle
 // @grant        GM_getValue
 // @grant        GM_setValue
@@ -47,6 +49,13 @@
 
     // --- Core Info Parsing Functions ---
     function getCacheStatus(h) {
+        // 1. Check server-timing first as it's often the most accurate
+        const serverTiming = h.get('server-timing');
+        if (serverTiming) {
+            if (serverTiming.includes('cdn-cache; desc=HIT')) return 'HIT';
+            if (serverTiming.includes('cdn-cache; desc=MISS')) return 'MISS';
+        }
+
         const headersToCheck = [
             h.get('eo-cache-status'), // Prioritize specific headers
             h.get('x-cache'),
@@ -78,18 +87,29 @@
 
     // CDN Providers Configuration
     const cdnProviders = {
-        Akamai: {
-            customCheck: (h) => {
-                const cookieHeader = h.get('set-cookie') || '';
-                return cookieHeader.includes('ak_bmsc=') || cookieHeader.includes('akacd_');
+        'Akamai': {
+            headers: ['x-akamai-transformed', 'x-akam-sw-version'],
+            customCheck: (h) => { 
+                const cookieHeader = h.get('set-cookie') || ''; 
+                return cookieHeader.includes('ak_bmsc=') || cookieHeader.includes('akacd_'); 
             },
             priority: 10,
-            getInfo: (h) => ({
-                provider: 'Akamai',
-                cache: getCacheStatus(h),
-                pop: 'N/A',
-                extra: 'Detected via Akamai cookie',
-            }),
+            getInfo: (h) => {
+                let pop = 'N/A';
+                const servedBy = h.get('x-served-by');
+                if (servedBy) {
+                    const match = servedBy.match(/cache-([a-z0-9]+)-/i);
+                    if (match && match[1]) {
+                        pop = match[1].toUpperCase();
+                    }
+                }
+                return { 
+                    provider: 'Akamai', 
+                    cache: getCacheStatus(h), 
+                    pop: pop, 
+                    extra: 'Detected via Akamai header/cookie' 
+                };
+            }
         },
         'Tencent EdgeOne': {
             // NEW: Added 'eo-log-uuid' for detection
@@ -315,6 +335,20 @@
                 };
             },
         },
+        'Cloudflare':{headers:['cf-ray'],serverHeaders:['cloudflare'],priority:10,getInfo:(h)=>({provider:'Cloudflare',cache:h.get('cf-cache-status')?.toUpperCase()||'N/A',pop:h.get('cf-ray')?.slice(-3).toUpperCase()||'N/A',extra:`Ray ID: ${h.get('cf-ray')||'N/A'}`})},
+        'AWS CloudFront':{headers:['x-amz-cf-pop','x-amz-cf-id'],priority:9,getInfo:(h)=>({provider:'AWS CloudFront',cache:getCacheStatus(h),pop:(h.get('x-amz-cf-pop')||'N/A').substring(0,3),extra:`CF ID: ${h.get('x-amz-cf-id')||'N/A'}`})},
+        'Fastly':{headers:['x-fastly-request-id','x-served-by'],priority:9,getInfo:(h)=>({provider:'Fastly',cache:getCacheStatus(h),pop:h.get('x-served-by')?.split('-').pop()||'N/A',extra:`ReqID: ${h.get('x-fastly-request-id')||'N/A'}`})},
+        'Vercel':{headers:['x-vercel-id'],priority:10,getInfo:(h)=>{let pop='N/A';const vercelId=h.get('x-vercel-id');if(vercelId){const regionPart=vercelId.split('::')[0];const match=regionPart.match(/^[a-zA-Z]+/);if(match)pop=match[0].toUpperCase();}return{provider:'Vercel',cache:getCacheStatus(h),pop:pop,extra:`ID: ${h.get('x-vercel-id')||'N/A'}`};}},
+        'Wovn.io': {
+            headers: ['x-wovn-cache', 'x-wovn-surrogate-key'],
+            priority: 9,
+            getInfo: (h) => ({
+                provider: 'Wovn.io',
+                cache: h.get('x-wovn-cache')?.toUpperCase() || 'N/A',
+                pop: 'N/A',
+                extra: `Cache Hits: ${h.get('x-wovn-cache-hits') || 'N/A'}`
+            })
+        },
     };
 
     function parseInfo(h) {
@@ -323,6 +357,7 @@
             lowerCaseHeaders.set(key.toLowerCase(), value);
         }
         const detectedProviders = [];
+
         for (const [_, cdn] of Object.entries(cdnProviders)) {
             let isMatch = false;
             if (cdn.customCheck && cdn.customCheck(lowerCaseHeaders)) isMatch = true;
@@ -340,25 +375,23 @@
                 )
             )
                 isMatch = true;
-            if (isMatch)
-                detectedProviders.push({
-                    ...cdn.getInfo(lowerCaseHeaders),
-                    priority: cdn.priority || 5,
-                });
+            if (isMatch) {
+                // Avoid adding if a more specific rule from humble already exists
+                if (!detectedProviders.some(p => p.provider === cdn.getInfo(lowerCaseHeaders).provider)) {
+                    detectedProviders.push({
+                        ...cdn.getInfo(lowerCaseHeaders),
+                        priority: cdn.priority || 5,
+                    });
+                }
+            }
         }
         if (detectedProviders.length > 0) {
             detectedProviders.sort((a, b) => b.priority - a.priority);
             return detectedProviders[0];
         }
         const server = lowerCaseHeaders.get('server');
-        if (server)
-            return {
-                provider: server,
-                cache: getCacheStatus(lowerCaseHeaders),
-                pop: 'N/A',
-                extra: 'No CDN detected',
-            };
-        return { provider: 'Unknown', cache: 'N/A', pop: 'N/A', extra: 'No CDN or Server info' };
+        if (server) return { provider: server, cache: getCacheStatus(lowerCaseHeaders), pop: 'N/A', extra: 'No CDN detected' };
+        return null;
     }
 
     // --- UI & Execution Functions ---
@@ -723,9 +756,13 @@
                 },
             });
             const info = parseInfo(response.headers);
-            createDisplayPanel(info);
-            status[currentHref] = 'succeeded';
-            console.log('[CDN Detector] Success! Panel created.');
+            if (info) {
+                createDisplayPanel(info);
+                status[currentHref] = 'succeeded';
+                console.log('[CDN Detector] Success:', info);
+            } else {
+                throw new Error('No server info found.');
+            }
         } catch (error) {
             console.warn(
                 `[CDN Detector] Fetch failed: ${error.message}. This often indicates an active security challenge.`
