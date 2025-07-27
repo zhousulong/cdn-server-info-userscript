@@ -1,5 +1,5 @@
 const cdnHeaders = {
-    'server': (value, name) => {
+    server: (value, name) => {
         if (value.includes('cloudflare')) {
             return { provider: 'Cloudflare', cdn: 'Cloudflare' };
         }

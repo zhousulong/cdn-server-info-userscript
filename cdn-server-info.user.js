@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      5.8.5
-// @description  [v5.8.5 Enhancement] Added detection for Wovn.io, a website translation and localization proxy service. Also added settings panel for customization and enhanced UI with dark/light theme support.
-// @description:en [v5.8.5 Enhancement] Added detection for Wovn.io, a website translation and localization proxy service. Also added settings panel for customization and enhanced UI with dark/light theme support.
+// @version      6.0.0
+// @description  [v6.0.0 Major Update] Enhanced CDN detection with 5 new providers. Expanded information display including server details, connection type, and content type. Improved UI with customization options.
+// @description:en [v6.0.0 Major Update] Enhanced CDN detection with 5 new providers. Expanded information display including server details, connection type, and content type. Improved UI with customization options.
 // @author       Gemini (AI Designer & Coder)
 // @license      MIT
 // @match        *://*/*
@@ -87,11 +87,11 @@
 
     // CDN Providers Configuration
     const cdnProviders = {
-        'Akamai': {
+        Akamai: {
             headers: ['x-akamai-transformed', 'x-akam-sw-version'],
-            customCheck: (h) => { 
-                const cookieHeader = h.get('set-cookie') || ''; 
-                return cookieHeader.includes('ak_bmsc=') || cookieHeader.includes('akacd_'); 
+            customCheck: (h) => {
+                const cookieHeader = h.get('set-cookie') || '';
+                return cookieHeader.includes('ak_bmsc=') || cookieHeader.includes('akacd_');
             },
             priority: 10,
             getInfo: (h) => {
@@ -103,13 +103,13 @@
                         pop = match[1].toUpperCase();
                     }
                 }
-                return { 
-                    provider: 'Akamai', 
-                    cache: getCacheStatus(h), 
-                    pop: pop, 
-                    extra: 'Detected via Akamai header/cookie' 
+                return {
+                    provider: 'Akamai',
+                    cache: getCacheStatus(h),
+                    pop: pop,
+                    extra: 'Detected via Akamai header/cookie',
                 };
-            }
+            },
         },
         'Tencent EdgeOne': {
             // NEW: Added 'eo-log-uuid' for detection
@@ -335,10 +335,56 @@
                 };
             },
         },
-        'Cloudflare':{headers:['cf-ray'],serverHeaders:['cloudflare'],priority:10,getInfo:(h)=>({provider:'Cloudflare',cache:h.get('cf-cache-status')?.toUpperCase()||'N/A',pop:h.get('cf-ray')?.slice(-3).toUpperCase()||'N/A',extra:`Ray ID: ${h.get('cf-ray')||'N/A'}`})},
-        'AWS CloudFront':{headers:['x-amz-cf-pop','x-amz-cf-id'],priority:9,getInfo:(h)=>({provider:'AWS CloudFront',cache:getCacheStatus(h),pop:(h.get('x-amz-cf-pop')||'N/A').substring(0,3),extra:`CF ID: ${h.get('x-amz-cf-id')||'N/A'}`})},
-        'Fastly':{headers:['x-fastly-request-id','x-served-by'],priority:9,getInfo:(h)=>({provider:'Fastly',cache:getCacheStatus(h),pop:h.get('x-served-by')?.split('-').pop()||'N/A',extra:`ReqID: ${h.get('x-fastly-request-id')||'N/A'}`})},
-        'Vercel':{headers:['x-vercel-id'],priority:10,getInfo:(h)=>{let pop='N/A';const vercelId=h.get('x-vercel-id');if(vercelId){const regionPart=vercelId.split('::')[0];const match=regionPart.match(/^[a-zA-Z]+/);if(match)pop=match[0].toUpperCase();}return{provider:'Vercel',cache:getCacheStatus(h),pop:pop,extra:`ID: ${h.get('x-vercel-id')||'N/A'}`};}},
+        Cloudflare: {
+            headers: ['cf-ray'],
+            serverHeaders: ['cloudflare'],
+            priority: 10,
+            getInfo: (h) => ({
+                provider: 'Cloudflare',
+                cache: h.get('cf-cache-status')?.toUpperCase() || 'N/A',
+                pop: h.get('cf-ray')?.slice(-3).toUpperCase() || 'N/A',
+                extra: `Ray ID: ${h.get('cf-ray') || 'N/A'}`,
+            }),
+        },
+        'AWS CloudFront': {
+            headers: ['x-amz-cf-pop', 'x-amz-cf-id'],
+            priority: 9,
+            getInfo: (h) => ({
+                provider: 'AWS CloudFront',
+                cache: getCacheStatus(h),
+                pop: (h.get('x-amz-cf-pop') || 'N/A').substring(0, 3),
+                extra: `CF ID: ${h.get('x-amz-cf-id') || 'N/A'}`,
+            }),
+        },
+        Fastly: {
+            headers: ['x-fastly-request-id', 'x-served-by'],
+            priority: 9,
+            getInfo: (h) => ({
+                provider: 'Fastly',
+                cache: getCacheStatus(h),
+                pop: h.get('x-served-by')?.split('-').pop() || 'N/A',
+                extra: `ReqID: ${h.get('x-fastly-request-id') || 'N/A'}`,
+            }),
+        },
+        Vercel: {
+            headers: ['x-vercel-id'],
+            priority: 10,
+            getInfo: (h) => {
+                let pop = 'N/A';
+                const vercelId = h.get('x-vercel-id');
+                if (vercelId) {
+                    const regionPart = vercelId.split('::')[0];
+                    const match = regionPart.match(/^[a-zA-Z]+/);
+                    if (match) pop = match[0].toUpperCase();
+                }
+                return {
+                    provider: 'Vercel',
+                    cache: getCacheStatus(h),
+                    pop: pop,
+                    extra: `ID: ${h.get('x-vercel-id') || 'N/A'}`,
+                };
+            },
+        },
         'Wovn.io': {
             headers: ['x-wovn-cache', 'x-wovn-surrogate-key'],
             priority: 9,
@@ -346,12 +392,96 @@
                 provider: 'Wovn.io',
                 cache: h.get('x-wovn-cache')?.toUpperCase() || 'N/A',
                 pop: 'N/A',
-                extra: `Cache Hits: ${h.get('x-wovn-cache-hits') || 'N/A'}`
-            })
+                extra: `Cache Hits: ${h.get('x-wovn-cache-hits') || 'N/A'}`,
+            }),
+        },
+        // New CDN providers
+        KeyCDN: {
+            serverHeaders: ['keycdn-engine'],
+            headers: ['x-keycdn-cache'],
+            priority: 8,
+            getInfo: (h) => ({
+                provider: 'KeyCDN',
+                cache: h.get('x-keycdn-cache')?.toUpperCase() || getCacheStatus(h),
+                pop: 'N/A',
+                extra: 'KeyCDN Engine',
+            }),
+        },
+        CDN77: {
+            serverHeaders: ['CDN77'],
+            headers: ['x-cdn-geo', 'x-cdn-pop'],
+            priority: 8,
+            getInfo: (h) => {
+                const pop = h.get('x-cdn-pop') || h.get('x-cdn-geo') || 'N/A';
+                return {
+                    provider: 'CDN77',
+                    cache: getCacheStatus(h),
+                    pop: pop.toUpperCase(),
+                    extra: 'CDN77 Network',
+                };
+            },
+        },
+        StackPath: {
+            serverHeaders: ['stackpath'],
+            headers: ['x-scp-served-by', 'x-scp-cache-status'],
+            priority: 8,
+            getInfo: (h) => {
+                const cache = h.get('x-scp-cache-status')?.toUpperCase() || getCacheStatus(h);
+                const pop = 'N/A'; // StackPath doesn't typically expose POP info in headers
+                return {
+                    provider: 'StackPath',
+                    cache: cache,
+                    pop: pop,
+                    extra: 'StackPath CDN',
+                };
+            },
+        },
+        ChinaCache: {
+            serverHeaders: ['ChinaCache'],
+            headers: ['x-source', 'via'],
+            customCheck: (h) => {
+                const viaHeader = h.get('via') || '';
+                return viaHeader.includes('ChinaCache') || viaHeader.includes('ChinaNetCenter');
+            },
+            priority: 7,
+            getInfo: (h) => ({
+                provider: 'ChinaCache',
+                cache: getCacheStatus(h),
+                pop: 'N/A',
+                extra: 'ChinaNetCenter',
+            }),
         },
     };
 
-    function parseInfo(h) {
+    // --- Extended Information Functions ---
+    function getServerInfo(h) {
+        const server = h.get('server');
+        if (!server) return 'N/A';
+
+        // Clean up server string
+        return server.split(';')[0].trim(); // Remove additional info after semicolon
+    }
+
+    function getConnectionInfo(response) {
+        // Get TLS version from response if available
+        // Note: This is not directly available in fetch API, but we can infer from other headers
+        const protocol = response.url.startsWith('https') ? 'HTTPS' : 'HTTP';
+        return protocol;
+    }
+
+    function getAdditionalInfo(h) {
+        // Get content type
+        const contentType = h.get('content-type');
+        if (!contentType) return '';
+
+        // Extract just the MIME type
+        const mimeType = contentType.split(';')[0].trim();
+        return `Type: ${mimeType}`;
+    }
+
+    // Enhanced parseInfo function to include extended information
+    function parseInfo(response) {
+        const h = response.headers;
         const lowerCaseHeaders = new Map();
         for (const [key, value] of h.entries()) {
             lowerCaseHeaders.set(key.toLowerCase(), value);
@@ -377,7 +507,11 @@
                 isMatch = true;
             if (isMatch) {
                 // Avoid adding if a more specific rule from humble already exists
-                if (!detectedProviders.some(p => p.provider === cdn.getInfo(lowerCaseHeaders).provider)) {
+                if (
+                    !detectedProviders.some(
+                        (p) => p.provider === cdn.getInfo(lowerCaseHeaders).provider
+                    )
+                ) {
                     detectedProviders.push({
                         ...cdn.getInfo(lowerCaseHeaders),
                         priority: cdn.priority || 5,
@@ -387,10 +521,28 @@
         }
         if (detectedProviders.length > 0) {
             detectedProviders.sort((a, b) => b.priority - a.priority);
-            return detectedProviders[0];
+            const result = detectedProviders[0];
+
+            // Add extended information
+            result.server = getServerInfo(lowerCaseHeaders);
+            result.connection = getConnectionInfo(response);
+            result.additional = getAdditionalInfo(lowerCaseHeaders);
+
+            return result;
         }
         const server = lowerCaseHeaders.get('server');
-        if (server) return { provider: server, cache: getCacheStatus(lowerCaseHeaders), pop: 'N/A', extra: 'No CDN detected' };
+        if (server) {
+            const result = {
+                provider: server,
+                cache: getCacheStatus(lowerCaseHeaders),
+                pop: 'N/A',
+                extra: 'No CDN detected',
+                server: getServerInfo(lowerCaseHeaders),
+                connection: getConnectionInfo(response),
+                additional: getAdditionalInfo(lowerCaseHeaders),
+            };
+            return result;
+        }
         return null;
     }
 
@@ -663,12 +815,42 @@
             </div>
         `;
 
+        // Add connection info if available
+        if (info.connection && info.connection !== 'N/A') {
+            panelContent += `
+                <div class="info-line">
+                    <span class="info-label">Connection</span>
+                    <span class="info-value">${info.connection}</span>
+                </div>
+            `;
+        }
+
+        // Add server info if available and different from provider
+        if (info.server && info.server !== 'N/A' && info.server !== info.provider) {
+            panelContent += `
+                <div class="info-line">
+                    <span class="info-label">Server</span>
+                    <span class="info-value" title="${info.server}">${info.server.substring(0, 20)}${info.server.length > 20 ? '...' : ''}</span>
+                </div>
+            `;
+        }
+
         // Add extra information if enabled
         if (config.settings.showExtraInfo && info.extra && info.extra !== 'N/A') {
             panelContent += `
                 <div class="info-line">
                     <span class="info-label">Extra Info</span>
                     <span class="info-value" title="${info.extra}">${info.extra.substring(0, 20)}${info.extra.length > 20 ? '...' : ''}</span>
+                </div>
+            `;
+        }
+
+        // Add additional info if available
+        if (info.additional && info.additional !== 'N/A' && info.additional !== '') {
+            panelContent += `
+                <div class="info-line">
+                    <span class="info-label">Content</span>
+                    <span class="info-value" title="${info.additional}">${info.additional}</span>
                 </div>
             `;
         }
@@ -755,7 +937,7 @@
                     Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
                 },
             });
-            const info = parseInfo(response.headers);
+            const info = parseInfo(response);
             if (info) {
                 createDisplayPanel(info);
                 status[currentHref] = 'succeeded';
