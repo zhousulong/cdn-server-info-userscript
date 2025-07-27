@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      6.0.0
-// @description  [v6.0.0 Major Update] Enhanced CDN detection with 5 new providers. Expanded information display including server details, connection type, and content type. Improved UI with customization options.
-// @description:en [v6.0.0 Major Update] Enhanced CDN detection with 5 new providers. Expanded information display including server details, connection type, and content type. Improved UI with customization options.
+// @version      6.1.0
+// @description  [v6.1.0 UI Redesign] Redesigned with iOS-style glass effect UI. Simplified information display for better mobile experience. Enhanced CDN detection with 5 new providers.
+// @description:en [v6.1.0 UI Redesign] Redesigned with iOS-style glass effect UI. Simplified information display for better mobile experience. Enhanced CDN detection with 5 new providers.
 // @author       Gemini (AI Designer & Coder)
 // @license      MIT
 // @match        *://*/*
@@ -549,13 +549,14 @@
     // --- UI & Execution Functions ---
     function getPanelCSS() {
         const isDarkTheme = config.settings.theme === 'dark';
-        const bgColor = isDarkTheme ? '#1A1B1E' : '#FFFFFF';
-        const borderColor = isDarkTheme ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
-        const textColor = isDarkTheme ? '#E4E5E7' : '#333333';
-        const labelColor = isDarkTheme ? '#8E8F91' : '#666666';
-        const hoverBg = isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)';
-        const closeBtnColor = isDarkTheme ? '#6c6d6f' : '#999999';
-        const closeBtnHover = isDarkTheme ? '#fff' : '#000';
+        const bgColor = isDarkTheme ? 'rgba(25, 25, 25, 0.7)' : 'rgba(255, 255, 255, 0.7)';
+        const borderColor = isDarkTheme ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.15)';
+        const textColor = isDarkTheme ? '#ffffff' : '#000000';
+        const labelColor = isDarkTheme ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)';
+        const backdropFilter = 'blur(20px)'; // iOS-style blur effect
+        const boxShadow = isDarkTheme
+            ? '0 10px 30px rgba(0, 0, 0, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.1)'
+            : '0 10px 30px rgba(0, 0, 0, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.5)';
 
         return `
             :host {
@@ -567,65 +568,85 @@
             }
             #cdn-info-panel-enhanced {
                 position: relative;
-                min-width: 240px;
-                padding: 14px 20px;
-                border-radius: 12px;
+                min-width: 220px;
+                max-width: 280px;
+                padding: 16px;
+                border-radius: 20px;
                 background-color: ${bgColor};
                 border: 1px solid ${borderColor};
-                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+                box-shadow: ${boxShadow};
+                backdrop-filter: ${backdropFilter};
+                -webkit-backdrop-filter: ${backdropFilter};
                 cursor: move;
                 user-select: none;
                 transition: transform 0.2s ease, box-shadow 0.2s ease;
             }
             #cdn-info-panel-enhanced:hover {
-                transform: translateY(-4px);
-                box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+                transform: translateY(-2px);
+                box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
             }
             .close-btn {
-                position: absolute; top: 6px; right: 6px;
-                width: 20px; height: 20px;
+                position: absolute; 
+                top: 10px; 
+                right: 10px;
+                width: 24px; 
+                height: 24px;
                 border-radius: 50%;
                 background: transparent;
-                color: ${closeBtnColor};
-                border: none; cursor: pointer;
-                font-size: 14px;
-                line-height: 20px;
-                display: flex; align-items: center; justify-content: center;
+                color: ${labelColor};
+                border: none; 
+                cursor: pointer;
+                font-size: 18px;
+                line-height: 24px;
+                display: flex; 
+                align-items: center; 
+                justify-content: center;
                 transition: all 0.2s;
                 z-index: 2;
             }
-            .close-btn:hover { background: ${hoverBg}; color: ${closeBtnHover}; }
+            .close-btn:hover { 
+                background: ${isDarkTheme ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)'}; 
+                color: ${textColor}; 
+            }
             .panel-header {
-                font-size: 11px;
+                font-size: 13px;
                 font-weight: 600;
                 color: ${labelColor};
                 text-align: center;
-                margin-bottom: 12px;
-                padding-bottom: 8px;
+                margin-bottom: 14px;
+                padding-bottom: 10px;
                 border-bottom: 1px solid ${borderColor};
                 text-transform: uppercase;
-                letter-spacing: 0.05em;
+                letter-spacing: 0.5px;
             }
             .info-line {
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-                margin-bottom: 10px;
-                font-size: 13px;
+                margin-bottom: 12px;
+                font-size: 14px;
             }
             .info-line:last-child { margin-bottom: 0; }
             .info-label {
                 color: ${labelColor};
                 font-weight: 500;
+                flex: 1;
+                overflow: hidden;
+                text-overflow: ellipsis;
             }
             .info-value {
                 color: ${textColor};
                 font-weight: 600;
-                font-family: 'SF Mono', 'Menlo', 'Consolas', 'Liberation Mono', 'Courier New', monospace;
+                text-align: right;
+                flex: 1;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                font-family: -apple-system, BlinkMacSystemFont, 'SF Mono', 'Menlo', 'Consolas', 'Liberation Mono', 'Courier New', monospace;
             }
-            .cache-HIT { color: #34D399 !important; }
-            .cache-MISS { color: #F472B6 !important; }
-            .cache-BYPASS, .cache-DYNAMIC { color: #A5B4FC !important; }
+            .cache-HIT { color: #34C759 !important; }
+            .cache-MISS { color: #FF2D55 !important; }
+            .cache-BYPASS, .cache-DYNAMIC { color: #0A84FF !important; }
             
             /* Settings panel styles */
             #settings-panel {
@@ -635,10 +656,12 @@
                 transform: translate(-50%, -50%);
                 width: 300px;
                 padding: 20px;
-                border-radius: 12px;
+                border-radius: 20px;
                 background-color: ${bgColor};
                 border: 1px solid ${borderColor};
-                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+                box-shadow: ${boxShadow};
+                backdrop-filter: ${backdropFilter};
+                -webkit-backdrop-filter: ${backdropFilter};
                 z-index: 2147483648;
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             }
@@ -646,38 +669,46 @@
                 margin-top: 0;
                 color: ${textColor};
                 text-align: center;
+                font-size: 18px;
+                font-weight: 600;
             }
             .setting-item {
-                margin-bottom: 15px;
+                margin-bottom: 18px;
             }
             .setting-item label {
                 display: block;
-                margin-bottom: 5px;
+                margin-bottom: 6px;
                 color: ${labelColor};
                 font-weight: 500;
+                font-size: 14px;
             }
             .setting-item select, .setting-item input {
                 width: 100%;
-                padding: 8px;
-                border-radius: 6px;
+                padding: 10px 12px;
+                border-radius: 12px;
                 border: 1px solid ${borderColor};
-                background-color: ${bgColor};
+                background-color: ${isDarkTheme ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.5)'};
                 color: ${textColor};
+                font-size: 14px;
+                box-sizing: border-box;
             }
             .setting-buttons {
                 display: flex;
                 justify-content: space-between;
-                margin-top: 20px;
+                margin-top: 25px;
             }
             .setting-btn {
-                padding: 8px 16px;
-                border-radius: 6px;
+                padding: 10px 20px;
+                border-radius: 12px;
                 border: none;
                 cursor: pointer;
-                font-weight: 500;
+                font-weight: 600;
+                font-size: 15px;
+                flex: 1;
+                margin: 0 5px;
             }
             .save-btn {
-                background-color: #4F46E5;
+                background-color: #0A84FF;
                 color: white;
             }
             .cancel-btn {
@@ -794,63 +825,29 @@
             info.provider.includes('CDN') ||
             info.provider.includes('Cloud') ||
             info.provider.includes('Edge')
-                ? 'CDN Provider'
+                ? 'CDN'
                 : 'Server';
 
-        // Build panel content
+        // Build panel content - keep it concise
         let panelContent = `
             <button class="close-btn" title="Close">×</button>
             <div class="panel-header">CDN & Server Info</div>
             <div class="info-line">
                 <span class="info-label">${providerLabel}</span>
-                <span class="info-value" title="${info.provider}">${info.provider}</span>
+                <span class="info-value" title="${info.provider}">${info.provider.length > 18 ? info.provider.substring(0, 15) + '...' : info.provider}</span>
             </div>
             <div class="info-line">
-                <span class="info-label">Cache Status</span>
-                <span class="info-value ${cacheClass}">${info.cache}</span>
-            </div>
-            <div class="info-line">
-                <span class="info-label">POP Location</span>
-                <span class="info-value" title="${info.pop}">${info.pop}</span>
+                <span class="info-label">Cache</span>
+                <span class="info-value ${cacheClass}">${cacheStatus}</span>
             </div>
         `;
 
-        // Add connection info if available
-        if (info.connection && info.connection !== 'N/A') {
+        // Add POP location if available and not N/A
+        if (info.pop && info.pop !== 'N/A') {
             panelContent += `
                 <div class="info-line">
-                    <span class="info-label">Connection</span>
-                    <span class="info-value">${info.connection}</span>
-                </div>
-            `;
-        }
-
-        // Add server info if available and different from provider
-        if (info.server && info.server !== 'N/A' && info.server !== info.provider) {
-            panelContent += `
-                <div class="info-line">
-                    <span class="info-label">Server</span>
-                    <span class="info-value" title="${info.server}">${info.server.substring(0, 20)}${info.server.length > 20 ? '...' : ''}</span>
-                </div>
-            `;
-        }
-
-        // Add extra information if enabled
-        if (config.settings.showExtraInfo && info.extra && info.extra !== 'N/A') {
-            panelContent += `
-                <div class="info-line">
-                    <span class="info-label">Extra Info</span>
-                    <span class="info-value" title="${info.extra}">${info.extra.substring(0, 20)}${info.extra.length > 20 ? '...' : ''}</span>
-                </div>
-            `;
-        }
-
-        // Add additional info if available
-        if (info.additional && info.additional !== 'N/A' && info.additional !== '') {
-            panelContent += `
-                <div class="info-line">
-                    <span class="info-label">Content</span>
-                    <span class="info-value" title="${info.additional}">${info.additional}</span>
+                    <span class="info-label">POP</span>
+                    <span class="info-value" title="${info.pop}">${info.pop.length > 12 ? info.pop.substring(0, 9) + '...' : info.pop}</span>
                 </div>
             `;
         }
