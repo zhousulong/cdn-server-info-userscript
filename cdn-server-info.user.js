@@ -2,10 +2,10 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      6.1.0
-// @description  [v6.1.0 UI Redesign] Redesigned with iOS-style glass effect UI. Simplified information display for better mobile experience. Enhanced CDN detection with 5 new providers.
-// @description:en [v6.1.0 UI Redesign] Redesigned with iOS-style glass effect UI. Simplified information display for better mobile experience. Enhanced CDN detection with 5 new providers.
-// @author       Gemini (AI Designer & Coder)
+// @version      6.1.1
+// @description  [v6.1.1 Author Update] Updated author name and optimized font sizes for better CDN name display.
+// @description:en [v6.1.1 Author Update] Updated author name and optimized font sizes for better CDN name display.
+// @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
 // @downloadURL  https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn-server-info.user.js
@@ -568,9 +568,9 @@
             }
             #cdn-info-panel-enhanced {
                 position: relative;
-                min-width: 220px;
-                max-width: 280px;
-                padding: 16px;
+                min-width: 200px;
+                max-width: 300px;
+                padding: 14px;
                 border-radius: 20px;
                 background-color: ${bgColor};
                 border: 1px solid ${borderColor};
@@ -587,17 +587,17 @@
             }
             .close-btn {
                 position: absolute; 
-                top: 10px; 
-                right: 10px;
-                width: 24px; 
-                height: 24px;
+                top: 8px; 
+                right: 8px;
+                width: 22px; 
+                height: 22px;
                 border-radius: 50%;
                 background: transparent;
                 color: ${labelColor};
                 border: none; 
                 cursor: pointer;
-                font-size: 18px;
-                line-height: 24px;
+                font-size: 16px;
+                line-height: 22px;
                 display: flex; 
                 align-items: center; 
                 justify-content: center;
@@ -609,12 +609,12 @@
                 color: ${textColor}; 
             }
             .panel-header {
-                font-size: 13px;
+                font-size: 12px;
                 font-weight: 600;
                 color: ${labelColor};
                 text-align: center;
-                margin-bottom: 14px;
-                padding-bottom: 10px;
+                margin-bottom: 12px;
+                padding-bottom: 8px;
                 border-bottom: 1px solid ${borderColor};
                 text-transform: uppercase;
                 letter-spacing: 0.5px;
@@ -623,8 +623,8 @@
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-                margin-bottom: 12px;
-                font-size: 14px;
+                margin-bottom: 10px;
+                font-size: 13px;
             }
             .info-line:last-child { margin-bottom: 0; }
             .info-label {
@@ -638,11 +638,12 @@
                 color: ${textColor};
                 font-weight: 600;
                 text-align: right;
-                flex: 1;
+                flex: 1.5;
                 overflow: hidden;
                 text-overflow: ellipsis;
                 white-space: nowrap;
                 font-family: -apple-system, BlinkMacSystemFont, 'SF Mono', 'Menlo', 'Consolas', 'Liberation Mono', 'Courier New', monospace;
+                font-size: 12px;
             }
             .cache-HIT { color: #34C759 !important; }
             .cache-MISS { color: #FF2D55 !important; }
@@ -655,7 +656,7 @@
                 left: 50%;
                 transform: translate(-50%, -50%);
                 width: 300px;
-                padding: 20px;
+                padding: 18px;
                 border-radius: 20px;
                 background-color: ${bgColor};
                 border: 1px solid ${borderColor};
@@ -669,43 +670,43 @@
                 margin-top: 0;
                 color: ${textColor};
                 text-align: center;
-                font-size: 18px;
+                font-size: 16px;
                 font-weight: 600;
             }
             .setting-item {
-                margin-bottom: 18px;
+                margin-bottom: 16px;
             }
             .setting-item label {
                 display: block;
-                margin-bottom: 6px;
+                margin-bottom: 5px;
                 color: ${labelColor};
                 font-weight: 500;
-                font-size: 14px;
+                font-size: 13px;
             }
             .setting-item select, .setting-item input {
                 width: 100%;
-                padding: 10px 12px;
+                padding: 8px 10px;
                 border-radius: 12px;
                 border: 1px solid ${borderColor};
                 background-color: ${isDarkTheme ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.5)'};
                 color: ${textColor};
-                font-size: 14px;
+                font-size: 13px;
                 box-sizing: border-box;
             }
             .setting-buttons {
                 display: flex;
                 justify-content: space-between;
-                margin-top: 25px;
+                margin-top: 20px;
             }
             .setting-btn {
-                padding: 10px 20px;
+                padding: 8px 16px;
                 border-radius: 12px;
                 border: none;
                 cursor: pointer;
                 font-weight: 600;
-                font-size: 15px;
+                font-size: 14px;
                 flex: 1;
-                margin: 0 5px;
+                margin: 0 4px;
             }
             .save-btn {
                 background-color: #0A84FF;
@@ -828,13 +829,19 @@
                 ? 'CDN'
                 : 'Server';
 
+        // Truncate provider name if too long
+        let displayProvider = info.provider;
+        if (displayProvider.length > 20) {
+            displayProvider = displayProvider.substring(0, 17) + '...';
+        }
+
         // Build panel content - keep it concise
         let panelContent = `
             <button class="close-btn" title="Close">×</button>
             <div class="panel-header">CDN & Server Info</div>
             <div class="info-line">
                 <span class="info-label">${providerLabel}</span>
-                <span class="info-value" title="${info.provider}">${info.provider.length > 18 ? info.provider.substring(0, 15) + '...' : info.provider}</span>
+                <span class="info-value" title="${info.provider}">${displayProvider}</span>
             </div>
             <div class="info-line">
                 <span class="info-label">Cache</span>
@@ -844,10 +851,14 @@
 
         // Add POP location if available and not N/A
         if (info.pop && info.pop !== 'N/A') {
+            let displayPop = info.pop;
+            if (displayPop.length > 12) {
+                displayPop = displayPop.substring(0, 9) + '...';
+            }
             panelContent += `
                 <div class="info-line">
                     <span class="info-label">POP</span>
-                    <span class="info-value" title="${info.pop}">${info.pop.length > 12 ? info.pop.substring(0, 9) + '...' : info.pop}</span>
+                    <span class="info-value" title="${info.pop}">${displayPop}</span>
                 </div>
             `;
         }
