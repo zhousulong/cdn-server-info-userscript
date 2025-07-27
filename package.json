@@ -1,0 +1,34 @@
+{
+    "name": "cdn-server-info-userscript",
+    "version": "1.0.0",
+    "description": "A userscript to display CDN and server information",
+    "main": "cdn-server-info.user.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "lint": "eslint .",
+        "lint:fix": "eslint . --fix",
+        "format": "prettier --write .",
+        "format:check": "prettier --check ."
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/zhousulong/cdn-server-info-userscript.git"
+    },
+    "keywords": [
+        "userscript",
+        "cdn",
+        "server",
+        "tampermonkey",
+        "information"
+    ],
+    "author": "Gemini (AI Designer & Coder)",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/zhousulong/cdn-server-info-userscript/issues"
+    },
+    "homepage": "https://github.com/zhousulong/cdn-server-info-userscript#readme",
+    "devDependencies": {
+        "eslint": "^9.32.0",
+        "prettier": "^3.6.2"
+    }
+}

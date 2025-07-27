@@ -2,33 +2,45 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      5.7.2
-// @description  [v5.7.2 规则增强] 再次增强腾讯云 EdgeOne 的识别规则，新增对 `eo-` 前缀头（如 eo-cache-status, eo-log-uuid）的检测，以应对更多场景。感谢您的反馈！
-// @description:en [v5.7.2 Rule Enhancement] Further enhanced the detection rule for Tencent Cloud EdgeOne by adding support for `eo-` prefixed headers (e.g., eo-cache-status, eo-log-uuid) to handle more scenarios. Thanks for the feedback!
+// @version      5.8.0
+// @description  [v5.8.0 Enhancement] Modularized CDN detection rules and added settings panel for customization. Enhanced UI with dark/light theme support.
+// @description:en [v5.8.0 Enhancement] Modularized CDN detection rules and added settings panel for customization. Enhanced UI with dark/light theme support.
 // @author       Gemini (AI Designer & Coder)
 // @license      MIT
 // @match        *://*/*
 // @grant        GM_addStyle
+// @grant        GM_getValue
+// @grant        GM_setValue
 // @run-at       document-idle
 // @noframes
 // ==/UserScript==
 
-(function() {
+(function () {
     'use strict';
 
-    // --- Configuration (Unchanged) ---
+    // --- Configuration ---
     const config = {
         initialPosition: { bottom: '20px', right: '20px' },
         initial_delay: 2500,
         retry_delay: 7000,
         max_retries: 4,
         excludePatterns: [
-            /\/wp-admin/i, /\/wp-login\.php/i,
-            /(\/|&)pay(pal|ment)/i, /\/checkout|\/billing/i,
+            /\/wp-admin/i,
+            /\/wp-login\.php/i,
+            /(\/|&)pay(pal|ment)/i,
+            /\/checkout|\/billing/i,
             /\/login|\/signin|\/auth/i,
-            /\/phpmyadmin/i, /(\/ads\/|ad_id=|advertisement)/i,
+            /\/phpmyadmin/i,
+            /(\/ads\/|ad_id=|advertisement)/i,
             /doubleclick\.net/i,
-        ]
+        ],
+        // Default settings
+        settings: {
+            theme: 'dark', // 'dark' or 'light'
+            panelPosition: 'bottom-right', // 'top-left', 'top-right', 'bottom-left', 'bottom-right'
+            showExtraInfo: true,
+            excludedUrls: [],
+        },
     };
 
     window.cdnScriptStatus = window.cdnScriptStatus || {};
@@ -49,7 +61,7 @@
             h.get('x-vercel-cache'),
             h.get('cf-cache-status'),
             h.get('cdn-cache'),
-            h.get('bunny-cache-state')
+            h.get('bunny-cache-state'),
         ];
         for (const value of headersToCheck) {
             if (!value) continue;
@@ -64,11 +76,20 @@
         return 'N/A';
     }
 
+    // CDN Providers Configuration
     const cdnProviders = {
-        'Akamai': {
-            customCheck: (h) => { const cookieHeader = h.get('set-cookie') || ''; return cookieHeader.includes('ak_bmsc=') || cookieHeader.includes('akacd_'); },
+        Akamai: {
+            customCheck: (h) => {
+                const cookieHeader = h.get('set-cookie') || '';
+                return cookieHeader.includes('ak_bmsc=') || cookieHeader.includes('akacd_');
+            },
             priority: 10,
-            getInfo: (h) => ({ provider: 'Akamai', cache: getCacheStatus(h), pop: 'N/A', extra: 'Detected via Akamai cookie' })
+            getInfo: (h) => ({
+                provider: 'Akamai',
+                cache: getCacheStatus(h),
+                pop: 'N/A',
+                extra: 'Detected via Akamai cookie',
+            }),
         },
         'Tencent EdgeOne': {
             // NEW: Added 'eo-log-uuid' for detection
@@ -97,48 +118,132 @@
                     provider: 'Tencent EdgeOne',
                     cache: cache,
                     pop: 'N/A',
-                    extra: `Log-UUID: ${logUuid}`
+                    extra: `Log-UUID: ${logUuid}`,
                 };
-            }
+            },
         },
         'ByteDance CDN': {
-            serverHeaders: ['Byte-nginx'], headers: ['x-tt-trace-tag', 'x-bdcdn-cache-status'], priority: 11,
+            serverHeaders: ['Byte-nginx'],
+            headers: ['x-tt-trace-tag', 'x-bdcdn-cache-status'],
+            priority: 11,
             getInfo: (h) => {
                 let cache = 'N/A';
-                const ttTrace = h.get('x-tt-trace-tag'); if (ttTrace) { const match = ttTrace.match(/cdn-cache=([^;]+)/); if (match) cache = match[1].toUpperCase(); }
-                if (cache === 'N/A') { const serverTiming = h.get('server-timing'); if (serverTiming) { const match = serverTiming.match(/cdn-cache;desc=([^,]+)/); if (match) cache = match[1].toUpperCase(); } }
-                if (cache === 'N/A') { cache = getCacheStatus(h); }
-                let pop = 'N/A'; const viaHeader = h.get('via');
-                if (viaHeader) { const viaParts = viaHeader.split(','); for (let i = viaParts.length - 1; i >= 0; i--) { const part = viaParts[i].trim(); const cityMatch = part.match(/\.([a-zA-Z]+)/); if (cityMatch && cityMatch[1]) { if (!/cn\d+/.test(cityMatch[1])) { pop = cityMatch[1].split('-')[0].toUpperCase(); break; } } const internalCodeMatch = part.match(/\b([a-z]*cn\d+)\b/i); if (internalCodeMatch && internalCodeMatch[1]) { pop = 'CN'; break; } } }
-                return { provider: 'ByteDance CDN', cache, pop, extra: `Trace Tag: ${h.get('x-tt-trace-tag') || 'N/A'}` };
-            }
+                const ttTrace = h.get('x-tt-trace-tag');
+                if (ttTrace) {
+                    const match = ttTrace.match(/cdn-cache=([^;]+)/);
+                    if (match) cache = match[1].toUpperCase();
+                }
+                if (cache === 'N/A') {
+                    const serverTiming = h.get('server-timing');
+                    if (serverTiming) {
+                        const match = serverTiming.match(/cdn-cache;desc=([^,]+)/);
+                        if (match) cache = match[1].toUpperCase();
+                    }
+                }
+                if (cache === 'N/A') {
+                    cache = getCacheStatus(h);
+                }
+                let pop = 'N/A';
+                const viaHeader = h.get('via');
+                if (viaHeader) {
+                    const viaParts = viaHeader.split(',');
+                    for (let i = viaParts.length - 1; i >= 0; i--) {
+                        const part = viaParts[i].trim();
+                        const cityMatch = part.match(/\.([a-zA-Z]+)/);
+                        if (cityMatch && cityMatch[1]) {
+                            if (!/cn\d+/.test(cityMatch[1])) {
+                                pop = cityMatch[1].split('-')[0].toUpperCase();
+                                break;
+                            }
+                        }
+                        const internalCodeMatch = part.match(/\b([a-z]*cn\d+)\b/i);
+                        if (internalCodeMatch && internalCodeMatch[1]) {
+                            pop = 'CN';
+                            break;
+                        }
+                    }
+                }
+                return {
+                    provider: 'ByteDance CDN',
+                    cache,
+                    pop,
+                    extra: `Trace Tag: ${h.get('x-tt-trace-tag') || 'N/A'}`,
+                };
+            },
         },
         'Alibaba Cloud CDN': {
-            serverHeaders: ['Tengine'], headers: ['eagleid'], priority: 10,
+            serverHeaders: ['Tengine'],
+            headers: ['eagleid'],
+            priority: 10,
             getInfo: (h) => {
                 let cache = 'N/A';
-                const serverTiming = h.get('server-timing'); if (serverTiming) { const match = serverTiming.match(/cdn-cache;desc=([^,]+)/); if (match) cache = match[1].toUpperCase(); }
-                if (cache === 'N/A') { const xCache = h.get('x-cache'); if(xCache) cache = getCacheStatus(h); }
-                if (cache === 'N/A') { cache = getCacheStatus(h); }
-                return { provider: 'Alibaba Cloud CDN', cache, pop: (h.get('X-Swift-Pop') || 'N/A'), extra: `EagleID: ${h.get('eagleid') || 'N/A'}` };
-            }
+                const serverTiming = h.get('server-timing');
+                if (serverTiming) {
+                    const match = serverTiming.match(/cdn-cache;desc=([^,]+)/);
+                    if (match) cache = match[1].toUpperCase();
+                }
+                if (cache === 'N/A') {
+                    const xCache = h.get('x-cache');
+                    if (xCache) cache = getCacheStatus(h);
+                }
+                if (cache === 'N/A') {
+                    cache = getCacheStatus(h);
+                }
+                return {
+                    provider: 'Alibaba Cloud CDN',
+                    cache,
+                    pop: h.get('X-Swift-Pop') || 'N/A',
+                    extra: `EagleID: ${h.get('eagleid') || 'N/A'}`,
+                };
+            },
         },
-        'BunnyCDN': {
-            serverHeaders: ['BunnyCDN'], priority: 9,
+        BunnyCDN: {
+            serverHeaders: ['BunnyCDN'],
+            priority: 9,
             getInfo: (h) => {
                 let pop = 'N/A';
                 const serverHeader = h.get('server');
-                if (serverHeader) { const match = serverHeader.match(/BunnyCDN-([A-Z0-9]+)/); if (match && match[1]) { pop = match[1]; } }
-                if (pop === 'N/A') { pop = h.get('cdn-requestcountrycode')?.toUpperCase() || 'N/A'; }
-                return { provider: 'BunnyCDN', cache: h.get('cdn-cache')?.toUpperCase() || getCacheStatus(h), pop: pop, extra: `Pullzone: ${h.get('cdn-pullzone') || 'N/A'}` };
-            }
+                if (serverHeader) {
+                    const match = serverHeader.match(/BunnyCDN-([A-Z0-9]+)/);
+                    if (match && match[1]) {
+                        pop = match[1];
+                    }
+                }
+                if (pop === 'N/A') {
+                    pop = h.get('cdn-requestcountrycode')?.toUpperCase() || 'N/A';
+                }
+                return {
+                    provider: 'BunnyCDN',
+                    cache: h.get('cdn-cache')?.toUpperCase() || getCacheStatus(h),
+                    pop: pop,
+                    extra: `Pullzone: ${h.get('cdn-pullzone') || 'N/A'}`,
+                };
+            },
         },
         'JD Cloud CDN': {
-            headers: ['x-jss-request-id'], customCheck: (h) => (h.get('via') || '').includes('(jcs'), priority: 10,
-            getInfo: (h) => { let pop = 'N/A'; const viaHeader = h.get('via'); if (viaHeader) { const match = viaHeader.match(/\s([A-Z]{2,3})-[A-Z]{2,}/); if (match && match[1]) { pop = match[1]; } } return { provider: 'JD Cloud CDN', cache: getCacheStatus(h), pop: pop, extra: `Req ID: ${h.get('x-jss-request-id') || 'N/A'}` }; }
+            headers: ['x-jss-request-id'],
+            customCheck: (h) => (h.get('via') || '').includes('(jcs'),
+            priority: 10,
+            getInfo: (h) => {
+                let pop = 'N/A';
+                const viaHeader = h.get('via');
+                if (viaHeader) {
+                    const match = viaHeader.match(/\s([A-Z]{2,3})-[A-Z]{2,}/);
+                    if (match && match[1]) {
+                        pop = match[1];
+                    }
+                }
+                return {
+                    provider: 'JD Cloud CDN',
+                    cache: getCacheStatus(h),
+                    pop: pop,
+                    extra: `Req ID: ${h.get('x-jss-request-id') || 'N/A'}`,
+                };
+            },
         },
         'QUIC.cloud': {
-            headers: ['x-qc-pop', 'x-qc-cache'], priority: 9,
+            headers: ['x-qc-pop', 'x-qc-cache'],
+            priority: 9,
             getInfo: (h) => {
                 let pop = 'N/A';
                 const popHeader = h.get('x-qc-pop');
@@ -152,44 +257,127 @@
                         pop = popHeader;
                     }
                 }
-                return { provider: 'QUIC.cloud', cache: h.get('x-qc-cache')?.toUpperCase() || getCacheStatus(h), pop: pop, extra: `POP Str: ${popHeader || 'N/A'}` };
-            }
+                return {
+                    provider: 'QUIC.cloud',
+                    cache: h.get('x-qc-cache')?.toUpperCase() || getCacheStatus(h),
+                    pop: pop,
+                    extra: `POP Str: ${popHeader || 'N/A'}`,
+                };
+            },
         },
-        'Cloudflare':{headers:['cf-ray'],serverHeaders:['cloudflare'],priority:10,getInfo:(h)=>({provider:'Cloudflare',cache:h.get('cf-cache-status')?.toUpperCase()||'N/A',pop:h.get('cf-ray')?.slice(-3).toUpperCase()||'N/A',extra:`Ray ID: ${h.get('cf-ray')||'N/A'}`})},
-        'AWS CloudFront':{headers:['x-amz-cf-pop','x-amz-cf-id'],priority:9,getInfo:(h)=>({provider:'AWS CloudFront',cache:getCacheStatus(h),pop:(h.get('x-amz-cf-pop')||'N/A').substring(0,3),extra:`CF ID: ${h.get('x-amz-cf-id')||'N/A'}`})},
-        'Fastly':{headers:['x-fastly-request-id','x-served-by'],priority:9,getInfo:(h)=>({provider:'Fastly',cache:getCacheStatus(h),pop:h.get('x-served-by')?.split('-').pop()||'N/A',extra:`ReqID: ${h.get('x-fastly-request-id')||'N/A'}`})},
-        'Vercel':{headers:['x-vercel-id'],priority:10,getInfo:(h)=>{let pop='N/A';const vercelId=h.get('x-vercel-id');if(vercelId){const regionPart=vercelId.split('::')[0];const match=regionPart.match(/^[a-zA-Z]+/);if(match)pop=match[0].toUpperCase();}return{provider:'Vercel',cache:getCacheStatus(h),pop:pop,extra:`ID: ${h.get('x-vercel-id')||'N/A'}`};}},
+        Cloudflare: {
+            headers: ['cf-ray'],
+            serverHeaders: ['cloudflare'],
+            priority: 10,
+            getInfo: (h) => ({
+                provider: 'Cloudflare',
+                cache: h.get('cf-cache-status')?.toUpperCase() || 'N/A',
+                pop: h.get('cf-ray')?.slice(-3).toUpperCase() || 'N/A',
+                extra: `Ray ID: ${h.get('cf-ray') || 'N/A'}`,
+            }),
+        },
+        'AWS CloudFront': {
+            headers: ['x-amz-cf-pop', 'x-amz-cf-id'],
+            priority: 9,
+            getInfo: (h) => ({
+                provider: 'AWS CloudFront',
+                cache: getCacheStatus(h),
+                pop: (h.get('x-amz-cf-pop') || 'N/A').substring(0, 3),
+                extra: `CF ID: ${h.get('x-amz-cf-id') || 'N/A'}`,
+            }),
+        },
+        Fastly: {
+            headers: ['x-fastly-request-id', 'x-served-by'],
+            priority: 9,
+            getInfo: (h) => ({
+                provider: 'Fastly',
+                cache: getCacheStatus(h),
+                pop: h.get('x-served-by')?.split('-').pop() || 'N/A',
+                extra: `ReqID: ${h.get('x-fastly-request-id') || 'N/A'}`,
+            }),
+        },
+        Vercel: {
+            headers: ['x-vercel-id'],
+            priority: 10,
+            getInfo: (h) => {
+                let pop = 'N/A';
+                const vercelId = h.get('x-vercel-id');
+                if (vercelId) {
+                    const regionPart = vercelId.split('::')[0];
+                    const match = regionPart.match(/^[a-zA-Z]+/);
+                    if (match) pop = match[0].toUpperCase();
+                }
+                return {
+                    provider: 'Vercel',
+                    cache: getCacheStatus(h),
+                    pop: pop,
+                    extra: `ID: ${h.get('x-vercel-id') || 'N/A'}`,
+                };
+            },
+        },
     };
 
     function parseInfo(h) {
         const lowerCaseHeaders = new Map();
-        for (const [key, value] of h.entries()) { lowerCaseHeaders.set(key.toLowerCase(), value); }
+        for (const [key, value] of h.entries()) {
+            lowerCaseHeaders.set(key.toLowerCase(), value);
+        }
         const detectedProviders = [];
         for (const [_, cdn] of Object.entries(cdnProviders)) {
             let isMatch = false;
             if (cdn.customCheck && cdn.customCheck(lowerCaseHeaders)) isMatch = true;
-            if (!isMatch && cdn.headers?.some(header => lowerCaseHeaders.has(header.toLowerCase()))) isMatch = true;
-            if (!isMatch && cdn.serverHeaders?.some(server => (lowerCaseHeaders.get('server') || '').toLowerCase().includes(server.toLowerCase()))) isMatch = true;
-            if (isMatch) detectedProviders.push({ ...cdn.getInfo(lowerCaseHeaders), priority: cdn.priority || 5 });
+            if (
+                !isMatch &&
+                cdn.headers?.some((header) => lowerCaseHeaders.has(header.toLowerCase()))
+            )
+                isMatch = true;
+            if (
+                !isMatch &&
+                cdn.serverHeaders?.some((server) =>
+                    (lowerCaseHeaders.get('server') || '')
+                        .toLowerCase()
+                        .includes(server.toLowerCase())
+                )
+            )
+                isMatch = true;
+            if (isMatch)
+                detectedProviders.push({
+                    ...cdn.getInfo(lowerCaseHeaders),
+                    priority: cdn.priority || 5,
+                });
         }
         if (detectedProviders.length > 0) {
             detectedProviders.sort((a, b) => b.priority - a.priority);
             return detectedProviders[0];
         }
         const server = lowerCaseHeaders.get('server');
-        if (server) return { provider: server, cache: getCacheStatus(lowerCaseHeaders), pop: 'N/A', extra: 'No CDN detected' };
+        if (server)
+            return {
+                provider: server,
+                cache: getCacheStatus(lowerCaseHeaders),
+                pop: 'N/A',
+                extra: 'No CDN detected',
+            };
         return { provider: 'Unknown', cache: 'N/A', pop: 'N/A', extra: 'No CDN or Server info' };
     }
 
-    // --- UI & Execution Functions (Unchanged from v5.7.0) ---
+    // --- UI & Execution Functions ---
     function getPanelCSS() {
+        const isDarkTheme = config.settings.theme === 'dark';
+        const bgColor = isDarkTheme ? '#1A1B1E' : '#FFFFFF';
+        const borderColor = isDarkTheme ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+        const textColor = isDarkTheme ? '#E4E5E7' : '#333333';
+        const labelColor = isDarkTheme ? '#8E8F91' : '#666666';
+        const hoverBg = isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)';
+        const closeBtnColor = isDarkTheme ? '#6c6d6f' : '#999999';
+        const closeBtnHover = isDarkTheme ? '#fff' : '#000';
+
         return `
             :host {
                 all: initial;
                 position: fixed;
                 z-index: 2147483647;
-                bottom: ${config.initialPosition.bottom};
-                right: ${config.initialPosition.right};
+                ${getPositionCSS()}
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             }
             #cdn-info-panel-enhanced {
@@ -197,8 +385,8 @@
                 min-width: 240px;
                 padding: 14px 20px;
                 border-radius: 12px;
-                background-color: #1A1B1E;
-                border: 1px solid rgba(255, 255, 255, 0.1);
+                background-color: ${bgColor};
+                border: 1px solid ${borderColor};
                 box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
                 cursor: move;
                 user-select: none;
@@ -213,7 +401,7 @@
                 width: 20px; height: 20px;
                 border-radius: 50%;
                 background: transparent;
-                color: #6c6d6f;
+                color: ${closeBtnColor};
                 border: none; cursor: pointer;
                 font-size: 14px;
                 line-height: 20px;
@@ -221,15 +409,15 @@
                 transition: all 0.2s;
                 z-index: 2;
             }
-            .close-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+            .close-btn:hover { background: ${hoverBg}; color: ${closeBtnHover}; }
             .panel-header {
                 font-size: 11px;
                 font-weight: 600;
-                color: #8E8F91;
+                color: ${labelColor};
                 text-align: center;
                 margin-bottom: 12px;
                 padding-bottom: 8px;
-                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                border-bottom: 1px solid ${borderColor};
                 text-transform: uppercase;
                 letter-spacing: 0.05em;
             }
@@ -242,18 +430,166 @@
             }
             .info-line:last-child { margin-bottom: 0; }
             .info-label {
-                color: #8E8F91;
+                color: ${labelColor};
                 font-weight: 500;
             }
             .info-value {
-                color: #E4E5E7;
+                color: ${textColor};
                 font-weight: 600;
                 font-family: 'SF Mono', 'Menlo', 'Consolas', 'Liberation Mono', 'Courier New', monospace;
             }
             .cache-HIT { color: #34D399 !important; }
             .cache-MISS { color: #F472B6 !important; }
             .cache-BYPASS, .cache-DYNAMIC { color: #A5B4FC !important; }
+            
+            /* Settings panel styles */
+            #settings-panel {
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 300px;
+                padding: 20px;
+                border-radius: 12px;
+                background-color: ${bgColor};
+                border: 1px solid ${borderColor};
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+                z-index: 2147483648;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            }
+            #settings-panel h3 {
+                margin-top: 0;
+                color: ${textColor};
+                text-align: center;
+            }
+            .setting-item {
+                margin-bottom: 15px;
+            }
+            .setting-item label {
+                display: block;
+                margin-bottom: 5px;
+                color: ${labelColor};
+                font-weight: 500;
+            }
+            .setting-item select, .setting-item input {
+                width: 100%;
+                padding: 8px;
+                border-radius: 6px;
+                border: 1px solid ${borderColor};
+                background-color: ${bgColor};
+                color: ${textColor};
+            }
+            .setting-buttons {
+                display: flex;
+                justify-content: space-between;
+                margin-top: 20px;
+            }
+            .setting-btn {
+                padding: 8px 16px;
+                border-radius: 6px;
+                border: none;
+                cursor: pointer;
+                font-weight: 500;
+            }
+            .save-btn {
+                background-color: #4F46E5;
+                color: white;
+            }
+            .cancel-btn {
+                background-color: ${labelColor};
+                color: ${bgColor};
+            }
         `;
+    }
+
+    function getPositionCSS() {
+        switch (config.settings.panelPosition) {
+            case 'top-left':
+                return 'top: 20px; left: 20px;';
+            case 'top-right':
+                return 'top: 20px; right: 20px;';
+            case 'bottom-left':
+                return 'bottom: 20px; left: 20px;';
+            case 'bottom-right':
+            default:
+                return `bottom: ${config.initialPosition.bottom}; right: ${config.initialPosition.right};`;
+        }
+    }
+
+    function createSettingsPanel() {
+        // Remove existing settings panel if present
+        const existingPanel = document.getElementById('cdn-settings-panel');
+        if (existingPanel) existingPanel.remove();
+
+        const panel = document.createElement('div');
+        panel.id = 'cdn-settings-panel';
+        document.body.appendChild(panel);
+
+        const shadowRoot = panel.attachShadow({ mode: 'open' });
+        const styleEl = document.createElement('style');
+        styleEl.textContent = getPanelCSS();
+        shadowRoot.appendChild(styleEl);
+
+        const settingsPanel = document.createElement('div');
+        settingsPanel.id = 'settings-panel';
+        settingsPanel.innerHTML = `
+            <h3>CDN Info Display Settings</h3>
+            <div class="setting-item">
+                <label for="theme">Theme</label>
+                <select id="theme">
+                    <option value="dark" ${config.settings.theme === 'dark' ? 'selected' : ''}>Dark</option>
+                    <option value="light" ${config.settings.theme === 'light' ? 'selected' : ''}>Light</option>
+                </select>
+            </div>
+            <div class="setting-item">
+                <label for="panelPosition">Panel Position</label>
+                <select id="panelPosition">
+                    <option value="top-left" ${config.settings.panelPosition === 'top-left' ? 'selected' : ''}>Top Left</option>
+                    <option value="top-right" ${config.settings.panelPosition === 'top-right' ? 'selected' : ''}>Top Right</option>
+                    <option value="bottom-left" ${config.settings.panelPosition === 'bottom-left' ? 'selected' : ''}>Bottom Left</option>
+                    <option value="bottom-right" ${config.settings.panelPosition === 'bottom-right' ? 'selected' : ''}>Bottom Right</option>
+                </select>
+            </div>
+            <div class="setting-item">
+                <label for="showExtraInfo">
+                    <input type="checkbox" id="showExtraInfo" ${config.settings.showExtraInfo ? 'checked' : ''}>
+                    Show Extra Information
+                </label>
+            </div>
+            <div class="setting-buttons">
+                <button class="setting-btn cancel-btn">Cancel</button>
+                <button class="setting-btn save-btn">Save</button>
+            </div>
+        `;
+        shadowRoot.appendChild(settingsPanel);
+
+        // Add event listeners
+        shadowRoot.querySelector('.cancel-btn').addEventListener('click', () => {
+            panel.remove();
+        });
+
+        shadowRoot.querySelector('.save-btn').addEventListener('click', () => {
+            // Save settings
+            config.settings.theme = shadowRoot.querySelector('#theme').value;
+            config.settings.panelPosition = shadowRoot.querySelector('#panelPosition').value;
+            config.settings.showExtraInfo = shadowRoot.querySelector('#showExtraInfo').checked;
+
+            // Save to GM storage if available
+            if (typeof GM_setValue !== 'undefined') {
+                GM_setValue('cdnInfoSettings', JSON.stringify(config.settings));
+            }
+
+            // Close panel
+            panel.remove();
+
+            // Re-render info panel with new settings
+            const infoPanel = document.getElementById('cdn-info-host-enhanced');
+            if (infoPanel) {
+                infoPanel.remove();
+                // Re-run execution to show updated panel
+                runExecution(config.max_retries);
+            }
+        });
     }
 
     function createDisplayPanel(info) {
@@ -269,8 +605,15 @@
         panel.id = 'cdn-info-panel-enhanced';
         const cacheStatus = info.cache.toUpperCase();
         const cacheClass = 'cache-' + cacheStatus.split(' ')[0];
-        const providerLabel = info.provider.includes('CDN') || info.provider.includes('Cloud') || info.provider.includes('Edge') ? 'CDN Provider' : 'Server';
-        panel.innerHTML = `
+        const providerLabel =
+            info.provider.includes('CDN') ||
+            info.provider.includes('Cloud') ||
+            info.provider.includes('Edge')
+                ? 'CDN Provider'
+                : 'Server';
+
+        // Build panel content
+        let panelContent = `
             <button class="close-btn" title="Close">×</button>
             <div class="panel-header">CDN & Server Info</div>
             <div class="info-line">
@@ -286,39 +629,73 @@
                 <span class="info-value" title="${info.pop}">${info.pop}</span>
             </div>
         `;
+
+        // Add extra information if enabled
+        if (config.settings.showExtraInfo && info.extra && info.extra !== 'N/A') {
+            panelContent += `
+                <div class="info-line">
+                    <span class="info-label">Extra Info</span>
+                    <span class="info-value" title="${info.extra}">${info.extra.substring(0, 20)}${info.extra.length > 20 ? '...' : ''}</span>
+                </div>
+            `;
+        }
+
+        panel.innerHTML = panelContent;
         shadowRoot.appendChild(panel);
         shadowRoot.querySelector('.close-btn').addEventListener('click', (e) => {
             e.stopPropagation();
             host.remove();
         });
+
+        // Add settings button (right click on panel to open settings)
+        panel.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            createSettingsPanel();
+        });
+
         makeDraggable(host);
     }
 
     function makeDraggable(element) {
-        let isDragging = false, startX = 0, startY = 0, elementX = 0, elementY = 0;
+        let isDragging = false,
+            startX = 0,
+            startY = 0,
+            elementX = 0,
+            elementY = 0;
         const dragTarget = element.shadowRoot.querySelector('#cdn-info-panel-enhanced');
         dragTarget.addEventListener('mousedown', (e) => {
             if (e.target.classList.contains('close-btn')) return;
-            isDragging = true; startX = e.clientX; startY = e.clientY;
-            const rect = element.getBoundingClientRect(); elementX = rect.left; elementY = rect.top;
-            document.addEventListener('mousemove', drag); document.addEventListener('mouseup', dragEnd);
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            const rect = element.getBoundingClientRect();
+            elementX = rect.left;
+            elementY = rect.top;
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('mouseup', dragEnd);
         });
         function drag(e) {
-            if (!isDragging) return; e.preventDefault();
-            const newX = elementX + e.clientX - startX; const newY = elementY + e.clientY - startY;
-            const maxX = window.innerWidth - element.offsetWidth; const maxY = window.innerHeight - element.offsetHeight;
+            if (!isDragging) return;
+            e.preventDefault();
+            const newX = elementX + e.clientX - startX;
+            const newY = elementY + e.clientY - startY;
+            const maxX = window.innerWidth - element.offsetWidth;
+            const maxY = window.innerHeight - element.offsetHeight;
             element.style.left = `${Math.max(0, Math.min(newX, maxX))}px`;
             element.style.top = `${Math.max(0, Math.min(newY, maxY))}px`;
-            element.style.right = 'auto'; element.style.bottom = 'auto';
+            element.style.right = 'auto';
+            element.style.bottom = 'auto';
         }
         function dragEnd() {
-            isDragging = false; document.removeEventListener('mousemove', drag); document.removeEventListener('mouseup', dragEnd);
+            isDragging = false;
+            document.removeEventListener('mousemove', drag);
+            document.removeEventListener('mouseup', dragEnd);
         }
     }
 
     function shouldExcludePage() {
         const url = window.location.href.toLowerCase();
-        if (config.excludePatterns.some(pattern => pattern.test(url))) {
+        if (config.excludePatterns.some((pattern) => pattern.test(url))) {
             console.log('[CDN Detector] Excluded by URL pattern.');
             return true;
         }
@@ -328,16 +705,31 @@
     async function runExecution(retriesLeft) {
         const currentHref = window.location.href;
         const status = window.cdnScriptStatus;
-        if (status[currentHref] === 'succeeded' || shouldExcludePage() || document.getElementById('cdn-info-host-enhanced')) return;
+        if (
+            status[currentHref] === 'succeeded' ||
+            shouldExcludePage() ||
+            document.getElementById('cdn-info-host-enhanced')
+        )
+            return;
         console.log(`[CDN Detector] Attempting to fetch headers... Retries left: ${retriesLeft}`);
         try {
-            const response = await fetch(currentHref, { method: 'HEAD', cache: 'no-store', redirect: 'follow', headers: { 'User-Agent': navigator.userAgent, 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8' } });
+            const response = await fetch(currentHref, {
+                method: 'HEAD',
+                cache: 'no-store',
+                redirect: 'follow',
+                headers: {
+                    'User-Agent': navigator.userAgent,
+                    Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                },
+            });
             const info = parseInfo(response.headers);
             createDisplayPanel(info);
             status[currentHref] = 'succeeded';
             console.log('[CDN Detector] Success! Panel created.');
         } catch (error) {
-            console.warn(`[CDN Detector] Fetch failed: ${error.message}. This often indicates an active security challenge.`);
+            console.warn(
+                `[CDN Detector] Fetch failed: ${error.message}. This often indicates an active security challenge.`
+            );
             status[currentHref] = 'retrying';
             if (retriesLeft > 0) {
                 console.log(`[CDN Detector] Retrying in ${config.retry_delay / 1000} seconds...`);
@@ -349,13 +741,31 @@
         }
     }
 
+    function loadUserSettings() {
+        // Load settings from GM storage if available
+        if (typeof GM_getValue !== 'undefined') {
+            try {
+                const savedSettings = GM_getValue('cdnInfoSettings');
+                if (savedSettings) {
+                    const parsed = JSON.parse(savedSettings);
+                    config.settings = { ...config.settings, ...parsed };
+                }
+            } catch (e) {
+                console.warn('[CDN Detector] Failed to load user settings:', e);
+            }
+        }
+    }
+
     function main() {
+        // Load user settings
+        loadUserSettings();
+
         setTimeout(() => runExecution(config.max_retries), config.initial_delay);
-        let lastUrl = location.href;
+        let lastUrl = window.location.href;
         const observer = new MutationObserver(() => {
-            if (location.href !== lastUrl) {
+            if (window.location.href !== lastUrl) {
                 console.log('[CDN Detector] URL changed (SPA), resetting...');
-                lastUrl = location.href;
+                lastUrl = window.location.href;
                 const oldPanel = document.getElementById('cdn-info-host-enhanced');
                 if (oldPanel) oldPanel.remove();
                 setTimeout(() => runExecution(config.max_retries), config.initial_delay);
@@ -364,7 +774,7 @@
         if (document.body) {
             observer.observe(document.body, { childList: true, subtree: true });
         } else {
-            new MutationObserver((_, obs) => {
+            new MutationObserver((__, obs) => {
                 if (document.body) {
                     observer.observe(document.body, { childList: true, subtree: true });
                     obs.disconnect();
@@ -374,5 +784,4 @@
     }
 
     main();
-
 })();
