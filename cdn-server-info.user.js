@@ -13,6 +13,8 @@
 // @grant        GM_addStyle
 // @grant        GM_getValue
 // @grant        GM_setValue
+// @grant        GM_getResourceText
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json
 // @run-at       document-idle
 // @noframes
 // ==/UserScript==
@@ -86,22 +88,18 @@
     }
 
     // CDN Providers Configuration
-    const cdnProviders = {
-        Akamai: {
-            headers: ['x-akamai-transformed', 'x-akam-sw-version'],
-            customCheck: (h) => {
-                const cookieHeader = h.get('set-cookie') || '';
-                return cookieHeader.includes('ak_bmsc=') || cookieHeader.includes('akacd_');
-            },
-            priority: 10,
-            getInfo: (h) => {
+    // --- Rule Loading & Custom Handlers ---
+    let cdnRules = {};
+
+    // Custom handlers for complex extraction logic that can't be easily JSON-ified
+    const customHandlers = {
+        'Akamai': {
+            getInfo: (h, rule) => {
                 let pop = 'N/A';
                 const servedBy = h.get('x-served-by');
                 if (servedBy) {
                     const match = servedBy.match(/cache-([a-z0-9]+)-/i);
-                    if (match && match[1]) {
-                        pop = match[1].toUpperCase();
-                    }
+                    if (match && match[1]) pop = match[1].toUpperCase();
                 }
                 return {
                     provider: 'Akamai',
@@ -109,19 +107,13 @@
                     pop: pop,
                     extra: 'Detected via Akamai header/cookie',
                 };
-            },
+            }
         },
         'Tencent EdgeOne': {
-            // NEW: Added 'eo-log-uuid' for detection
-            serverHeaders: ['edgeone-pages'],
-            headers: ['x-nws-log-uuid', 'eo-log-uuid'],
-            priority: 10,
-            getInfo: (h) => {
+            getInfo: (h, rule) => {
                 let cache = 'N/A';
-                // NEW: Prioritize eo-cache-status for cache info
                 const eoCache = h.get('eo-cache-status');
                 const nwsLookup = h.get('x-cache-lookup');
-
                 if (eoCache) {
                     cache = eoCache.toUpperCase();
                 } else if (nwsLookup) {
@@ -130,23 +122,17 @@
                 } else {
                     cache = getCacheStatus(h);
                 }
-
-                // NEW: Check for either UUID
                 const logUuid = h.get('eo-log-uuid') || h.get('x-nws-log-uuid') || 'N/A';
-
                 return {
                     provider: 'Tencent EdgeOne',
                     cache: cache,
                     pop: 'N/A',
                     extra: `Log-UUID: ${logUuid}`,
                 };
-            },
+            }
         },
         'ByteDance CDN': {
-            serverHeaders: ['Byte-nginx'],
-            headers: ['x-tt-trace-tag', 'x-bdcdn-cache-status'],
-            priority: 11,
-            getInfo: (h) => {
+            getInfo: (h, rule) => {
                 let cache = 'N/A';
                 const ttTrace = h.get('x-tt-trace-tag');
                 if (ttTrace) {
@@ -160,9 +146,8 @@
                         if (match) cache = match[1].toUpperCase();
                     }
                 }
-                if (cache === 'N/A') {
-                    cache = getCacheStatus(h);
-                }
+                if (cache === 'N/A') cache = getCacheStatus(h);
+
                 let pop = 'N/A';
                 const viaHeader = h.get('via');
                 if (viaHeader) {
@@ -189,269 +174,51 @@
                     pop,
                     extra: `Trace Tag: ${h.get('x-tt-trace-tag') || 'N/A'}`,
                 };
-            },
-        },
-        'Alibaba Cloud CDN': {
-            serverHeaders: ['Tengine'],
-            headers: ['eagleid'],
-            priority: 10,
-            getInfo: (h) => {
-                let cache = 'N/A';
-                const serverTiming = h.get('server-timing');
-                if (serverTiming) {
-                    const match = serverTiming.match(/cdn-cache;desc=([^,]+)/);
-                    if (match) cache = match[1].toUpperCase();
-                }
-                if (cache === 'N/A') {
-                    const xCache = h.get('x-cache');
-                    if (xCache) cache = getCacheStatus(h);
-                }
-                if (cache === 'N/A') {
-                    cache = getCacheStatus(h);
-                }
-                return {
-                    provider: 'Alibaba Cloud CDN',
-                    cache,
-                    pop: h.get('X-Swift-Pop') || 'N/A',
-                    extra: `EagleID: ${h.get('eagleid') || 'N/A'}`,
-                };
-            },
-        },
-        BunnyCDN: {
-            serverHeaders: ['BunnyCDN'],
-            priority: 9,
-            getInfo: (h) => {
-                let pop = 'N/A';
-                const serverHeader = h.get('server');
-                if (serverHeader) {
-                    const match = serverHeader.match(/BunnyCDN-([A-Z0-9]+)/);
-                    if (match && match[1]) {
-                        pop = match[1];
-                    }
-                }
-                if (pop === 'N/A') {
-                    pop = h.get('cdn-requestcountrycode')?.toUpperCase() || 'N/A';
-                }
-                return {
-                    provider: 'BunnyCDN',
-                    cache: h.get('cdn-cache')?.toUpperCase() || getCacheStatus(h),
-                    pop: pop,
-                    extra: `Pullzone: ${h.get('cdn-pullzone') || 'N/A'}`,
-                };
-            },
-        },
-        'JD Cloud CDN': {
-            headers: ['x-jss-request-id'],
-            customCheck: (h) => (h.get('via') || '').includes('(jcs'),
-            priority: 10,
-            getInfo: (h) => {
-                let pop = 'N/A';
-                const viaHeader = h.get('via');
-                if (viaHeader) {
-                    const match = viaHeader.match(/\s([A-Z]{2,3})-[A-Z]{2,}/);
-                    if (match && match[1]) {
-                        pop = match[1];
-                    }
-                }
-                return {
-                    provider: 'JD Cloud CDN',
-                    cache: getCacheStatus(h),
-                    pop: pop,
-                    extra: `Req ID: ${h.get('x-jss-request-id') || 'N/A'}`,
-                };
-            },
-        },
-        'QUIC.cloud': {
-            headers: ['x-qc-pop', 'x-qc-cache'],
-            priority: 9,
-            getInfo: (h) => {
-                let pop = 'N/A';
-                const popHeader = h.get('x-qc-pop');
-                if (popHeader) {
-                    const parts = popHeader.split('-');
-                    if (parts.length >= 3) {
-                        pop = `${parts[1]}-${parts[2]}`.toUpperCase();
-                    } else if (parts.length === 2) {
-                        pop = popHeader.toUpperCase();
-                    } else {
-                        pop = popHeader;
-                    }
-                }
-                return {
-                    provider: 'QUIC.cloud',
-                    cache: h.get('x-qc-cache')?.toUpperCase() || getCacheStatus(h),
-                    pop: pop,
-                    extra: `POP Str: ${popHeader || 'N/A'}`,
-                };
-            },
-        },
-        Cloudflare: {
-            headers: ['cf-ray'],
-            serverHeaders: ['cloudflare'],
-            priority: 10,
-            getInfo: (h) => ({
-                provider: 'Cloudflare',
-                cache: h.get('cf-cache-status')?.toUpperCase() || 'N/A',
-                pop: h.get('cf-ray')?.slice(-3).toUpperCase() || 'N/A',
-                extra: `Ray ID: ${h.get('cf-ray') || 'N/A'}`,
-            }),
-        },
-        'AWS CloudFront': {
-            headers: ['x-amz-cf-pop', 'x-amz-cf-id'],
-            priority: 9,
-            getInfo: (h) => ({
-                provider: 'AWS CloudFront',
-                cache: getCacheStatus(h),
-                pop: (h.get('x-amz-cf-pop') || 'N/A').substring(0, 3),
-                extra: `CF ID: ${h.get('x-amz-cf-id') || 'N/A'}`,
-            }),
-        },
-        Fastly: {
-            headers: ['x-fastly-request-id', 'x-served-by'],
-            priority: 9,
-            getInfo: (h) => ({
-                provider: 'Fastly',
-                cache: getCacheStatus(h),
-                pop: h.get('x-served-by')?.split('-').pop() || 'N/A',
-                extra: `ReqID: ${h.get('x-fastly-request-id') || 'N/A'}`,
-            }),
-        },
-        Vercel: {
-            headers: ['x-vercel-id'],
-            priority: 10,
-            getInfo: (h) => {
-                let pop = 'N/A';
-                const vercelId = h.get('x-vercel-id');
-                if (vercelId) {
-                    const regionPart = vercelId.split('::')[0];
-                    const match = regionPart.match(/^[a-zA-Z]+/);
-                    if (match) pop = match[0].toUpperCase();
-                }
-                return {
-                    provider: 'Vercel',
-                    cache: getCacheStatus(h),
-                    pop: pop,
-                    extra: `ID: ${h.get('x-vercel-id') || 'N/A'}`,
-                };
-            },
-        },
-        Cloudflare: {
-            headers: ['cf-ray'],
-            serverHeaders: ['cloudflare'],
-            priority: 10,
-            getInfo: (h) => ({
-                provider: 'Cloudflare',
-                cache: h.get('cf-cache-status')?.toUpperCase() || 'N/A',
-                pop: h.get('cf-ray')?.slice(-3).toUpperCase() || 'N/A',
-                extra: `Ray ID: ${h.get('cf-ray') || 'N/A'}`,
-            }),
-        },
-        'AWS CloudFront': {
-            headers: ['x-amz-cf-pop', 'x-amz-cf-id'],
-            priority: 9,
-            getInfo: (h) => ({
-                provider: 'AWS CloudFront',
-                cache: getCacheStatus(h),
-                pop: (h.get('x-amz-cf-pop') || 'N/A').substring(0, 3),
-                extra: `CF ID: ${h.get('x-amz-cf-id') || 'N/A'}`,
-            }),
-        },
-        Fastly: {
-            headers: ['x-fastly-request-id', 'x-served-by'],
-            priority: 9,
-            getInfo: (h) => ({
-                provider: 'Fastly',
-                cache: getCacheStatus(h),
-                pop: h.get('x-served-by')?.split('-').pop() || 'N/A',
-                extra: `ReqID: ${h.get('x-fastly-request-id') || 'N/A'}`,
-            }),
-        },
-        Vercel: {
-            headers: ['x-vercel-id'],
-            priority: 10,
-            getInfo: (h) => {
-                let pop = 'N/A';
-                const vercelId = h.get('x-vercel-id');
-                if (vercelId) {
-                    const regionPart = vercelId.split('::')[0];
-                    const match = regionPart.match(/^[a-zA-Z]+/);
-                    if (match) pop = match[0].toUpperCase();
-                }
-                return {
-                    provider: 'Vercel',
-                    cache: getCacheStatus(h),
-                    pop: pop,
-                    extra: `ID: ${h.get('x-vercel-id') || 'N/A'}`,
-                };
-            },
-        },
-        'Wovn.io': {
-            headers: ['x-wovn-cache', 'x-wovn-surrogate-key'],
-            priority: 9,
-            getInfo: (h) => ({
-                provider: 'Wovn.io',
-                cache: h.get('x-wovn-cache')?.toUpperCase() || 'N/A',
-                pop: 'N/A',
-                extra: `Cache Hits: ${h.get('x-wovn-cache-hits') || 'N/A'}`,
-            }),
-        },
-        // New CDN providers
-        KeyCDN: {
-            serverHeaders: ['keycdn-engine'],
-            headers: ['x-keycdn-cache'],
-            priority: 8,
-            getInfo: (h) => ({
-                provider: 'KeyCDN',
-                cache: h.get('x-keycdn-cache')?.toUpperCase() || getCacheStatus(h),
-                pop: 'N/A',
-                extra: 'KeyCDN Engine',
-            }),
-        },
-        CDN77: {
-            serverHeaders: ['CDN77'],
-            headers: ['x-cdn-geo', 'x-cdn-pop'],
-            priority: 8,
-            getInfo: (h) => {
-                const pop = h.get('x-cdn-pop') || h.get('x-cdn-geo') || 'N/A';
-                return {
-                    provider: 'CDN77',
-                    cache: getCacheStatus(h),
-                    pop: pop.toUpperCase(),
-                    extra: 'CDN77 Network',
-                };
-            },
-        },
-        StackPath: {
-            serverHeaders: ['stackpath'],
-            headers: ['x-scp-served-by', 'x-scp-cache-status'],
-            priority: 8,
-            getInfo: (h) => {
-                const cache = h.get('x-scp-cache-status')?.toUpperCase() || getCacheStatus(h);
-                const pop = 'N/A'; // StackPath doesn't typically expose POP info in headers
-                return {
-                    provider: 'StackPath',
-                    cache: cache,
-                    pop: pop,
-                    extra: 'StackPath CDN',
-                };
-            },
-        },
-        ChinaCache: {
-            serverHeaders: ['ChinaCache'],
-            headers: ['x-source', 'via'],
-            customCheck: (h) => {
-                const viaHeader = h.get('via') || '';
-                return viaHeader.includes('ChinaCache') || viaHeader.includes('ChinaNetCenter');
-            },
-            priority: 7,
-            getInfo: (h) => ({
-                provider: 'ChinaCache',
-                cache: getCacheStatus(h),
-                pop: 'N/A',
-                extra: 'ChinaNetCenter',
-            }),
-        },
+            }
+        }
     };
+
+    function loadRules() {
+        try {
+            const rulesText = GM_getResourceText('cdn_rules');
+            if (rulesText) {
+                cdnRules = JSON.parse(rulesText);
+                console.log('[CDN Info] Loaded rules from resource');
+            } else {
+                console.warn('[CDN Info] No cdn_rules resource found');
+            }
+        } catch (e) {
+            console.error('[CDN Info] Failed to load rules:', e);
+        }
+    }
+
+    // Generic Info Extractor
+    function genericGetInfo(h, rule, providerName) {
+        let pop = 'N/A';
+        if (rule.pop_header) {
+            const val = h.get(rule.pop_header);
+            if (val) {
+                if (rule.pop_regex) {
+                    const match = val.match(new RegExp(rule.pop_regex));
+                    if (match && match[1]) pop = match[1].toUpperCase();
+                } else {
+                    pop = val.trim().split(/[-_]/).pop().toUpperCase(); // Default heuristic
+                }
+            }
+        }
+
+        let extra = 'N/A';
+        if (rule.id_header) {
+            extra = `${rule.id_header}: ${h.get(rule.id_header) || 'N/A'}`;
+        }
+
+        return {
+            provider: providerName,
+            cache: getCacheStatus(h),
+            pop: pop,
+            extra: extra
+        };
+    }
 
     // --- Extended Information Functions ---
     function getServerInfo(h) {
@@ -481,6 +248,8 @@
 
     // Enhanced parseInfo function to include extended information
     function parseInfo(response) {
+        if (Object.keys(cdnRules).length === 0) loadRules();
+
         const h = response.headers;
         const lowerCaseHeaders = new Map();
         for (const [key, value] of h.entries()) {
@@ -488,35 +257,52 @@
         }
         const detectedProviders = [];
 
-        for (const [_, cdn] of Object.entries(cdnProviders)) {
+        for (const [name, rule] of Object.entries(cdnRules)) {
             let isMatch = false;
-            if (cdn.customCheck && cdn.customCheck(lowerCaseHeaders)) isMatch = true;
-            if (
-                !isMatch &&
-                cdn.headers?.some((header) => lowerCaseHeaders.has(header.toLowerCase()))
-            )
-                isMatch = true;
-            if (
-                !isMatch &&
-                cdn.serverHeaders?.some((server) =>
-                    (lowerCaseHeaders.get('server') || '')
-                        .toLowerCase()
-                        .includes(server.toLowerCase())
-                )
-            )
-                isMatch = true;
-            if (isMatch) {
-                // Avoid adding if a more specific rule from humble already exists
-                if (
-                    !detectedProviders.some(
-                        (p) => p.provider === cdn.getInfo(lowerCaseHeaders).provider
-                    )
-                ) {
-                    detectedProviders.push({
-                        ...cdn.getInfo(lowerCaseHeaders),
-                        priority: cdn.priority || 5,
-                    });
+
+            // Header Check
+            if (rule.headers) {
+                for (const [header, val] of Object.entries(rule.headers)) {
+                    if (lowerCaseHeaders.has(header)) {
+                        if (val === null) {
+                            isMatch = true;
+                        } else {
+                            // Regex or value check
+                            const headerVal = lowerCaseHeaders.get(header);
+                            if (new RegExp(val, 'i').test(headerVal)) {
+                                isMatch = true;
+                            }
+                        }
+                    }
                 }
+            }
+
+            // Server Header Check
+            if (!isMatch && rule.server) {
+                const server = lowerCaseHeaders.get('server');
+                if (server && new RegExp(rule.server, 'i').test(server)) {
+                    isMatch = true;
+                }
+            }
+
+            // Cookie Check
+            if (!isMatch && rule.cookies) {
+                const cookie = lowerCaseHeaders.get('set-cookie') || '';
+                for (const [cName, cVal] of Object.entries(rule.cookies)) {
+                    if (cookie.includes(cName)) {
+                        if (cVal === null || cookie.includes(cVal)) {
+                            isMatch = true;
+                        }
+                    }
+                }
+            }
+
+            if (isMatch) {
+                const handler = customHandlers[name] ? customHandlers[name].getInfo : genericGetInfo;
+                detectedProviders.push({
+                    ...handler(lowerCaseHeaders, rule, name),
+                    priority: rule.priority || 5,
+                });
             }
         }
         if (detectedProviders.length > 0) {
@@ -824,8 +610,8 @@
         const cacheClass = 'cache-' + cacheStatus.split(' ')[0];
         const providerLabel =
             info.provider.includes('CDN') ||
-            info.provider.includes('Cloud') ||
-            info.provider.includes('Edge')
+                info.provider.includes('Cloud') ||
+                info.provider.includes('Edge')
                 ? 'CDN'
                 : 'Server';
 

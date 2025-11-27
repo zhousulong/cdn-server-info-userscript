@@ -1,0 +1,232 @@
+{
+  "Akamai": {
+    "headers": {
+      "x-akamai-transformed": null,
+      "x-akam-sw-version": null,
+      "x-akamai-request-id": null
+    },
+    "server": "AkamaiGHost",
+    "cookies": {
+      "ak_bmsc": null,
+      "akacd_": null
+    },
+    "pop_header": "x-served-by",
+    "pop_regex": "cache-([a-z0-9]+)-",
+    "id_header": "x-akamai-request-id",
+    "priority": 10
+  },
+  "Tencent Cloud": {
+    "headers": {
+      "x-nws-log-uuid": null,
+      "eo-log-uuid": null,
+      "edgeone-pages": null,
+      "x-daa-tunnel": null,
+      "x-cache-lookup": null
+    },
+    "server": "Tengine|Lego Server|edgeone-pages",
+    "id_header": "x-nws-log-uuid",
+    "priority": 10
+  },
+  "Alibaba Cloud CDN": {
+    "headers": {
+      "eagleid": null,
+      "ali-swift-global-savetime": null,
+      "x-swift-savetime": null,
+      "x-swift-cachetime": null
+    },
+    "via": "AliyunOS|aliyun",
+    "server": "Tengine",
+    "id_header": "eagleid",
+    "priority": 10
+  },
+  "Baidu Cloud": {
+    "headers": {
+      "x-logserver": "yunjiasu-nginx",
+      "x-server-ip": null
+    },
+    "server": "yunjiasu-nginx",
+    "priority": 10
+  },
+  "Wangsu / ChinaNetCenter": {
+    "headers": {
+      "x-ws-request-id": null,
+      "x-via": null
+    },
+    "id_header": "x-ws-request-id",
+    "priority": 10
+  },
+  "ChinaCache": {
+    "headers": {
+      "powered-by-chinacache": null
+    },
+    "server": "ChinaCache",
+    "priority": 10
+  },
+  "Qiniu Cloud": {
+    "headers": {
+      "x-qnm-cache": null,
+      "x-qiniu-zone": null
+    },
+    "priority": 10
+  },
+  "UpYun": {
+    "headers": {
+      "x-upyun-width": null,
+      "x-upyun-height": null,
+      "x-upyun-frames": null
+    },
+    "priority": 10
+  },
+  "Kingsoft Cloud": {
+    "headers": {
+      "x-kss-request-id": null,
+      "x-kss-pong": null
+    },
+    "id_header": "x-kss-request-id",
+    "priority": 10
+  },
+  "BaishanCloud": {
+    "headers": {
+      "x-bs-request-id": null
+    },
+    "custom_check_logic": "check_aws_compat",
+    "priority": 10
+  },
+  "ByteDance CDN": {
+    "headers": {
+      "x-tt-trace-tag": null,
+      "x-bdcdn-cache-status": null
+    },
+    "server": "Byte-nginx",
+    "id_header": "x-tt-trace-tag",
+    "priority": 11
+  },
+  "Cloudflare": {
+    "headers": {
+      "cf-ray": null
+    },
+    "server": "cloudflare",
+    "pop_header": "cf-ray",
+    "pop_regex": "([A-Z]{3})$",
+    "id_header": "cf-ray",
+    "priority": 10
+  },
+  "AWS CloudFront": {
+    "headers": {
+      "x-amz-cf-pop": null,
+      "x-amz-cf-id": null
+    },
+    "via": "cloudfront\\.net",
+    "pop_header": "x-amz-cf-pop",
+    "id_header": "x-amz-cf-id",
+    "priority": 9
+  },
+  "Google Cloud CDN": {
+    "headers": {
+      "x-guploader-uploadid": null
+    },
+    "via": "1\\.1 google",
+    "id_header": "x-guploader-uploadid",
+    "priority": 10
+  },
+  "Microsoft Azure CDN": {
+    "headers": {
+      "x-azure-ref": null,
+      "x-azure-ref-originshield": null
+    },
+    "id_header": "x-azure-ref",
+    "priority": 10
+  },
+  "Fastly": {
+    "headers": {
+      "x-fastly-request-id": null,
+      "x-served-by": null,
+      "x-timer": null
+    },
+    "pop_header": "x-served-by",
+    "pop_regex": "-([^-]+)$",
+    "id_header": "x-fastly-request-id",
+    "priority": 9
+  },
+  "Edgio": {
+    "headers": {
+      "x-limelight-edge-traffic": null
+    },
+    "server": "ECS|ECAcc",
+    "priority": 10
+  },
+  "Imperva": {
+    "headers": {
+      "x-iinfo": null,
+      "x-cdn": "Incapsula"
+    },
+    "id_header": "x-iinfo",
+    "priority": 10
+  },
+  "BunnyCDN": {
+    "headers": {
+      "bunny-cache-state": null,
+      "cdn-pullzone": null
+    },
+    "server": "BunnyCDN",
+    "id_header": "cdn-pullzone",
+    "priority": 9
+  },
+  "KeyCDN": {
+    "headers": {
+      "x-keycdn-cache": null
+    },
+    "server": "keycdn-engine",
+    "priority": 8
+  },
+  "StackPath": {
+    "headers": {
+      "x-scp-served-by": null,
+      "x-scp-cache-status": null,
+      "x-hw": null
+    },
+    "server": "stackpath",
+    "priority": 8
+  },
+  "JD Cloud CDN": {
+    "headers": {
+      "x-jss-request-id": null
+    },
+    "via": "\\(jcs",
+    "id_header": "x-jss-request-id",
+    "priority": 10
+  },
+  "QUIC.cloud": {
+    "headers": {
+      "x-qc-pop": null,
+      "x-qc-cache": null
+    },
+    "pop_header": "x-qc-pop",
+    "priority": 9
+  },
+  "Vercel": {
+    "headers": {
+      "x-vercel-id": null
+    },
+    "pop_header": "x-vercel-id",
+    "pop_regex": "^([a-zA-Z]+)",
+    "id_header": "x-vercel-id",
+    "priority": 10
+  },
+  "Wovn.io": {
+    "headers": {
+      "x-wovn-cache": null,
+      "x-wovn-surrogate-key": null
+    },
+    "priority": 9
+  },
+  "CDN77": {
+    "headers": {
+      "x-cdn-geo": null,
+      "x-cdn-pop": null
+    },
+    "server": "CDN77",
+    "pop_header": "x-cdn-pop",
+    "priority": 8
+  }
+}
