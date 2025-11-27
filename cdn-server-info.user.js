@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      6.1.1
-// @description  [v6.1.1 Author Update] Updated author name and optimized font sizes for better CDN name display.
-// @description:en [v6.1.1 Author Update] Updated author name and optimized font sizes for better CDN name display.
+// @version      7.0.0
+// @description  [v7.0.0 Major Update] Refactored to use independent CDN rules database (cdn_rules.json) for easier updates and broader detection support.
+// @description:en [v7.0.0 Major Update] Refactored to use independent CDN rules database (cdn_rules.json) for easier updates and broader detection support.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -109,7 +109,7 @@
                 };
             }
         },
-        'Tencent EdgeOne': {
+        'Tencent Cloud': { // Updated name
             getInfo: (h, rule) => {
                 let cache = 'N/A';
                 const eoCache = h.get('eo-cache-status');
@@ -124,7 +124,7 @@
                 }
                 const logUuid = h.get('eo-log-uuid') || h.get('x-nws-log-uuid') || 'N/A';
                 return {
-                    provider: 'Tencent EdgeOne',
+                    provider: 'Tencent Cloud',
                     cache: cache,
                     pop: 'N/A',
                     extra: `Log-UUID: ${logUuid}`,
@@ -285,6 +285,14 @@
                 }
             }
 
+            // Via Header Check
+            if (!isMatch && rule.via) {
+                const via = lowerCaseHeaders.get('via');
+                if (via && new RegExp(rule.via, 'i').test(via)) {
+                    isMatch = true;
+                }
+            }
+
             // Cookie Check
             if (!isMatch && rule.cookies) {
                 const cookie = lowerCaseHeaders.get('set-cookie') || '';
@@ -293,6 +301,17 @@
                         if (cVal === null || cookie.includes(cVal)) {
                             isMatch = true;
                         }
+                    }
+                }
+            }
+
+            // Custom Logic Check (e.g. BaishanCloud mimicking AWS)
+            if (!isMatch && rule.custom_check_logic === 'check_aws_compat') {
+                // Example: Check for X-Amz-Cf-Id but NOT AWS/CloudFront specific Via
+                if (lowerCaseHeaders.has('x-amz-cf-id')) {
+                    const via = lowerCaseHeaders.get('via') || '';
+                    if (!via.includes('cloudfront.net')) {
+                        isMatch = true;
                     }
                 }
             }
