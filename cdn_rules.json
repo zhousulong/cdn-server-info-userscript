@@ -19,11 +19,13 @@
     "headers": {
       "x-nws-log-uuid": null,
       "eo-log-uuid": null,
+      "eo-cache-status": null,
+      "dl-from": "qcloud",
       "edgeone-pages": null,
       "x-daa-tunnel": null,
       "x-cache-lookup": null
     },
-    "server": "Tengine|Lego Server|edgeone-pages",
+    "server": "Tengine|Lego Server|edgeone-pages|CloudWAF|SLT-MID",
     "id_header": "x-nws-log-uuid",
     "priority": 10
   },
@@ -65,9 +67,11 @@
   "Qiniu Cloud": {
     "headers": {
       "x-qnm-cache": null,
-      "x-qiniu-zone": null
+      "x-qiniu-zone": null,
+      "x-reqid": null,
+      "x-m-reqid": null
     },
-    "priority": 10
+    "priority": 11
   },
   "UpYun": {
     "headers": {
@@ -219,6 +223,16 @@
       "x-wovn-surrogate-key": null
     },
     "priority": 9
+  },
+  "Huawei Cloud": {
+    "headers": {
+      "ohc-cache-hit": null,
+      "ohc-file-size": null,
+      "ohc-global-saved-time": null,
+      "via": "huaweicloud"
+    },
+    "server": "HuaweiCloud",
+    "priority": 10
   },
   "CDN77": {
     "headers": {

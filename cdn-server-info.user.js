@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.1.1
-// @description  [v7.1.1 UI Refinement] Compacted UI dimensions and font sizes for a cleaner look.
-// @description:en [v7.1.1 UI Refinement] Compacted UI dimensions and font sizes for a cleaner look.
+// @version      7.1.5
+// @description  [v7.1.5 Rule Update] Added support for 'SLT-MID' server header (Tencent Cloud).
+// @description:en [v7.1.5 Rule Update] Added support for 'SLT-MID' server header (Tencent Cloud).
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
