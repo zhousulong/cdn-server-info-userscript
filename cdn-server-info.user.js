@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.0.0
-// @description  [v7.0.0 Major Update] Refactored to use independent CDN rules database (cdn_rules.json) for easier updates and broader detection support.
-// @description:en [v7.0.0 Major Update] Refactored to use independent CDN rules database (cdn_rules.json) for easier updates and broader detection support.
+// @version      7.1.0
+// @description  [v7.1.0 UI Overhaul] Redesigned UI with Glassmorphism/iOS Control Center style. Refactored to use independent CDN rules database.
+// @description:en [v7.1.0 UI Overhaul] Redesigned UI with Glassmorphism/iOS Control Center style. Refactored to use independent CDN rules database.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -354,123 +354,126 @@
     // --- UI & Execution Functions ---
     function getPanelCSS() {
         const isDarkTheme = config.settings.theme === 'dark';
-        const bgColor = isDarkTheme ? 'rgba(25, 25, 25, 0.7)' : 'rgba(255, 255, 255, 0.7)';
-        const borderColor = isDarkTheme ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.15)';
-        const textColor = isDarkTheme ? '#ffffff' : '#000000';
-        const labelColor = isDarkTheme ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)';
-        const backdropFilter = 'blur(20px)'; // iOS-style blur effect
+        // Glassmorphism variables
+        const bgColor = isDarkTheme ? 'rgba(20, 20, 20, 0.6)' : 'rgba(255, 255, 255, 0.65)';
+        const borderColor = isDarkTheme ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.4)';
+        const textColor = isDarkTheme ? 'rgba(255, 255, 255, 0.95)' : '#000000';
+        const labelColor = isDarkTheme ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.6)';
+        const backdropFilter = 'saturate(180%) blur(25px)'; // Enhanced blur for premium feel
         const boxShadow = isDarkTheme
-            ? '0 10px 30px rgba(0, 0, 0, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.1)'
-            : '0 10px 30px rgba(0, 0, 0, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.5)';
+            ? '0 20px 40px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.1)'
+            : '0 20px 40px rgba(0, 0, 0, 0.15), inset 0 0 0 1px rgba(255, 255, 255, 0.5)';
 
         return `
-            :host {
-                all: initial;
-                position: fixed;
-                z-index: 2147483647;
-                ${getPositionCSS()}
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            }
-            #cdn-info-panel-enhanced {
-                position: relative;
-                min-width: 200px;
-                max-width: 300px;
-                padding: 14px;
-                border-radius: 20px;
-                background-color: ${bgColor};
-                border: 1px solid ${borderColor};
-                box-shadow: ${boxShadow};
-                backdrop-filter: ${backdropFilter};
-                -webkit-backdrop-filter: ${backdropFilter};
-                cursor: move;
-                user-select: none;
-                transition: transform 0.2s ease, box-shadow 0.2s ease;
-            }
-            #cdn-info-panel-enhanced:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
-            }
-            .close-btn {
-                position: absolute; 
-                top: 8px; 
-                right: 8px;
-                width: 22px; 
-                height: 22px;
-                border-radius: 50%;
-                background: transparent;
-                color: ${labelColor};
-                border: none; 
-                cursor: pointer;
-                font-size: 16px;
-                line-height: 22px;
-                display: flex; 
-                align-items: center; 
-                justify-content: center;
-                transition: all 0.2s;
-                z-index: 2;
-            }
-            .close-btn:hover { 
-                background: ${isDarkTheme ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)'}; 
-                color: ${textColor}; 
-            }
-            .panel-header {
-                font-size: 12px;
-                font-weight: 600;
-                color: ${labelColor};
-                text-align: center;
-                margin-bottom: 12px;
-                padding-bottom: 8px;
-                border-bottom: 1px solid ${borderColor};
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-            }
-            .info-line {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 10px;
-                font-size: 13px;
-            }
-            .info-line:last-child { margin-bottom: 0; }
-            .info-label {
-                color: ${labelColor};
-                font-weight: 500;
-                flex: 1;
-                overflow: hidden;
-                text-overflow: ellipsis;
-            }
-            .info-value {
-                color: ${textColor};
-                font-weight: 600;
-                text-align: right;
-                flex: 1.5;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                white-space: nowrap;
-                font-family: -apple-system, BlinkMacSystemFont, 'SF Mono', 'Menlo', 'Consolas', 'Liberation Mono', 'Courier New', monospace;
-                font-size: 12px;
-            }
-            .cache-HIT { color: #34C759 !important; }
-            .cache-MISS { color: #FF2D55 !important; }
-            .cache-BYPASS, .cache-DYNAMIC { color: #0A84FF !important; }
-            
-            /* Settings panel styles */
-            #settings-panel {
-                position: fixed;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                width: 300px;
-                padding: 18px;
-                border-radius: 20px;
-                background-color: ${bgColor};
-                border: 1px solid ${borderColor};
-                box-shadow: ${boxShadow};
-                backdrop-filter: ${backdropFilter};
-                -webkit-backdrop-filter: ${backdropFilter};
-                z-index: 2147483648;
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            }
+        :host {
+            all: initial;
+            position: fixed;
+            z-index: 2147483647;
+            ${getPositionCSS()}
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+        #cdn-info-panel-enhanced {
+            position: relative;
+            min-width: 220px;
+            max-width: 320px;
+            padding: 20px;
+            border-radius: 28px; /* Large iOS-style radius */
+            background-color: ${bgColor};
+            box-shadow: ${boxShadow};
+            backdrop-filter: ${backdropFilter};
+            -webkit-backdrop-filter: ${backdropFilter};
+            cursor: move;
+            user-select: none;
+            transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.25s ease;
+            color: ${textColor};
+        }
+        #cdn-info-panel-enhanced:hover {
+            transform: scale(1.02);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+        }
+        .close-btn {
+            position: absolute; 
+            top: 12px; 
+            right: 12px;
+            width: 24px; 
+            height: 24px;
+            border-radius: 50%;
+            background: rgba(120, 120, 120, 0.2);
+            color: ${textColor};
+            border: none; 
+            cursor: pointer;
+            font-size: 14px;
+            line-height: 24px;
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            transition: all 0.2s;
+            z-index: 2;
+            opacity: 0; /* Hidden by default for cleaner look */
+        }
+        #cdn-info-panel-enhanced:hover .close-btn {
+            opacity: 1;
+        }
+        .close-btn:hover { 
+            background: rgba(120, 120, 120, 0.4); 
+            transform: scale(1.1);
+        }
+        .panel-header {
+            font-size: 11px;
+            font-weight: 700;
+            color: ${labelColor};
+            text-align: center;
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.8;
+        }
+        .info-line {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+        .info-line:last-child { margin-bottom: 0; }
+        .info-label {
+            color: ${labelColor};
+            font-weight: 500;
+            flex: 1;
+        }
+        .info-value {
+            color: ${textColor};
+            font-weight: 600;
+            text-align: right;
+            flex: 1.5;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+            font-size: 13px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        .cache-HIT { color: #32D74B !important; } /* iOS Green */
+        .cache-MISS { color: #FF453A !important; } /* iOS Red */
+        .cache-BYPASS, .cache-DYNAMIC { color: #0A84FF !important; } /* iOS Blue */
+        
+        /* Settings panel styles */
+        #settings-panel {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 320px;
+            padding: 24px;
+            border-radius: 28px;
+            background-color: ${bgColor};
+            box-shadow: ${boxShadow};
+            backdrop-filter: ${backdropFilter};
+            -webkit-backdrop-filter: ${backdropFilter};
+            z-index: 2147483648;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+            color: ${textColor};
+        }
             #settings-panel h3 {
                 margin-top: 0;
                 color: ${textColor};

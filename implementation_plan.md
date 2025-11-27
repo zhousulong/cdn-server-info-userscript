@@ -1,38 +1,31 @@
-# Implementation Plan - Independent Database Refactoring
+# Implementation Plan - UI Overhaul (Glassmorphism)
 
 ## Goal Description
-Refactor the `cdn-server-info-userscript` to separate the CDN detection rules from the main logic code. This allows for easier updates, independent management of rules (via a JSON file), and the ability to scrape/import rules from external sources like Wappalyzer.
+Update the userscript's UI to match the "Glassmorphism/iOS Control Center" style provided in the reference image. This involves refining the CSS to achieve a premium, translucent, and depth-rich appearance.
 
 ## Proposed Changes
 
-### [Data Layer]
-#### [NEW] [cdn_rules.json](file:///Users/zhousulong/LocalFiles/GitHub/cdn-server-info-userscript/cdn_rules.json)
-- A JSON file containing declarative rules for CDN detection.
-- Structure includes `headers`, `server`, `cookies`, `priority`, and extraction hints (`pop_header`, `id_header`, `pop_regex`).
-
-### [Tooling]
-#### [NEW] [tools/update_rules.js](file:///Users/zhousulong/LocalFiles/GitHub/cdn-server-info-userscript/tools/update_rules.js)
-- A Node.js script to manage `cdn_rules.json`.
-- Supports importing rules from Wappalyzer-format JSON files.
-- Future support for fetching rules from remote URLs.
-
 ### [Userscript]
 #### [MODIFY] [cdn-server-info.user.js](file:///Users/zhousulong/LocalFiles/GitHub/cdn-server-info-userscript/cdn-server-info.user.js)
-- **Metadata**: Added `@resource cdn_rules` to load the external JSON file.
-- **Logic**:
-    - Removed hardcoded `cdnProviders` object.
-    - Added `loadRules()` function to parse the JSON resource.
-    - Implemented a dynamic detection loop that iterates over the loaded rules.
-    - Retained `customHandlers` for providers requiring complex logic (Akamai, Tencent EdgeOne, ByteDance).
-    - Added `genericGetInfo` for standard providers based on JSON hints.
+- **CSS Update (`getPanelCSS`)**:
+    - **Container**:
+        - Increase `border-radius` to `24px` or `30px`.
+        - Refine `background-color` to be more translucent (e.g., `rgba(20, 20, 20, 0.6)` for dark mode).
+        - Enhance `backdrop-filter` to `blur(25px)` or `saturate(180%) blur(20px)` for that "frosted glass" look.
+        - Add subtle white border `1px solid rgba(255, 255, 255, 0.1)` to define edges.
+        - Add complex `box-shadow` for depth (e.g., soft drop shadow + inner highlight).
+    - **Typography**:
+        - Ensure font is `SF Pro Display`, `-apple-system`, or similar.
+        - Improve contrast and weight (bold labels, lighter values or vice versa).
+    - **Layout**:
+        - Add more padding (`16px` or `20px`).
+        - Refine spacing between items.
+    - **Animations**:
+        - Smooth hover effects (scale up slightly, brighten background).
 
 ## Verification Plan
 
 ### Manual Verification
-1.  **Load Script**: Install the updated userscript in Tampermonkey.
-2.  **Check Rules**: Verify that the script loads `cdn_rules.json` (check console logs for "[CDN Info] Loaded rules from resource").
-3.  **Test Detection**: Visit sites using known CDNs (e.g., Cloudflare, Akamai) and verify the panel appears with correct info.
-4.  **Test Updates**: Modify `cdn_rules.json` locally or via the update script and verify changes are reflected after script reload.
-
-### Automated Tests (Future)
-- Unit tests for `update_rules.js` to ensure Wappalyzer import logic works correctly.
+1.  **Visual Check**: Install script and visit a site. Compare the panel against the reference image.
+2.  **Theme Check**: Verify both Dark and Light modes (though the image implies a dark/glassy default, we should maintain light mode support or make it adapt nicely).
+3.  **Interaction**: Check dragging and hovering behavior.
