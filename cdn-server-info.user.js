@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.1.0
-// @description  [v7.1.0 UI Overhaul] Redesigned UI with Glassmorphism/iOS Control Center style. Refactored to use independent CDN rules database.
-// @description:en [v7.1.0 UI Overhaul] Redesigned UI with Glassmorphism/iOS Control Center style. Refactored to use independent CDN rules database.
+// @version      7.1.1
+// @description  [v7.1.1 UI Refinement] Compacted UI dimensions and font sizes for a cleaner look.
+// @description:en [v7.1.1 UI Refinement] Compacted UI dimensions and font sizes for a cleaner look.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -374,10 +374,10 @@
         }
         #cdn-info-panel-enhanced {
             position: relative;
-            min-width: 220px;
-            max-width: 320px;
-            padding: 20px;
-            border-radius: 28px; /* Large iOS-style radius */
+            min-width: 200px;
+            max-width: 280px; /* Reduced max-width */
+            padding: 16px; /* Reduced padding */
+            border-radius: 22px; /* Slightly smaller radius */
             background-color: ${bgColor};
             box-shadow: ${boxShadow};
             backdrop-filter: ${backdropFilter};
@@ -393,17 +393,17 @@
         }
         .close-btn {
             position: absolute; 
-            top: 12px; 
-            right: 12px;
-            width: 24px; 
-            height: 24px;
+            top: 10px; 
+            right: 10px;
+            width: 20px; /* Smaller close button */
+            height: 20px;
             border-radius: 50%;
             background: rgba(120, 120, 120, 0.2);
             color: ${textColor};
             border: none; 
             cursor: pointer;
-            font-size: 14px;
-            line-height: 24px;
+            font-size: 12px;
+            line-height: 20px;
             display: flex; 
             align-items: center; 
             justify-content: center;
@@ -419,11 +419,11 @@
             transform: scale(1.1);
         }
         .panel-header {
-            font-size: 11px;
+            font-size: 10px; /* Smaller header */
             font-weight: 700;
             color: ${labelColor};
             text-align: center;
-            margin-bottom: 16px;
+            margin-bottom: 12px;
             text-transform: uppercase;
             letter-spacing: 1px;
             opacity: 0.8;
@@ -432,8 +432,8 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 12px;
-            font-size: 14px;
+            margin-bottom: 8px; /* Reduced margin */
+            font-size: 12px; /* Smaller font */
         }
         .info-line:last-child { margin-bottom: 0; }
         .info-label {
@@ -450,7 +450,7 @@
             overflow: hidden;
             text-overflow: ellipsis;
             font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
-            font-size: 13px;
+            font-size: 11px; /* Smaller value font */
             text-shadow: 0 1px 2px rgba(0,0,0,0.1);
         }
         .cache-HIT { color: #32D74B !important; } /* iOS Green */
@@ -463,9 +463,9 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 320px;
-            padding: 24px;
-            border-radius: 28px;
+            width: 280px; /* Reduced width */
+            padding: 20px;
+            border-radius: 24px;
             background-color: ${bgColor};
             box-shadow: ${boxShadow};
             backdrop-filter: ${backdropFilter};
@@ -478,41 +478,41 @@
                 margin-top: 0;
                 color: ${textColor};
                 text-align: center;
-                font-size: 16px;
+                font-size: 14px;
                 font-weight: 600;
             }
             .setting-item {
-                margin-bottom: 16px;
+                margin-bottom: 12px;
             }
             .setting-item label {
                 display: block;
-                margin-bottom: 5px;
+                margin-bottom: 4px;
                 color: ${labelColor};
                 font-weight: 500;
-                font-size: 13px;
+                font-size: 12px;
             }
             .setting-item select, .setting-item input {
                 width: 100%;
-                padding: 8px 10px;
-                border-radius: 12px;
+                padding: 6px 8px;
+                border-radius: 10px;
                 border: 1px solid ${borderColor};
                 background-color: ${isDarkTheme ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.5)'};
-                color: ${textColor};
-                font-size: 13px;
+            color: ${textColor};
+                font-size: 12px;
                 box-sizing: border-box;
             }
             .setting-buttons {
                 display: flex;
                 justify-content: space-between;
-                margin-top: 20px;
+                margin-top: 16px;
             }
             .setting-btn {
-                padding: 8px 16px;
-                border-radius: 12px;
+                padding: 6px 12px;
+                border-radius: 10px;
                 border: none;
                 cursor: pointer;
                 font-weight: 600;
-                font-size: 14px;
+                font-size: 12px;
                 flex: 1;
                 margin: 0 4px;
             }
