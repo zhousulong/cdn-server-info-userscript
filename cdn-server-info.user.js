@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.1.5
-// @description  [v7.1.5 Rule Update] Added support for 'SLT-MID' server header (Tencent Cloud).
-// @description:en [v7.1.5 Rule Update] Added support for 'SLT-MID' server header (Tencent Cloud).
+// @version      7.1.8
+// @description  [v7.1.8 Rule Update] Added support for Netlify POP extraction (via server-timing).
+// @description:en [v7.1.8 Rule Update] Added support for Netlify POP extraction (via server-timing).
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -173,6 +173,24 @@
                     cache,
                     pop,
                     extra: `Trace Tag: ${h.get('x-tt-trace-tag') || 'N/A'}`,
+                };
+            }
+        },
+        'Netlify': {
+            getInfo: (h, rule) => {
+                let pop = 'N/A';
+                const serverTiming = h.get('server-timing');
+                if (serverTiming) {
+                    const match = serverTiming.match(/dc;desc="?([^",]+)"?/);
+                    if (match && match[1]) {
+                        pop = match[1].toUpperCase();
+                    }
+                }
+                return {
+                    provider: 'Netlify',
+                    cache: getCacheStatus(h),
+                    pop: pop,
+                    extra: `Req-ID: ${h.get('x-nf-request-id') || 'N/A'}`,
                 };
             }
         }
@@ -364,6 +382,12 @@
             ? '0 20px 40px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.1)'
             : '0 20px 40px rgba(0, 0, 0, 0.15), inset 0 0 0 1px rgba(255, 255, 255, 0.5)';
 
+        // Color Palette
+        const greenColor = '#32D74B';
+        const redColor = '#FF453A';
+        // Adjusted Blue for better visibility: Lighter cyan-blue for dark mode, darker blue for light mode
+        const blueColor = isDarkTheme ? '#64D2FF' : '#007AFF';
+
         return `
         :host {
             all: initial;
@@ -453,9 +477,9 @@
             font-size: 11px; /* Smaller value font */
             text-shadow: 0 1px 2px rgba(0,0,0,0.1);
         }
-        .cache-HIT { color: #32D74B !important; } /* iOS Green */
-        .cache-MISS { color: #FF453A !important; } /* iOS Red */
-        .cache-BYPASS, .cache-DYNAMIC { color: #0A84FF !important; } /* iOS Blue */
+        .cache-HIT { color: ${greenColor} !important; }
+        .cache-MISS { color: ${redColor} !important; }
+        .cache-BYPASS, .cache-DYNAMIC { color: ${blueColor} !important; }
         
         /* Settings panel styles */
         #settings-panel {
@@ -517,7 +541,7 @@
                 margin: 0 4px;
             }
             .save-btn {
-                background-color: #0A84FF;
+                background-color: ${blueColor};
                 color: white;
             }
             .cancel-btn {

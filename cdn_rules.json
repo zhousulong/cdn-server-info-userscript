@@ -206,6 +206,7 @@
       "x-qc-cache": null
     },
     "pop_header": "x-qc-pop",
+    "pop_regex": "^[A-Z]{2}-[A-Z]{2}-([A-Z]{3,4})-",
     "priority": 9
   },
   "Vercel": {
@@ -242,5 +243,13 @@
     "server": "CDN77",
     "pop_header": "x-cdn-pop",
     "priority": 8
+  },
+  "Netlify": {
+    "headers": {
+      "x-nf-request-id": null
+    },
+    "server": "Netlify",
+    "id_header": "x-nf-request-id",
+    "priority": 10
   }
 }
