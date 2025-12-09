@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.2.0
-// @description  [v7.2.0 Enhancement] Enhanced POP extraction for AWS CloudFront - now correctly extracts only airport code letters (e.g., SFO from SFO5-P3, NRT from NRT57-P1).
-// @description:en [v7.2.0 Enhancement] Enhanced POP extraction for AWS CloudFront - now correctly extracts only airport code letters (e.g., SFO from SFO5-P3, NRT from NRT57-P1).
+// @version      7.2.1
+// @description  [v7.2.1 Enhancement] Enhanced POP extraction fallback for hyphenated formats (e.g., HND from AS-JP-HND-HYBRID-141) and standard formats (SFO from SFO5-P3).
+// @description:en [v7.2.1 Enhancement] Enhanced POP extraction fallback for hyphenated formats (e.g., HND from AS-JP-HND-HYBRID-141) and standard formats (SFO from SFO5-P3).
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -220,13 +220,26 @@
                     const match = val.match(new RegExp(rule.pop_regex, 'i'));
                     if (match && match[1]) pop = match[1].toUpperCase();
                 } else {
-                    // Default heuristic - extract letters from start (airport code)
+                    // Default heuristic - extract airport code from value
+                    // First try to match letters at the start
                     const letterMatch = val.trim().match(/^([A-Z]+)/i);
-                    if (letterMatch) {
-                        // Take first 3-4 letters (standard airport code length)
-                        pop = letterMatch[1].substring(0, 3).toUpperCase();
+                    if (letterMatch && letterMatch[1].length >= 3) {
+                        // If we have 3+ letters at start, use first 3-4
+                        pop = letterMatch[1].substring(0, Math.min(4, letterMatch[1].length)).toUpperCase();
                     } else {
-                        pop = val.trim().split(/[-_]/)[0].toUpperCase();
+                        // For hyphenated formats like "AS-JP-HND-HYBRID", find the 3-4 letter part
+                        const parts = val.trim().split(/[-_]/);
+                        for (const part of parts) {
+                            const partMatch = part.match(/^([A-Z]+)$/i);
+                            if (partMatch && partMatch[1].length >= 3 && partMatch[1].length <= 4) {
+                                pop = partMatch[1].toUpperCase();
+                                break;
+                            }
+                        }
+                        // If still not found, use first part
+                        if (pop === 'N/A' && parts.length > 0) {
+                            pop = parts[0].toUpperCase();
+                        }
                     }
                 }
             }
