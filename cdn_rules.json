@@ -122,7 +122,7 @@
     },
     "via": "cloudfront\\.net",
     "pop_header": "x-amz-cf-pop",
-    "pop_regex": "^([A-Z]{3})\\d*",
+    "pop_regex": "^([A-Z]{3})",
     "id_header": "x-amz-cf-id",
     "priority": 9
   },
