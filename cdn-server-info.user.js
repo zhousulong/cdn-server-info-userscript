@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.1.8
-// @description  [v7.1.8 Rule Update] Added support for Netlify POP extraction (via server-timing).
-// @description:en [v7.1.8 Rule Update] Added support for Netlify POP extraction (via server-timing).
+// @version      7.1.9
+// @description  [v7.1.9 Bug Fix] Fixed POP extraction for AWS CloudFront and other CDNs - now correctly extracts airport code (e.g., NRT instead of P1 from NRT57-P1).
+// @description:en [v7.1.9 Bug Fix] Fixed POP extraction for AWS CloudFront and other CDNs - now correctly extracts airport code (e.g., NRT instead of P1 from NRT57-P1).
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -217,10 +217,10 @@
             const val = h.get(rule.pop_header);
             if (val) {
                 if (rule.pop_regex) {
-                    const match = val.match(new RegExp(rule.pop_regex));
+                    const match = val.match(new RegExp(rule.pop_regex, 'i'));
                     if (match && match[1]) pop = match[1].toUpperCase();
                 } else {
-                    pop = val.trim().split(/[-_]/).pop().toUpperCase(); // Default heuristic
+                    pop = val.trim().split(/[-_]/)[0].toUpperCase(); // Default heuristic - use first part
                 }
             }
         }
