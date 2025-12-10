@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.2.2
-// @description  [v7.2.2 Fix] Removed unreliable Tengine server detection. Now rely on provider-specific headers, via patterns, and cookies for accurate Alibaba/Tencent Cloud identification.
-// @description:en [v7.2.2 Fix] Removed unreliable Tengine server detection. Now rely on provider-specific headers, via patterns, and cookies for accurate Alibaba/Tencent Cloud identification.
+// @version      7.2.3
+// @description  [v7.2.3 Fix] Force resource cache refresh to ensure updated detection rules are loaded.
+// @description:en [v7.2.3 Fix] Force resource cache refresh to ensure updated detection rules are loaded.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.2.3
 // @run-at       document-idle
 // @noframes
 // ==/UserScript==
