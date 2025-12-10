@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.2.1
-// @description  [v7.2.1 Enhancement] Enhanced POP extraction fallback for hyphenated formats (e.g., HND from AS-JP-HND-HYBRID-141) and standard formats (SFO from SFO5-P3).
-// @description:en [v7.2.1 Enhancement] Enhanced POP extraction fallback for hyphenated formats (e.g., HND from AS-JP-HND-HYBRID-141) and standard formats (SFO from SFO5-P3).
+// @version      7.2.2
+// @description  [v7.2.2 Fix] Removed unreliable Tengine server detection. Now rely on provider-specific headers, via patterns, and cookies for accurate Alibaba/Tencent Cloud identification.
+// @description:en [v7.2.2 Fix] Removed unreliable Tengine server detection. Now rely on provider-specific headers, via patterns, and cookies for accurate Alibaba/Tencent Cloud identification.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*

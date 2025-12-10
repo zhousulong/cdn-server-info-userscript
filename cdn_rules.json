@@ -25,7 +25,7 @@
       "x-daa-tunnel": null,
       "x-cache-lookup": null
     },
-    "server": "Tengine|Lego Server|edgeone-pages|CloudWAF|SLT-MID",
+    "server": "Lego Server|edgeone-pages|CloudWAF|SLT-MID",
     "id_header": "x-nws-log-uuid",
     "priority": 10
   },
@@ -37,7 +37,6 @@
       "x-swift-cachetime": null
     },
     "via": "AliyunOS|aliyun",
-    "server": "Tengine",
     "cookies": {
       "alimail_": null,
       "at=": null
