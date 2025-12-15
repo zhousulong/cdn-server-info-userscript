@@ -34,9 +34,11 @@
       "eagleid": null,
       "ali-swift-global-savetime": null,
       "x-swift-savetime": null,
-      "x-swift-cachetime": null
+      "x-swift-cachetime": null,
+      "x-site-cache-status": null
     },
-    "via": "AliyunOS|aliyun",
+    "server": "ESA",
+    "via": "AliyunOS|aliyun|ens-cache",
     "cookies": {
       "alimail_": null,
       "at=": null

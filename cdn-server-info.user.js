@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.2.3
-// @description  [v7.2.3 Fix] Force resource cache refresh to ensure updated detection rules are loaded.
-// @description:en [v7.2.3 Fix] Force resource cache refresh to ensure updated detection rules are loaded.
+// @version      7.2.4
+// @description  [v7.2.4 Fix] Improved Alibaba Cloud ESA detection and x-site-cache-status recognition.
+// @description:en [v7.2.4 Fix] Improved Alibaba Cloud ESA detection and x-site-cache-status recognition.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.2.3
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.2.4
 // @run-at       document-idle
 // @noframes
 // ==/UserScript==
@@ -73,6 +73,7 @@
             h.get('cf-cache-status'),
             h.get('cdn-cache'),
             h.get('bunny-cache-state'),
+            h.get('x-site-cache-status'),
         ];
         for (const value of headersToCheck) {
             if (!value) continue;
