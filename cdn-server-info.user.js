@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.3.0
-// @description  [v7.3.0] Enhanced Glassmorphism UI with auto system theme detection. Improved visual effects with gradient borders and backdrop blur.
-// @description:en [v7.3.0] Enhanced Glassmorphism UI with auto system theme detection. Improved visual effects with gradient borders and backdrop blur.
+// @version      7.4.0
+// @description  [v7.4.0] Added LiteSpeed/OpenResty/Apache/Nginx detection. Improved icon matching for QUIC.cloud and partial CDN names. Fixed watermark display issues.
+// @description:en [v7.4.0] Added LiteSpeed/OpenResty/Apache/Nginx detection. Improved icon matching for QUIC.cloud and partial CDN names. Fixed watermark display issues.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.2.4
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.4.0
 // @run-at       document-idle
 // @noframes
 // ==/UserScript==
@@ -929,7 +929,7 @@
             // Fuzzy match: try multiple strategies
             // Strategy 1: Check if provider name contains any icon key
             let iconKey = Object.keys(cdnIcons).find(key => info.provider.includes(key));
-            
+
             // Strategy 2: Check if any icon key is contained in provider name (reverse check)
             if (!iconKey) {
                 iconKey = Object.keys(cdnIcons).find(key => {
@@ -939,7 +939,7 @@
                     return providerLower.includes(keyLower) || keyLower.includes(providerLower);
                 });
             }
-            
+
             if (iconKey) watermarkSvg = cdnIcons[iconKey];
         }
         const watermarkHtml = watermarkSvg ? `<div class="cdn-watermark">${watermarkSvg}</div>` : '';
