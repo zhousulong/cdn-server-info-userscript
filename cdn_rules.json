@@ -257,5 +257,21 @@
     "server": "Netlify",
     "id_header": "x-nf-request-id",
     "priority": 10
+  },
+  "LiteSpeed": {
+    "server": "LiteSpeed",
+    "priority": 7
+  },
+  "OpenResty": {
+    "server": "openresty",
+    "priority": 6
+  },
+  "Apache": {
+    "server": "Apache",
+    "priority": 5
+  },
+  "Nginx": {
+    "server": "nginx",
+    "priority": 5
   }
 }

@@ -923,10 +923,23 @@
         // Find watermark icon based on CDN provider
         let watermarkSvg = '';
         if (cdnIcons[info.provider]) {
+            // Exact match
             watermarkSvg = cdnIcons[info.provider];
         } else {
-            // Fuzzy match: check if provider name contains any icon key
-            const iconKey = Object.keys(cdnIcons).find(key => info.provider.includes(key));
+            // Fuzzy match: try multiple strategies
+            // Strategy 1: Check if provider name contains any icon key
+            let iconKey = Object.keys(cdnIcons).find(key => info.provider.includes(key));
+            
+            // Strategy 2: Check if any icon key is contained in provider name (reverse check)
+            if (!iconKey) {
+                iconKey = Object.keys(cdnIcons).find(key => {
+                    // Case-insensitive partial match
+                    const providerLower = info.provider.toLowerCase();
+                    const keyLower = key.toLowerCase();
+                    return providerLower.includes(keyLower) || keyLower.includes(providerLower);
+                });
+            }
+            
             if (iconKey) watermarkSvg = cdnIcons[iconKey];
         }
         const watermarkHtml = watermarkSvg ? `<div class="cdn-watermark">${watermarkSvg}</div>` : '';
