@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.4.0
-// @description  [v7.4.0] Added LiteSpeed/OpenResty/Apache/Nginx detection. Improved icon matching for QUIC.cloud and partial CDN names. Fixed watermark display issues.
-// @description:en [v7.4.0] Added LiteSpeed/OpenResty/Apache/Nginx detection. Improved icon matching for QUIC.cloud and partial CDN names. Fixed watermark display issues.
+// @version      7.5.0
+// @description  [v7.5.0] Enhanced LiteSpeed cache detection (x-litespeed-cache, x-lsadc-cache). Improved CSS isolation for consistent panel rendering across sites. Added server detection for LiteSpeed/OpenResty/Apache/Nginx. Removed unused right-click menu.
+// @description:en [v7.5.0] Enhanced LiteSpeed cache detection (x-litespeed-cache, x-lsadc-cache). Improved CSS isolation for consistent panel rendering across sites. Added server detection for LiteSpeed/OpenResty/Apache/Nginx. Removed unused right-click menu.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.4.0
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.5.0
 // @run-at       document-idle
 // @noframes
 // ==/UserScript==
@@ -79,6 +79,8 @@
             h.get('cdn-cache'),
             h.get('bunny-cache-state'),
             h.get('x-site-cache-status'),
+            h.get('x-litespeed-cache'),
+            h.get('x-lsadc-cache'),
         ];
         for (const value of headersToCheck) {
             if (!value) continue;
@@ -526,6 +528,7 @@
         const blueColor = '#3B82F6';
 
         return `
+        /* Safe CSS Reset for Shadow DOM */
         :host {
             all: initial;
             position: fixed;
@@ -534,12 +537,17 @@
             font-family: ${uiFont};
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
+            /* Prevent font scaling issues */
+            text-size-adjust: 100%;
         }
 
+        /* Reset inherited properties specifically for our container */
         #cdn-info-panel-enhanced {
+            all: unset; /* Clear inherited styles on container */
             position: relative;
-            width: 220px; /* Extremely compact */
-            padding: 14px 16px; /* Tight, balanced padding */
+            box-sizing: border-box;
+            width: 252px; /* Restored original visual width (220 + 32 padding) */
+            padding: 14px 16px;
             border-radius: 14px;
             background-color: ${materialBase};
             backdrop-filter: ${backdropFilter};
@@ -554,6 +562,20 @@
             flex-direction: column;
             gap: 10px;
             overflow: hidden;
+            
+            /* Explicitly define inherited properties to stop leakage */
+            line-height: 1.5;
+            font-size: 14px;
+            font-style: normal;
+            font-weight: normal;
+            text-align: left;
+            text-decoration: none;
+            text-transform: none;
+        }
+
+        /* Ensure all children use border-box */
+        #cdn-info-panel-enhanced * {
+            box-sizing: border-box;
         }
 
         /* Subtle top highlight */
@@ -572,7 +594,7 @@
         /* --- Buttons (Hidden by default) --- */
         button.icon-btn {
             position: absolute !important;
-            top: 13px !important; /* Visual alignment with header */
+            top: 13px !important;
             width: 18px !important;
             height: 18px !important;
             border-radius: 50% !important;
@@ -591,6 +613,7 @@
             margin: 0 !important;
             -webkit-appearance: none !important;
             appearance: none !important;
+            line-height: 1 !important;
         }
 
         button.close-btn { right: 12px !important; font-size: 16px !important; font-weight: 300 !important; line-height: 18px !important; }
@@ -601,32 +624,38 @@
 
         /* --- Content Typography --- */
         .panel-header {
+            display: block;
             font-family: ${uiFont};
             font-size: 10px;
             font-weight: 700;
             color: ${isDarkTheme ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.4)'};
             text-transform: uppercase;
             letter-spacing: 1.5px;
-            margin-bottom: 2px;
+            margin: 0 0 2px 0;
             padding-left: 2px;
+            line-height: 1.4;
         }
 
         .info-lines-container {
             display: flex;
             flex-direction: column;
             gap: 6px;
+            margin: 0;
+            padding: 0;
         }
 
         .info-line {
             display: flex;
             justify-content: space-between;
-            align-items: baseline; /* Baseline alignment is key for mixed fonts */
+            align-items: baseline;
             margin: 0;
             padding: 0;
-            border: none; /* Removed dividers for cleaner look */
+            border: none;
+            line-height: normal;
         }
 
         .info-label {
+            display: inline-block;
             font-family: ${uiFont};
             font-size: 11px;
             font-weight: 500;
@@ -635,6 +664,7 @@
         }
 
         .info-value {
+            display: inline-block;
             font-family: ${monoFont}; /* Mono for data */
             font-size: 11px;
             font-weight: 500;
@@ -1018,11 +1048,6 @@
             }
         });
 
-        // Add settings button (right click on panel to open settings)
-        panel.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            createSettingsPanel();
-        });
 
         makeDraggable(host);
     }
