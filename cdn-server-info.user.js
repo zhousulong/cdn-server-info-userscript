@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.2.4
-// @description  [v7.2.4 Fix] Improved Alibaba Cloud ESA detection and x-site-cache-status recognition.
-// @description:en [v7.2.4 Fix] Improved Alibaba Cloud ESA detection and x-site-cache-status recognition.
+// @version      7.3.0
+// @description  [v7.3.0] Enhanced Glassmorphism UI with auto system theme detection. Improved visual effects with gradient borders and backdrop blur.
+// @description:en [v7.3.0] Enhanced Glassmorphism UI with auto system theme detection. Improved visual effects with gradient borders and backdrop blur.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -40,11 +40,16 @@
         ],
         // Default settings
         settings: {
-            theme: 'dark', // 'dark' or 'light'
+            theme: 'auto', // 'auto', 'dark' or 'light'
             panelPosition: 'bottom-right', // 'top-left', 'top-right', 'bottom-left', 'bottom-right'
             showExtraInfo: true,
             excludedUrls: [],
         },
+        // Initial position for custom placement
+        initialPosition: {
+            bottom: '20px',
+            right: '20px'
+        }
     };
 
     window.cdnScriptStatus = window.cdnScriptStatus || {};
@@ -391,23 +396,88 @@
     }
 
     // --- UI & Execution Functions ---
-    function getPanelCSS() {
-        const isDarkTheme = config.settings.theme === 'dark';
-        // Glassmorphism variables
-        const bgColor = isDarkTheme ? 'rgba(20, 20, 20, 0.6)' : 'rgba(255, 255, 255, 0.65)';
-        const borderColor = isDarkTheme ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.4)';
-        const textColor = isDarkTheme ? 'rgba(255, 255, 255, 0.95)' : '#000000';
-        const labelColor = isDarkTheme ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.6)';
-        const backdropFilter = 'saturate(180%) blur(25px)'; // Enhanced blur for premium feel
-        const boxShadow = isDarkTheme
-            ? '0 20px 40px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.1)'
-            : '0 20px 40px rgba(0, 0, 0, 0.15), inset 0 0 0 1px rgba(255, 255, 255, 0.5)';
 
-        // Color Palette
-        const greenColor = '#32D74B';
-        const redColor = '#FF453A';
-        // Adjusted Blue for better visibility: Lighter cyan-blue for dark mode, darker blue for light mode
-        const blueColor = isDarkTheme ? '#64D2FF' : '#007AFF';
+    // Detect if the current page is using dark or light theme
+    function detectPageTheme() {
+        try {
+            // Method 1: Check color-scheme meta tag or CSS property
+            const colorScheme = getComputedStyle(document.documentElement).colorScheme;
+            if (colorScheme && colorScheme.includes('dark')) return 'dark';
+            if (colorScheme && colorScheme.includes('light')) return 'light';
+
+            // Method 2: Analyze background color brightness
+            const bgColor = getComputedStyle(document.body).backgroundColor;
+            if (!bgColor || bgColor === 'transparent' || bgColor === 'rgba(0, 0, 0, 0)') {
+                // Fallback to html element
+                const htmlBg = getComputedStyle(document.documentElement).backgroundColor;
+                if (htmlBg && htmlBg !== 'transparent' && htmlBg !== 'rgba(0, 0, 0, 0)') {
+                    return calculateBrightness(htmlBg) < 128 ? 'dark' : 'light';
+                }
+                return null; // Cannot determine
+            }
+
+            // Calculate brightness: if < 128, it's dark
+            return calculateBrightness(bgColor) < 128 ? 'dark' : 'light';
+        } catch (e) {
+            return null; // Error, cannot determine
+        }
+    }
+
+    // Calculate brightness from RGB color string
+    function calculateBrightness(color) {
+        const rgb = color.match(/\d+/g);
+        if (!rgb || rgb.length < 3) return 255; // Default to light
+        const [r, g, b] = rgb.map(Number);
+        // Standard brightness formula
+        return (r * 299 + g * 587 + b * 114) / 1000;
+    }
+
+    function getPanelCSS() {
+        const useSystemTheme = config.settings.theme === 'auto' || !config.settings.theme;
+
+        let isDarkTheme;
+        if (useSystemTheme) {
+            // Priority: Page theme > System theme
+            const pageTheme = detectPageTheme();
+            if (pageTheme) {
+                isDarkTheme = pageTheme === 'dark';
+            } else {
+                // Fallback to system preference
+                isDarkTheme = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            }
+        } else {
+            isDarkTheme = config.settings.theme === 'dark';
+        }
+
+        // Ultra-premium aesthetic: deeper blacks, cleaner whites
+        const materialBase = isDarkTheme
+            ? 'rgba(15, 15, 15, 0.65)'  // Dark mode: darker, slightly less transparent for legibility
+            : 'rgba(255, 255, 255, 0.65)'; // Light mode: milky white
+
+        const surfaceGradient = isDarkTheme
+            ? 'linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0) 100%)'
+            : 'linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0) 100%)';
+
+        const borderColor = isDarkTheme
+            ? 'rgba(255, 255, 255, 0.12)' // Crisp border in dark
+            : 'rgba(0, 0, 0, 0.08)';
+
+        const textColor = isDarkTheme ? '#FFFFFF' : '#000000';
+        const labelColor = isDarkTheme ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.5)';
+
+        // Specific font stacks
+        const uiFont = '"SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        const monoFont = '"SF Mono", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", monospace';
+
+        // Colors & Shadows
+        const backdropFilter = 'blur(24px) saturate(180%)'; // Balanced blur
+        const boxShadow = isDarkTheme
+            ? '0 12px 32px rgba(0, 0, 0, 0.4), 0 4px 8px rgba(0, 0, 0, 0.2)'
+            : '0 12px 32px rgba(0, 0, 0, 0.1), 0 4px 8px rgba(0, 0, 0, 0.05)';
+
+        const greenColor = isDarkTheme ? '#4ADE80' : '#16A34A'; // Slightly muted green
+        const redColor = '#EF4444';
+        const blueColor = '#3B82F6';
 
         return `
         :host {
@@ -415,92 +485,126 @@
             position: fixed;
             z-index: 2147483647;
             ${getPositionCSS()}
-            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-family: ${uiFont};
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
+
         #cdn-info-panel-enhanced {
             position: relative;
-            min-width: 200px;
-            max-width: 280px; /* Reduced max-width */
-            padding: 16px; /* Reduced padding */
-            border-radius: 22px; /* Slightly smaller radius */
-            background-color: ${bgColor};
-            box-shadow: ${boxShadow};
+            width: 220px; /* Extremely compact */
+            padding: 14px 16px; /* Tight, balanced padding */
+            border-radius: 14px;
+            background-color: ${materialBase};
             backdrop-filter: ${backdropFilter};
             -webkit-backdrop-filter: ${backdropFilter};
+            border: 1px solid ${borderColor};
+            box-shadow: ${boxShadow};
             cursor: move;
             user-select: none;
-            transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.25s ease;
+            transition: all 0.3s ease;
             color: ${textColor};
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
         }
-        #cdn-info-panel-enhanced:hover {
-            transform: scale(1.02);
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+
+        /* Subtle top highlight */
+        #cdn-info-panel-enhanced::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            border-radius: 14px;
+            background: ${surfaceGradient};
+            pointer-events: none;
+            z-index: 1;
         }
-        .close-btn {
-            position: absolute; 
-            top: 10px; 
-            right: 10px;
-            width: 20px; /* Smaller close button */
-            height: 20px;
-            border-radius: 50%;
-            background: rgba(120, 120, 120, 0.2);
-            color: ${textColor};
-            border: none; 
-            cursor: pointer;
-            font-size: 12px;
-            line-height: 20px;
-            display: flex; 
-            align-items: center; 
-            justify-content: center;
-            transition: all 0.2s;
-            z-index: 2;
-            opacity: 0; /* Hidden by default for cleaner look */
+
+        #cdn-info-panel-enhanced > * { position: relative; z-index: 2; }
+
+        /* --- Buttons (Hidden by default) --- */
+        button.icon-btn {
+            position: absolute !important;
+            top: 13px !important; /* Visual alignment with header */
+            width: 18px !important;
+            height: 18px !important;
+            border-radius: 50% !important;
+            background: transparent !important;
+            color: ${textColor} !important;
+            border: none !important;
+            outline: none !important;
+            cursor: pointer !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            opacity: 0 !important;
+            transition: opacity 0.2s ease, transform 0.2s ease !important;
+            z-index: 100 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            -webkit-appearance: none !important;
+            appearance: none !important;
         }
-        #cdn-info-panel-enhanced:hover .close-btn {
-            opacity: 1;
-        }
-        .close-btn:hover { 
-            background: rgba(120, 120, 120, 0.4); 
-            transform: scale(1.1);
-        }
+
+        button.close-btn { right: 12px !important; font-size: 16px !important; font-weight: 300 !important; line-height: 18px !important; }
+        button.theme-btn { right: 36px !important; font-size: 12px !important; line-height: 18px !important; }
+
+        #cdn-info-panel-enhanced:hover button.icon-btn { opacity: 0.5 !important; }
+        button.icon-btn:hover { opacity: 1 !important; transform: scale(1.1); }
+
+        /* --- Content Typography --- */
         .panel-header {
-            font-size: 10px; /* Smaller header */
+            font-family: ${uiFont};
+            font-size: 10px;
             font-weight: 700;
-            color: ${labelColor};
-            text-align: center;
-            margin-bottom: 12px;
+            color: ${isDarkTheme ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.4)'};
             text-transform: uppercase;
-            letter-spacing: 1px;
-            opacity: 0.8;
+            letter-spacing: 1.5px;
+            margin-bottom: 2px;
+            padding-left: 2px;
         }
+
+        .info-lines-container {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
         .info-line {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px; /* Reduced margin */
-            font-size: 12px; /* Smaller font */
+            align-items: baseline; /* Baseline alignment is key for mixed fonts */
+            margin: 0;
+            padding: 0;
+            border: none; /* Removed dividers for cleaner look */
         }
-        .info-line:last-child { margin-bottom: 0; }
+
         .info-label {
-            color: ${labelColor};
+            font-family: ${uiFont};
+            font-size: 11px;
             font-weight: 500;
-            flex: 1;
+            color: ${isDarkTheme ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.5)'};
+            letter-spacing: 0px;
         }
+
         .info-value {
+            font-family: ${monoFont}; /* Mono for data */
+            font-size: 11px;
+            font-weight: 500;
             color: ${textColor};
-            font-weight: 600;
             text-align: right;
-            flex: 1.5;
+            opacity: 0.95;
+            letter-spacing: -0.2px; /* Tighter mono spacing */
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
-            font-size: 11px; /* Smaller value font */
-            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            max-width: 140px; /* Text truncation constraint */
         }
+
         .cache-HIT { color: ${greenColor} !important; }
         .cache-MISS { color: ${redColor} !important; }
         .cache-BYPASS, .cache-DYNAMIC { color: ${blueColor} !important; }
+
         
         /* Settings panel styles */
         #settings-panel {
@@ -508,16 +612,35 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 280px; /* Reduced width */
-            padding: 20px;
+            width: 320px;
+            padding: 24px;
             border-radius: 24px;
-            background-color: ${bgColor};
-            box-shadow: ${boxShadow};
+            background-color: ${materialBase};
             backdrop-filter: ${backdropFilter};
             -webkit-backdrop-filter: ${backdropFilter};
+            box-shadow: ${boxShadow};
             z-index: 2147483648;
             font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
             color: ${textColor};
+            overflow: hidden;
+            /* Simple sleek border for settings panel too */
+            border: 1px solid ${borderColor};
+        }
+        #settings-panel::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: 24px;
+            background: ${surfaceGradient};
+            pointer-events: none;
+            z-index: 1;
+        }
+        #settings-panel > * {
+            position: relative;
+            z-index: 2;
         }
             #settings-panel h3 {
                 margin-top: 0;
@@ -538,13 +661,21 @@
             }
             .setting-item select, .setting-item input {
                 width: 100%;
-                padding: 6px 8px;
-                border-radius: 10px;
-                border: 1px solid ${borderColor};
-                background-color: ${isDarkTheme ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.5)'};
-            color: ${textColor};
-                font-size: 12px;
+                padding: 8px 12px;
+                border-radius: 12px;
+                border: 1px solid ${isDarkTheme ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.1)'};
+                background: ${isDarkTheme ? 'rgba(0, 0, 0, 0.3)' : 'rgba(255, 255, 255, 0.6)'};
+                color: ${textColor};
+                font-size: 13px;
                 box-sizing: border-box;
+                transition: all 0.2s;
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+            }
+            .setting-item select:focus, .setting-item input:focus {
+                outline: none;
+                border-color: ${blueColor};
+                background: ${isDarkTheme ? 'rgba(0, 0, 0, 0.4)' : 'rgba(255, 255, 255, 0.8)'};
             }
             .setting-buttons {
                 display: flex;
@@ -552,22 +683,32 @@
                 margin-top: 16px;
             }
             .setting-btn {
-                padding: 6px 12px;
-                border-radius: 10px;
+                padding: 10px 16px;
+                border-radius: 12px;
                 border: none;
                 cursor: pointer;
                 font-weight: 600;
-                font-size: 12px;
+                font-size: 13px;
                 flex: 1;
-                margin: 0 4px;
+                margin: 0 6px;
+                transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+            }
+            .setting-btn:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            }
+            .setting-btn:active {
+                transform: translateY(0);
             }
             .save-btn {
-                background-color: ${blueColor};
+                background: ${blueColor};
                 color: white;
             }
             .cancel-btn {
-                background-color: ${labelColor};
-                color: ${bgColor};
+                background: ${isDarkTheme ? 'rgba(120, 120, 128, 0.3)' : 'rgba(120, 120, 128, 0.2)'};
+                color: ${textColor};
             }
         `;
     }
@@ -607,6 +748,7 @@
             <div class="setting-item">
                 <label for="theme">Theme</label>
                 <select id="theme">
+                    <option value="auto" ${config.settings.theme === 'auto' || !config.settings.theme ? 'selected' : ''}>Auto (System)</option>
                     <option value="dark" ${config.settings.theme === 'dark' ? 'selected' : ''}>Dark</option>
                     <option value="light" ${config.settings.theme === 'light' ? 'selected' : ''}>Light</option>
                 </select>
@@ -667,14 +809,25 @@
         const host = document.createElement('div');
         host.id = 'cdn-info-host-enhanced';
         document.body.appendChild(host);
+
         const shadowRoot = host.attachShadow({ mode: 'open' });
         const styleEl = document.createElement('style');
-        styleEl.textContent = getPanelCSS();
+
+        try {
+            styleEl.textContent = getPanelCSS();
+        } catch (e) {
+            console.error('Final CSS generation failed:', e);
+            styleEl.textContent = '';
+        }
+
         shadowRoot.appendChild(styleEl);
+
         const panel = document.createElement('div');
         panel.id = 'cdn-info-panel-enhanced';
+
         const cacheStatus = info.cache.toUpperCase();
         const cacheClass = 'cache-' + cacheStatus.split(' ')[0];
+
         const providerLabel =
             info.provider.includes('CDN') ||
                 info.provider.includes('Cloud') ||
@@ -688,18 +841,23 @@
             displayProvider = displayProvider.substring(0, 17) + '...';
         }
 
-        // Build panel content - keep it concise
+        // Build panel content with new structure
+        const themeIcon = config.settings.theme === 'light' ? '☀️' : (config.settings.theme === 'dark' ? '🌙' : '🌓');
+
         let panelContent = `
-            <button class="close-btn" title="Close">×</button>
+            <button class="icon-btn close-btn" title="Close">×</button>
+            <button class="icon-btn theme-btn" title="Toggle Theme">${themeIcon}</button>
             <div class="panel-header">CDN & Server Info</div>
-            <div class="info-line">
-                <span class="info-label">${providerLabel}</span>
-                <span class="info-value" title="${info.provider}">${displayProvider}</span>
-            </div>
-            <div class="info-line">
-                <span class="info-label">Cache</span>
-                <span class="info-value ${cacheClass}">${cacheStatus}</span>
-            </div>
+            
+            <div class="info-lines-container">
+                <div class="info-line">
+                    <span class="info-label">${providerLabel}</span>
+                    <span class="info-value" title="${info.provider}">${displayProvider}</span>
+                </div>
+                <div class="info-line">
+                    <span class="info-label">Cache</span>
+                    <span class="info-value ${cacheClass}">${cacheStatus}</span>
+                </div>
         `;
 
         // Add POP location if available and not N/A
@@ -716,11 +874,48 @@
             `;
         }
 
+        // Add extra info if enabled
+        // Removed as per request to keep it minimal
+
+        panelContent += `</div>`; // Close info-lines-container
+
         panel.innerHTML = panelContent;
         shadowRoot.appendChild(panel);
+
         shadowRoot.querySelector('.close-btn').addEventListener('click', (e) => {
             e.stopPropagation();
             host.remove();
+        });
+
+        shadowRoot.querySelector('.theme-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+
+            // Cycle themes: auto -> dark -> light -> auto
+            const current = config.settings.theme;
+            if (current === 'auto' || !current) config.settings.theme = 'dark';
+            else if (current === 'dark') config.settings.theme = 'light';
+            else config.settings.theme = 'auto';
+
+            // Save settings
+            if (typeof GM_setValue !== 'undefined') {
+                GM_setValue('cdnInfoSettings', JSON.stringify(config.settings));
+            }
+
+            // Update icon immediately
+            const newIcon = config.settings.theme === 'light' ? '☀️' : (config.settings.theme === 'dark' ? '🌙' : '🌓');
+            shadowRoot.querySelector('.theme-btn').textContent = newIcon;
+
+            // Update styles by replacing the style element
+            const newStyleEl = document.createElement('style');
+            try {
+                newStyleEl.textContent = getPanelCSS();
+                const oldStyle = shadowRoot.querySelector('style');
+                if (oldStyle) {
+                    shadowRoot.replaceChild(newStyleEl, oldStyle);
+                }
+            } catch (e) {
+                console.error('Failed to update theme:', e);
+            }
         });
 
         // Add settings button (right click on panel to open settings)
@@ -860,6 +1055,58 @@
                     obs.disconnect();
                 }
             }).observe(document.documentElement, { childList: true });
+        }
+
+        // Listen for system theme changes
+        const themeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        themeMediaQuery.addEventListener('change', (e) => {
+            // Only update if using auto theme
+            if (config.settings.theme === 'auto' || !config.settings.theme) {
+                console.log('[CDN Detector] System theme changed, updating panel...');
+                const oldPanel = document.getElementById('cdn-info-host-enhanced');
+                if (oldPanel) {
+                    oldPanel.remove();
+                    setTimeout(() => runExecution(config.max_retries), 100);
+                }
+            }
+        });
+
+        // Listen for page theme changes (class/style changes on html/body)
+        let lastPageTheme = detectPageTheme();
+        let themeCheckTimeout;
+
+        const pageThemeObserver = new MutationObserver(() => {
+            // Debounce: only check after 300ms of no changes
+            clearTimeout(themeCheckTimeout);
+            themeCheckTimeout = setTimeout(() => {
+                if (config.settings.theme === 'auto' || !config.settings.theme) {
+                    const currentPageTheme = detectPageTheme();
+                    if (currentPageTheme && currentPageTheme !== lastPageTheme) {
+                        console.log(`[CDN Detector] Page theme changed: ${lastPageTheme} -> ${currentPageTheme}`);
+                        lastPageTheme = currentPageTheme;
+
+                        const oldPanel = document.getElementById('cdn-info-host-enhanced');
+                        if (oldPanel) {
+                            oldPanel.remove();
+                            setTimeout(() => runExecution(config.max_retries), 100);
+                        }
+                    }
+                }
+            }, 300);
+        });
+
+        // Observe both html and body for attribute changes
+        if (document.documentElement) {
+            pageThemeObserver.observe(document.documentElement, {
+                attributes: true,
+                attributeFilter: ['class', 'style', 'data-theme', 'data-color-scheme']
+            });
+        }
+        if (document.body) {
+            pageThemeObserver.observe(document.body, {
+                attributes: true,
+                attributeFilter: ['class', 'style', 'data-theme', 'data-color-scheme']
+            });
         }
     }
 
