@@ -400,26 +400,63 @@
     // Detect if the current page is using dark or light theme
     function detectPageTheme() {
         try {
-            // Method 1: Check color-scheme meta tag or CSS property
+            // Method 1: Check data-theme or data-bs-theme attributes (common in modern sites)
+            const htmlTheme = document.documentElement.getAttribute('data-theme') ||
+                document.documentElement.getAttribute('data-bs-theme') ||
+                document.documentElement.getAttribute('data-color-mode');
+            if (htmlTheme) {
+                if (htmlTheme.toLowerCase().includes('dark')) return 'dark';
+                if (htmlTheme.toLowerCase().includes('light')) return 'light';
+            }
+
+            const bodyTheme = document.body?.getAttribute('data-theme') ||
+                document.body?.getAttribute('data-bs-theme') ||
+                document.body?.getAttribute('data-color-mode');
+            if (bodyTheme) {
+                if (bodyTheme.toLowerCase().includes('dark')) return 'dark';
+                if (bodyTheme.toLowerCase().includes('light')) return 'light';
+            }
+
+            // Method 2: Check class names for dark/light keywords
+            const htmlClass = document.documentElement.className || '';
+            const bodyClass = document.body?.className || '';
+            const combinedClasses = (htmlClass + ' ' + bodyClass).toLowerCase();
+
+            if (combinedClasses.includes('dark-mode') || combinedClasses.includes('dark-theme') ||
+                combinedClasses.includes(' dark ') || combinedClasses.startsWith('dark ') ||
+                combinedClasses.endsWith(' dark')) {
+                return 'dark';
+            }
+            if (combinedClasses.includes('light-mode') || combinedClasses.includes('light-theme') ||
+                combinedClasses.includes(' light ') || combinedClasses.startsWith('light ') ||
+                combinedClasses.endsWith(' light')) {
+                return 'light';
+            }
+
+            // Method 3: Check color-scheme CSS property
             const colorScheme = getComputedStyle(document.documentElement).colorScheme;
             if (colorScheme && colorScheme.includes('dark')) return 'dark';
             if (colorScheme && colorScheme.includes('light')) return 'light';
 
-            // Method 2: Analyze background color brightness
+            // Method 4: Analyze background color brightness
             const bgColor = getComputedStyle(document.body).backgroundColor;
-            if (!bgColor || bgColor === 'transparent' || bgColor === 'rgba(0, 0, 0, 0)') {
-                // Fallback to html element
-                const htmlBg = getComputedStyle(document.documentElement).backgroundColor;
-                if (htmlBg && htmlBg !== 'transparent' && htmlBg !== 'rgba(0, 0, 0, 0)') {
-                    return calculateBrightness(htmlBg) < 128 ? 'dark' : 'light';
-                }
-                return null; // Cannot determine
+            if (bgColor && bgColor !== 'transparent' && bgColor !== 'rgba(0, 0, 0, 0)') {
+                const brightness = calculateBrightness(bgColor);
+                // Lower threshold for better dark detection
+                return brightness < 100 ? 'dark' : 'light';
             }
 
-            // Calculate brightness: if < 128, it's dark
-            return calculateBrightness(bgColor) < 128 ? 'dark' : 'light';
+            // Fallback to html element
+            const htmlBg = getComputedStyle(document.documentElement).backgroundColor;
+            if (htmlBg && htmlBg !== 'transparent' && htmlBg !== 'rgba(0, 0, 0, 0)') {
+                const brightness = calculateBrightness(htmlBg);
+                return brightness < 100 ? 'dark' : 'light';
+            }
+
+            return null; // Cannot determine
         } catch (e) {
-            return null; // Error, cannot determine
+            console.warn('[CDN Detector] Error detecting page theme:', e);
+            return null;
         }
     }
 
@@ -433,21 +470,9 @@
     }
 
     function getPanelCSS() {
-        const useSystemTheme = config.settings.theme === 'auto' || !config.settings.theme;
-
-        let isDarkTheme;
-        if (useSystemTheme) {
-            // Priority: Page theme > System theme
-            const pageTheme = detectPageTheme();
-            if (pageTheme) {
-                isDarkTheme = pageTheme === 'dark';
-            } else {
-                // Fallback to system preference
-                isDarkTheme = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            }
-        } else {
-            isDarkTheme = config.settings.theme === 'dark';
-        }
+        // Simple light/dark theme (no auto mode)
+        const isDarkTheme = config.settings.theme === 'dark';
+        console.log('[CDN Detector] Panel theme:', config.settings.theme);
 
         // Ultra-premium aesthetic: deeper blacks, cleaner whites
         const materialBase = isDarkTheme
@@ -842,7 +867,14 @@
         }
 
         // Build panel content with new structure
-        const themeIcon = config.settings.theme === 'light' ? '☀️' : (config.settings.theme === 'dark' ? '🌙' : '🌓');
+        // Determine current theme for icon display
+        const currentTheme = config.settings.theme === 'light' ? 'light' : 'dark';
+
+        // SVG icons (Lucide style)
+        const sunIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg>`;
+        const moonIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>`;
+
+        const themeIcon = currentTheme === 'light' ? sunIcon : moonIcon;
 
         let panelContent = `
             <button class="icon-btn close-btn" title="Close">×</button>
@@ -890,20 +922,19 @@
         shadowRoot.querySelector('.theme-btn').addEventListener('click', (e) => {
             e.stopPropagation();
 
-            // Cycle themes: auto -> dark -> light -> auto
-            const current = config.settings.theme;
-            if (current === 'auto' || !current) config.settings.theme = 'dark';
-            else if (current === 'dark') config.settings.theme = 'light';
-            else config.settings.theme = 'auto';
+            // Toggle between light and dark only
+            config.settings.theme = config.settings.theme === 'light' ? 'dark' : 'light';
 
             // Save settings
             if (typeof GM_setValue !== 'undefined') {
                 GM_setValue('cdnInfoSettings', JSON.stringify(config.settings));
             }
 
-            // Update icon immediately
-            const newIcon = config.settings.theme === 'light' ? '☀️' : (config.settings.theme === 'dark' ? '🌙' : '🌓');
-            shadowRoot.querySelector('.theme-btn').textContent = newIcon;
+            // Update icon immediately with SVG
+            const sunIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg>`;
+            const moonIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>`;
+            const newIcon = config.settings.theme === 'light' ? sunIcon : moonIcon;
+            shadowRoot.querySelector('.theme-btn').innerHTML = newIcon;
 
             // Update styles by replacing the style element
             const newStyleEl = document.createElement('style');
@@ -1024,10 +1055,27 @@
                 if (savedSettings) {
                     const parsed = JSON.parse(savedSettings);
                     config.settings = { ...config.settings, ...parsed };
+                    console.log('[CDN Detector] Loaded saved settings:', config.settings);
+
+                    // Ensure theme is either 'light' or 'dark' (remove auto)
+                    if (config.settings.theme !== 'light' && config.settings.theme !== 'dark') {
+                        console.log('[CDN Detector] Invalid theme, defaulting to page theme');
+                        const pageTheme = detectPageTheme();
+                        config.settings.theme = pageTheme || 'light'; // Default to light if page theme can't be detected
+                        GM_setValue('cdnInfoSettings', JSON.stringify(config.settings));
+                    }
+                } else {
+                    console.log('[CDN Detector] No saved settings, using defaults:', config.settings);
+                    // If no settings, initialize theme based on page theme or default to light
+                    const pageTheme = detectPageTheme();
+                    config.settings.theme = pageTheme || 'light';
+                    GM_setValue('cdnInfoSettings', JSON.stringify(config.settings));
                 }
             } catch (e) {
                 console.warn('[CDN Detector] Failed to load user settings:', e);
             }
+        } else {
+            console.log('[CDN Detector] GM_getValue not available, using defaults');
         }
     }
 
@@ -1073,14 +1121,17 @@
 
         // Listen for page theme changes (class/style changes on html/body)
         let lastPageTheme = detectPageTheme();
+        console.log('[CDN Detector] Initial page theme detected:', lastPageTheme);
         let themeCheckTimeout;
 
-        const pageThemeObserver = new MutationObserver(() => {
+        const pageThemeObserver = new MutationObserver((mutations) => {
             // Debounce: only check after 300ms of no changes
             clearTimeout(themeCheckTimeout);
             themeCheckTimeout = setTimeout(() => {
                 if (config.settings.theme === 'auto' || !config.settings.theme) {
                     const currentPageTheme = detectPageTheme();
+                    console.log('[CDN Detector] Theme check - Last:', lastPageTheme, 'Current:', currentPageTheme);
+
                     if (currentPageTheme && currentPageTheme !== lastPageTheme) {
                         console.log(`[CDN Detector] Page theme changed: ${lastPageTheme} -> ${currentPageTheme}`);
                         lastPageTheme = currentPageTheme;
