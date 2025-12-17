@@ -395,6 +395,14 @@
         return null;
     }
 
+    // --- Icons & Assets ---
+    const cdnIcons = {
+        'Cloudflare': `<svg viewBox="0 0 256 116" preserveAspectRatio="xMidYMid"><path fill="currentColor" d="m202.357 49.394-5.311-2.124C172.085 103.434 72.786 69.289 66.81 85.997c-.996 11.286 54.227 2.146 93.706 4.059 12.039.583 18.076 9.671 12.964 24.484l10.069.031c11.615-36.209 48.683-17.73 50.232-29.68-2.545-7.857-42.601 0-31.425-35.497Z"/><path fill="currentColor" d="M176.332 108.348c1.593-5.31 1.062-10.622-1.593-13.809-2.656-3.187-6.374-5.31-11.154-5.842L71.17 87.634c-.531 0-1.062-.53-1.593-.53-.531-.532-.531-1.063 0-1.594.531-1.062 1.062-1.594 2.124-1.594l92.946-1.062c11.154-.53 22.839-9.56 27.087-20.182l5.312-13.809c0-.532.531-1.063 0-1.594C191.203 20.182 166.772 0 138.091 0 111.535 0 88.697 16.995 80.73 40.896c-5.311-3.718-11.684-5.843-19.12-5.31-12.747 1.061-22.838 11.683-24.432 24.43-.531 3.187 0 6.374.532 9.56C16.996 70.107 0 87.103 0 108.348c0 2.124 0 3.718.531 5.842 0 1.063 1.062 1.594 1.594 1.594h170.489c1.062 0 2.125-.53 2.125-1.594l1.593-5.842Z"/><path fill="currentColor" d="M205.544 48.863h-2.656c-.531 0-1.062.53-1.593 1.062l-3.718 12.747c-1.593 5.31-1.062 10.623 1.594 13.809 2.655 3.187 6.373 5.31 11.153 5.843l19.652 1.062c.53 0 1.062.53 1.593.53.53.532.53 1.063 0 1.594-.531 1.063-1.062 1.594-2.125 1.594l-20.182 1.062c-11.154.53-22.838 9.56-27.087 20.182l-1.063 4.78c-.531.532 0 1.594 1.063 1.594h70.108c1.062 0 1.593-.531 1.593-1.593 1.062-4.25 2.124-9.03 2.124-13.81 0-27.618-22.838-50.456-50.456-50.456"/></svg>`,
+        'Vercel': `<svg viewBox="0 0 256 222" preserveAspectRatio="xMidYMid"><path fill="currentColor" d="m128 0 128 221.705H0z"/></svg>`,
+        'CloudFront': `<svg xml:space="preserve" viewBox="0 0 304 182"><path fill="currentColor" d="m86 66 2 9c0 3 1 5 3 8v2l-1 3-7 4-2 1-3-1-4-5-3-6c-8 9-18 14-29 14-9 0-16-3-20-8-5-4-8-11-8-19s3-15 9-20c6-6 14-8 25-8a79 79 0 0 1 22 3v-7c0-8-2-13-5-16-3-4-8-5-16-5l-11 1a80 80 0 0 0-14 5h-2c-1 0-2-1-2-3v-5l1-3c0-1 1-2 3-2l12-5 16-2c12 0 20 3 26 8 5 6 8 14 8 25v32zM46 82l10-2c4-1 7-4 10-7l3-6 1-9v-4a84 84 0 0 0-19-2c-6 0-11 1-15 4-3 2-4 6-4 11s1 8 3 11c3 2 6 4 11 4zm80 10-4-1-2-3-23-78-1-4 2-2h10l4 1 2 4 17 66 15-66 2-4 4-1h8l4 1 2 4 16 67 17-67 2-4 4-1h9c2 0 3 1 3 2v2l-1 2-24 78-2 4-4 1h-9l-4-1-1-4-16-65-15 64-2 4-4 1h-9zm129 3a66 66 0 0 1-27-6l-3-3-1-2v-5c0-2 1-3 2-3h2l3 1a54 54 0 0 0 23 5c6 0 11-2 14-4 4-2 5-5 5-9l-2-7-10-5-15-5c-7-2-13-6-16-10a24 24 0 0 1 5-34l10-5a44 44 0 0 1 20-2 110 110 0 0 1 12 3l4 2 3 2 1 4v4c0 3-1 4-2 4l-4-2c-6-2-12-3-19-3-6 0-11 0-14 2s-4 5-4 9c0 3 1 5 3 7s5 4 11 6l14 4c7 3 12 6 15 10s5 9 5 14l-3 12-7 8c-3 3-7 5-11 6l-14 2z"/><path d="M274 144A220 220 0 0 1 4 124c-4-3-1-6 2-4a300 300 0 0 0 263 16c5-2 10 4 5 8z" fill="currentColor" fill-opacity="0.5"/><path d="M287 128c-4-5-28-3-38-1-4 0-4-3-1-5 19-13 50-9 53-5 4 5-1 36-18 51-3 2-6 1-5-2 5-10 13-33 9-38z" fill="currentColor" fill-opacity="0.5"/></svg>`,
+        'Netlify': `<svg viewBox="0 0 256 226" preserveAspectRatio="xMidYMid"><path fill="currentColor" d="M69.181 188.087h-2.417l-12.065-12.065v-2.417l18.444-18.444h12.778l1.704 1.704v12.778zM54.699 51.628v-2.417l12.065-12.065h2.417L87.625 55.59v12.778l-1.704 1.704H73.143z"/><path fill="currentColor" d="M160.906 149.198h-17.552l-1.466-1.466v-41.089c0-7.31-2.873-12.976-11.689-13.174-4.537-.119-9.727 0-15.274.218l-.833.852v53.173l-1.466 1.466H95.074l-1.466-1.466v-70.19l1.466-1.467h39.503c15.354 0 27.795 12.441 27.795 27.795v43.882l-1.466 1.466Z"/><path fill="currentColor" d="M71.677 122.889H1.466L0 121.423V103.83l1.466-1.466h70.211l1.466 1.466v17.593zM254.534 122.889h-70.211l-1.466-1.466V103.83l1.466-1.466h70.211L256 103.83v17.593zM117.876 54.124V1.466L119.342 0h17.593l1.466 1.466v52.658l-1.466 1.466h-17.593zM117.876 223.787v-52.658l1.466-1.466h17.593l1.466 1.466v52.658l-1.466 1.465h-17.593z"/></svg>`,
+    };
+
     // --- UI & Execution Functions ---
 
     // Detect if the current page is using dark or light theme
@@ -532,6 +540,7 @@
             display: flex;
             flex-direction: column;
             gap: 10px;
+            overflow: hidden;
         }
 
         /* Subtle top highlight */
@@ -545,7 +554,7 @@
             z-index: 1;
         }
 
-        #cdn-info-panel-enhanced > * { position: relative; z-index: 2; }
+        #cdn-info-panel-enhanced > *:not(.cdn-watermark) { position: relative; z-index: 2; }
 
         /* --- Buttons (Hidden by default) --- */
         button.icon-btn {
@@ -629,6 +638,28 @@
         .cache-HIT { color: ${greenColor} !important; }
         .cache-MISS { color: ${redColor} !important; }
         .cache-BYPASS, .cache-DYNAMIC { color: ${blueColor} !important; }
+        
+        /* Watermark Styles */
+        .cdn-watermark {
+            position: absolute;
+            top: -40px;
+            right: -40px;
+            width: 200px;
+            height: 200px;
+            opacity: 1;
+            pointer-events: none;
+            z-index: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: ${isDarkTheme ? 'rgba(255, 255, 255, 0.035)' : 'rgba(0, 0, 0, 0.04)'};
+        }
+        
+        .cdn-watermark svg {
+            width: 100%;
+            height: 100%;
+            fill: currentColor;
+        }
 
         
         /* Settings panel styles */
@@ -876,7 +907,19 @@
 
         const themeIcon = currentTheme === 'light' ? sunIcon : moonIcon;
 
+        // Find watermark icon based on CDN provider
+        let watermarkSvg = '';
+        if (cdnIcons[info.provider]) {
+            watermarkSvg = cdnIcons[info.provider];
+        } else {
+            // Fuzzy match: check if provider name contains any icon key
+            const iconKey = Object.keys(cdnIcons).find(key => info.provider.includes(key));
+            if (iconKey) watermarkSvg = cdnIcons[iconKey];
+        }
+        const watermarkHtml = watermarkSvg ? `<div class="cdn-watermark">${watermarkSvg}</div>` : '';
+
         let panelContent = `
+            ${watermarkHtml}
             <button class="icon-btn close-btn" title="Close">×</button>
             <button class="icon-btn theme-btn" title="Toggle Theme">${themeIcon}</button>
             <div class="panel-header">CDN & Server Info</div>
@@ -1057,11 +1100,15 @@
                     config.settings = { ...config.settings, ...parsed };
                     console.log('[CDN Detector] Loaded saved settings:', config.settings);
 
-                    // Ensure theme is either 'light' or 'dark' (remove auto)
-                    if (config.settings.theme !== 'light' && config.settings.theme !== 'dark') {
-                        console.log('[CDN Detector] Invalid theme, defaulting to page theme');
-                        const pageTheme = detectPageTheme();
-                        config.settings.theme = pageTheme || 'light'; // Default to light if page theme can't be detected
+                    // Always re-detect and apply page theme on load
+                    const pageTheme = detectPageTheme();
+                    if (pageTheme) {
+                        config.settings.theme = pageTheme;
+                        console.log('[CDN Detector] Applied page theme:', pageTheme);
+                        GM_setValue('cdnInfoSettings', JSON.stringify(config.settings));
+                    } else if (config.settings.theme !== 'light' && config.settings.theme !== 'dark') {
+                        // Fallback if page theme can't be detected and saved theme is invalid
+                        config.settings.theme = 'light';
                         GM_setValue('cdnInfoSettings', JSON.stringify(config.settings));
                     }
                 } else {
