@@ -159,8 +159,7 @@
       "x-tt-trace-tag": null,
       "x-bdcdn-cache-status": null,
       "x-tt-trace-id": null,
-      "x-tt-logid": null,
-      "eagleid": null
+      "x-tt-logid": null
     },
     "server": "Byte-nginx|Tengine",
     "via": "live\\d+\\.cn\\d+|ens-live\\d+\\.cn\\d+",

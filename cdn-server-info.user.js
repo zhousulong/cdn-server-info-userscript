@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.10.1
-// @description  [v7.10.1] Fixed Kingsoft Cloud logo visibility with improved SVG paths.
-// @description:en [v7.10.1] Fixed Kingsoft Cloud logo visibility with improved SVG paths.
+// @version      7.10.2
+// @description  [v7.10.2] Fixed Alibaba Cloud CDN misidentification as ByteDance. Removed eagleid from ByteDance rules.
+// @description:en [v7.10.2] Fixed Alibaba Cloud CDN misidentification as ByteDance. Removed eagleid from ByteDance rules.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.10.1
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.10.2
 // @run-at       document-idle
 // @noframes
 // ==/UserScript==
