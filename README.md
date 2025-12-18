@@ -40,7 +40,7 @@
   - 阿里云 CDN
   - 字节跳动 CDN
   - 京东云 CDN
-  - ChinaCache
+  - EdgeNext
 
 - **Web 服务器**
   - LiteSpeed

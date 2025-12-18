@@ -54,19 +54,22 @@
     "server": "yunjiasu-nginx",
     "priority": 10
   },
-  "Wangsu / ChinaNetCenter": {
+  "ChinaNetCenter": {
     "headers": {
       "x-ws-request-id": null,
       "x-via": null
     },
+    "pop_header": "x-ws-request-id",
+    "pop_regex": "PS-([A-Z]{3})-",
     "id_header": "x-ws-request-id",
     "priority": 10
   },
-  "ChinaCache": {
+  "EdgeNext": {
     "headers": {
+      "powered-by-edgenext": null,
       "powered-by-chinacache": null
     },
-    "server": "ChinaCache",
+    "server": "EdgeNext|ChinaCache",
     "priority": 10
   },
   "Qiniu Cloud": {
@@ -176,11 +179,18 @@
   "BunnyCDN": {
     "headers": {
       "bunny-cache-state": null,
-      "cdn-pullzone": null
+      "cdn-pullzone": null,
+      "cdn-cache": null,
+      "cdn-edgestorageid": null,
+      "cdn-fileserver": null,
+      "cdn-storageserver": null,
+      "cdn-requestid": null
     },
     "server": "BunnyCDN",
-    "id_header": "cdn-pullzone",
-    "priority": 9
+    "pop_header": "server",
+    "pop_regex": "BunnyCDN-([A-Z0-9]+)-",
+    "id_header": "cdn-requestid",
+    "priority": 10
   },
   "KeyCDN": {
     "headers": {

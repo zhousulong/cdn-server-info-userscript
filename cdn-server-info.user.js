@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.5.0
-// @description  [v7.5.0] Enhanced LiteSpeed cache detection (x-litespeed-cache, x-lsadc-cache). Improved CSS isolation for consistent panel rendering across sites. Added server detection for LiteSpeed/OpenResty/Apache/Nginx. Removed unused right-click menu.
-// @description:en [v7.5.0] Enhanced LiteSpeed cache detection (x-litespeed-cache, x-lsadc-cache). Improved CSS isolation for consistent panel rendering across sites. Added server detection for LiteSpeed/OpenResty/Apache/Nginx. Removed unused right-click menu.
+// @version      7.7.0
+// @description  [v7.7.0] Updated ChinaCache branding to EdgeNext with new logo. Added POP location extraction for ChinaNetCenter. Simplified CDN naming conventions.
+// @description:en [v7.7.0] Updated ChinaCache branding to EdgeNext with new logo. Added POP location extraction for ChinaNetCenter. Simplified CDN naming conventions.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.5.0
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.7.0
 // @run-at       document-idle
 // @noframes
 // ==/UserScript==
@@ -199,6 +199,36 @@
                     cache: getCacheStatus(h),
                     pop: pop,
                     extra: `Req-ID: ${h.get('x-nf-request-id') || 'N/A'}`,
+                };
+            }
+        },
+        'BunnyCDN': {
+            getInfo: (h, rule) => {
+                let cache = 'N/A';
+                const cdnCache = h.get('cdn-cache');
+                if (cdnCache) {
+                    cache = cdnCache.toUpperCase();
+                } else {
+                    cache = getCacheStatus(h);
+                }
+
+                let pop = 'N/A';
+                const server = h.get('server');
+                if (server) {
+                    // Extract POP from server header like "BunnyCDN-LA1-912" -> "LA1"
+                    const match = server.match(/BunnyCDN-([A-Z0-9]+)-/i);
+                    if (match && match[1]) {
+                        pop = match[1].toUpperCase();
+                    }
+                }
+
+                const requestId = h.get('cdn-requestid') || 'N/A';
+
+                return {
+                    provider: 'BunnyCDN',
+                    cache: cache,
+                    pop: pop,
+                    extra: `Req-ID: ${requestId}`,
                 };
             }
         }
@@ -416,6 +446,7 @@
         'Apache': `<svg viewBox="0 0 74 146"><path fill="currentColor" d="M63.1 1.4c-2.3 1.3-6.1 5.1-10.6 10.6l4.2 7.8c2.9-4.2 5.9-7.9 8.9-11.1l.3-.4c-.1.1-.2.3-.3.4-1 1.1-3.9 4.5-8.4 11.2 4.3-.2 10.8-1.1 16.2-2 1.6-8.9-1.6-12.9-1.6-12.9S67.8-1.3 63.1 1.4M44.4 40c1.3-2.4 2.6-4.7 3.8-6.9 1.3-2.3 2.7-4.6 4.1-6.8l.2-.4c1.4-2.1 2.7-4.2 4.1-6.2l-4.2-7.8c-.3.4-.6.8-.9 1.2-1.2 1.5-2.4 3.1-3.7 4.8-1.4 1.9-2.9 4-4.4 6.1-1.4 2-2.8 4.1-4.2 6.2-1.2 1.8-2.4 3.7-3.6 5.6l5.4 10.6c1.2-2.3 2.3-4.6 3.5-6.8M19.7 99.8c-.7 2-1.4 4-2.2 6l-.3.9c-.5 1.4-.9 2.6-1.9 5.4 1.6.7 2.9 2.6 4.1 4.8-.1-2.2-1.1-4.3-2.8-6 7.9.4 14.7-1.6 18.1-7.3.3-.5.6-1 .9-1.6-1.6 2-3.6 2.9-7.3 2.7h-.1c5.5-2.4 8.2-4.8 10.6-8.6.6-.9 1.1-1.9 1.7-3-4.8 4.9-10.3 6.3-16.2 5.2l-4.4.5c-.1.4-.3.7-.4 1.1M21.8 90.1c.9-2.4 1.9-4.9 2.9-7.4 1-2.4 1.9-4.8 3-7.2s2-4.8 3.1-7.2c1.1-2.5 2.2-4.9 3.3-7.3 1.1-2.4 2.2-4.8 3.4-7.2.4-.9.8-1.7 1.2-2.6.7-1.5 1.4-2.9 2.2-4.4l.1-.2-5.4-10.6c-.1.1-.2.3-.3.4-1.3 2.1-2.5 4.2-3.8 6.3-1.3 2.2-2.5 4.4-3.7 6.6-1 1.9-2 3.8-3 5.7-.2.4-.4.8-.6 1.2-1.2 2.4-2.2 4.7-3.2 7-1.1 2.5-2.1 5-2.9 7.3-.6 1.5-1.1 3-1.5 4.4-.4 1.2-.7 2.4-1.1 3.6-.8 2.8-1.5 5.6-2.1 8.5l5.5 10.7c.7-1.9 1.5-3.9 2.2-5.8.2-.6.4-1.1.6-1.7M13.4 87.3c-.7 3.4-1.2 6.8-1.4 10.2v.4c-1.7-2.7-6.3-5.3-6.2-5.3 3.3 4.7 5.7 9.4 6.1 13.9-1.7.4-4.1-.2-6.9-1.2 2.9 2.6 5 3.4 5.9 3.6-2.7.2-5.4 2-8.2 4 4.1-1.6 7.3-2.3 9.7-1.8-3.7 10.5-7.5 22-11.2 34.3 1.2-.3 1.8-1.1 2.2-2.1.7-2.2 5.1-16.8 12-35.9.2-.5.4-1.1.6-1.6l.2-.5c.7-2 1.5-4.1 2.3-6.2.2-.5.4-1 .5-1.4v-.1l-5.5-10.7v.4M41.7 47.6c-.2.3-.3.6-.5 1-.5 1-1 1.9-1.4 3-.5 1.1-1.1 2.2-1.6 3.3-.3.6-.5 1.2-.8 1.7-.8 1.8-1.6 3.6-2.5 5.4-1 2.3-2.1 4.7-3.1 7.2-1 2.4-2 4.8-3.1 7.3-1 2.4-2 4.9-3 7.4-.9 2.3-1.8 4.6-2.7 7-.1.1-.1.2-.1.3-.9 2.4-1.8 4.8-2.8 7.4l-.1.2 4.4-.5c-.1 0-.2 0-.3-.1 5.2-.6 12.2-4.5 16.7-9.4 2.1-2.2 4-4.8 5.7-7.9 1.3-2.3 2.5-4.8 3.7-7.6 1-2.4 2-5.1 2.9-7.9-1.2.6-2.6 1.1-4.1 1.4-.3.1-.5.1-.8.2s-.6.1-.8.1c4.9-1.9 8-5.5 10.2-9.9-1.3.9-3.4 2-5.9 2.6-.3.1-.7.1-1 .2-.1 0-.2 0-.3 0 1.7-.7 3.1-1.5 4.4-2.4.3-.2.5-.4.8-.6.4-.3.7-.7 1.1-1 .2-.2.4-.5.6-.7.5-.6.9-1.2 1.4-1.9.1-.2.3-.4.4-.6.2-.3.3-.6.5-.9.7-1.4 1.2-2.6 1.7-3.6.2-.5.4-1 .6-1.5.1-.2.1-.4.2-.5.2-.5.3-1 .4-1.4.2-.6.3-1.1.3-1.4-.2.1-.4.3-.6.4-1.5.9-4 1.7-6 2l4-.4-4 .4h-.1c-.2 0-.4.1-.6.1l.1-.1-13.7 1.5v.1M57.2 19.9c-1.2 1.9-2.6 4-4 6.4l-.2.4c-1.2 2.1-2.6 4.4-4 6.9-1.2 2.2-2.4 4.5-3.7 7-1.1 2.2-2.3 4.5-3.5 6.9l13.7-1.5c4-1.8 5.8-3.5 7.5-5.9.5-.7.9-1.4 1.4-2.1 1.4-2.2 2.8-4.6 4-7 1.2-2.3 2.3-4.6 3.1-6.7.5-1.3.9-2.5 1.2-3.6.3-1 .5-1.9.6-2.7-5.3.9-11.9 1.8-16.2 2"/><path fill="currentColor" fill-opacity="0.6" d="M50.6 60.1c.1 0 .2 0 .3 0-.1 0-.2 0-.3 0"/></svg>`,
         'LiteSpeed': `<svg viewBox="0 0 364 457"><path fill="currentColor" d="M359.7 221.9l-103.2-103.2c-.4-.4-1-.7-1.6-.7h-.1c-.7 0-1.3.4-1.7.9l-44 55.8c-.7.9-.6 2.2.2 3l47.4 47.4c1.7 1.7 2.6 4 2.6 6.4 0 2.4-1 4.6-2.6 6.3l-13.7 13.7c-.8.8-.9 2-.3 2.9 3.4 5.1 9 13.5 9.5 14.5 1.7 3.4 2.3 12.2-2.8 16l-107.8 82.8c-.6.4-.9 1.1-.9 1.8v83.7c0 1.6 0 2.5 1.3 3.2.3.2.7.2 1 .2.9 0 1.3-.4 2.2-1.3l1.8-1.8c1.6-1.6 212.7-212.5 212.7-212.5 5.2-5.3 5.2-13.9 0-19.1M222.5 1l-.1-.1-.1-.2c-.4-.5-1-.8-1.7-.8h-.1c-.6 0-1.2.2-1.6.7L4 215.7c-2.6 2.5-4 5.9-4 9.6s1.4 7 4 9.5l103.2 103.2c.4.4 1 .7 1.6.7h.1c.7 0 1.3-.4 1.7-.9l44-55.8c.7-.9.6-2.2-.2-3l-47.5-47.4c-1.7-1.7-2.6-3.9-2.6-6.3 0-2.4.9-4.7 2.6-6.3l13.7-13.8c.8-.8.9-2 .3-2.9l-9.4-13.5c-3.8-5.4-2.6-13 2.6-17l107.9-82.8c.6-.4.9-1.1.9-1.8V1.5c0-.5-.2-1-.5-1.4"/><path fill="currentColor" fill-opacity="0.7" d="M241.5 267.4l-119.4-77.6 52.8 75.8c1.1 1.7 1 4.7-.2 6.4l-94.5 119.9c-1.7 2.2-3.1 4.5-1.9 7 .6 1.3 2.2 2.3 3.7 2.4 1.9 0 3.3-.8 5.3-2.3l151.9-116.6c4.7-3.6 4.5-12.1 2.5-15M285.4 57.7c-.7-1.5-2.3-2.5-4-2.5-1.5 0-2.9.6-5 2.3L124.5 174.2c-4.8 3.7-5.9 10.7-2.4 15.7l119.4 77.6c-1.7-2.5-52.3-75.8-52.8-76.5-1.1-1.6-1.1-4.8.2-6.4l94.5-120v-.1c1.5-2 3.1-4.3 1.9-6.8"/></svg>`,
         'OpenResty': `<svg viewBox="0 0 91 93"><path fill="currentColor" d="M4.6 45.4c12.6.3 17 .9 26.3 1.8 5.1 10.4 4.9 8.2 7.1 20.5-8.3-9.5-20.9-19.5-33.8-22.3M6 0c11.1 5.7 38.8 24.2 46.4 27.9 4-1 9.8-3.6 17.8-.5-8.9 1-16.5 10.9-25.4 17.7C36.8 24.8 23.4 13.1 17.6 6.9M.2 26.6c15.4 3.1 20.6 4.9 31.7 8 7.1 14.9 5.1 21.9 3.6 31.3C28.3 48.7 15.2 32.8 0 26.6M6.2.1c8.9 5.2 20.7 21 25.6 34 1.8 5.2 4.5 17.7 3.6 31.8 1.6 8.9 12.9 34.4 38.3 23.4-12.9 0-19.2-4.9-25.9-15.9-.4-.3-6.7-18.5-3.1-28.4C36.3 16.9 12.9 3.1 6 0M69.3 82.6c10.3 0 18.5-7 20.5-18.2.1-.7 1.6 8.3-8.2 19.3-.7.7-6.7 1.6-12.1-1M76.5 43c2.2 1.6 3.6 2.9 4.9 4.4 1.3 1-.9-3.6-1.3-4.2.7-3.4-1.4-8.5-1.7-8.6-1.6-1.6-30 9.4-20.2 35.4-.9-21.9 9.3-26 18.2-27.1M73.8 89.3c3.1-1.3 5.1-3.6 7.8-5.7.1-.1-18.1 2.5-23.4-13.7-1.8-2.9-8.3-26.7 20.1-35.5-1.3-2.9-6.7-6.6-8.1-7.1C61.3 28.4 51.3 33.4 45 44.5c-5 9-2.4 46.6 28.8 44.8M76 37.2c.7 0 1.3.7 1.3 1.6s-.6 1.6-1.3 1.6-1.3-.7-1.3-1.6.6-1.6 1.3-1.6"/></svg>`,
+        'EdgeNext': `<svg viewBox="0 0 159.81 128.06"><defs><linearGradient id="edgenext-grad1" x1="42.07" y1="26.6" x2="117.57" y2="26.6" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#fad364"/><stop offset=".34" stop-color="#fabc0a"/><stop offset="1" stop-color="#f0a800"/></linearGradient><linearGradient id="edgenext-grad2" x1="25.47" y1="102.37" x2="56.64" y2="71.45" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#27944b"/><stop offset="1" stop-color="#35a853"/></linearGradient><linearGradient id="edgenext-grad3" x1="83.48" y1="81.52" x2="107.2" y2="104.09" gradientUnits="userSpaceOnUse"><stop offset=".49" stop-color="#27944b"/><stop offset="1" stop-color="#35a853"/></linearGradient></defs><path fill="#35a853" d="M101.87 110.4c13.2 13.3 34.7 13.3 48 0s13.2-34.7 0-48-34.7-13.2-48 0l-42 41.9c-8 8-20 9.6-29.6 4.8l34.4-34.4 6.3-6.3c3.1-3.1 3.1-8.2 0-11.3-1.9-1.9-4-3.6-6.2-5.1-16.2-10.9-38.3-9.2-52.6 5.1S-3.83 93.5 7.07 109.7c1.5 2.2 3.2 4.3 5.1 6.2s4 3.6 6.2 5.1c15.4 10.4 36.3 9.3 50.6-3.2l20.2-20.1 12.7 12.7ZM23.57 68.1c8-8 20-9.6 29.6-4.8l-34.3 34.5c-4.9-9.6-3.3-21.7 4.7-29.7ZM138.47 99c-7 7-18.3 7-25.3 0l-12.7-12.7 12.7-12.6c7-7 18.3-7 25.3 0s7 18.3 0 25.3Z"/><path fill="url(#edgenext-grad1)" d="M88.27 53.2c7.5-8.4 17.7-14.2 29.3-16.1C116.87 16.5 99.97 0 79.17 0c-17.9 0-32.9 12.3-37.1 28.8 19.1.3 35.9 9.9 46.2 24.4Z"/><path fill="url(#edgenext-grad2)" d="M59.87 68.1c2 2 3.5 4.2 4.8 6.6l-34.4 34.4c-2.4-1.2-4.6-2.8-6.6-4.8s-3.6-4.2-4.8-6.6l34.4-34.4c2.4 1.2 4.6 2.8 6.6 4.8Z"/><path fill="url(#edgenext-grad3)" d="M100.47 86.3l-11.4 11.3 12.8 12.8 11.3-11.4-12.7-12.7Z"/></svg>`,
     };
 
     // --- UI & Execution Functions ---
