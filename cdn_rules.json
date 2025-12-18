@@ -72,6 +72,20 @@
     "server": "EdgeNext|ChinaCache",
     "priority": 10
   },
+  "Medianova": {
+    "headers": {
+      "x-cache-status": null,
+      "x-edge-location": null,
+      "x-mnrequest-id": null,
+      "x-mserver": null,
+      "x-origin-server": "MNCDN"
+    },
+    "server": "MNCDN",
+    "pop_header": "x-edge-location",
+    "pop_regex": "^([A-Z]{2,3})-",
+    "id_header": "x-mnrequest-id",
+    "priority": 10
+  },
   "Qiniu Cloud": {
     "headers": {
       "x-qnm-cache": null,

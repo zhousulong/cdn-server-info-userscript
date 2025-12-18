@@ -34,6 +34,7 @@
   - CDN77
   - StackPath
   - QUIC.cloud
+  - Medianova
 
 - **国内 CDN**
   - 腾讯云 EdgeOne
