@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.14.6
-// @description  [v7.14.6] Improved CDNetworks POP extraction: prioritize alphabetic codes, filter numeric-only codes.
-// @description:en [v7.14.6] Improved CDNetworks POP extraction: prioritize alphabetic codes, filter numeric-only codes.
+// @version      7.14.7
+// @description  [v7.14.7] Fixed POP extraction using exec loop for better browser compatibility.
+// @description:en [v7.14.7] Fixed POP extraction using exec loop for better browser compatibility.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.14.6
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.14.7
 // @run-at       document-idle
 // @noframes
 // ==/UserScript==
@@ -226,8 +226,9 @@
                 if (via) {
                     // Try to extract alphabetic codes first (e.g., PS-FOC, PS-NTG)
                     // Avoid pure numeric codes like CS-000
-                    const matches = via.matchAll(/(PS|CS)-([A-Z0-9]{3})-/g);
-                    for (const match of matches) {
+                    const regex = /(PS|CS)-([A-Z0-9]{3})-/g;
+                    let match;
+                    while ((match = regex.exec(via)) !== null) {
                         const code = match[2];
                         // Only accept codes that contain at least one letter
                         if (/[A-Z]/.test(code)) {
@@ -242,8 +243,9 @@
                     const altHeaders = [h.get('x-px'), h.get('x-ws-request-id')];
                     for (const val of altHeaders) {
                         if (val) {
-                            const matches = val.matchAll(/(PS|CS)-([A-Z0-9]{3})-/g);
-                            for (const match of matches) {
+                            const regex = /(PS|CS)-([A-Z0-9]{3})-/g;
+                            let match;
+                            while ((match = regex.exec(val)) !== null) {
                                 const code = match[2];
                                 if (/[A-Z]/.test(code)) {
                                     pop = code.toUpperCase();
