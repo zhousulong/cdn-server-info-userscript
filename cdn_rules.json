@@ -318,9 +318,12 @@
       "ohc-cache-hit": null,
       "ohc-file-size": null,
       "ohc-global-saved-time": null,
-      "via": "huaweicloud"
+      "x-obs-request-id": null,
+      "dl-from": "HWCDN",
+      "via": "huaweicloud|CHN-"
     },
     "server": "HuaweiCloud",
+    "id_header": "x-obs-request-id",
     "priority": 10
   },
   "CDN77": {
