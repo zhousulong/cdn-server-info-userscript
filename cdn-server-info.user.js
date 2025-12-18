@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.14.3
-// @description  [v7.14.3] Reverted design (11px font, 16px padding). Increased value width to prevent truncation.
-// @description:en [v7.14.3] Reverted design (11px font, 16px padding). Increased value width to prevent truncation.
+// @version      7.14.4
+// @description  [v7.14.4] Fixed text truncation by allowing value area to occupy all remaining horizontal space.
+// @description:en [v7.14.4] Fixed text truncation by allowing value area to occupy all remaining horizontal space.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.14.3
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.14.4
 // @run-at       document-idle
 // @noframes
 // ==/UserScript==
@@ -965,6 +965,8 @@
             font-weight: 500;
             color: ${isDarkTheme ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.5)'};
             letter-spacing: 0px;
+            flex-shrink: 0; /* Protect label from squeezing */
+            margin-right: 8px;
         }
 
         .info-value {
@@ -975,7 +977,8 @@
             color: ${textColor};
             text-align: right;
             opacity: 0.95;
-            max-width: 200px; /* Increased to use available left space */
+            flex: 1; /* Occupy all remaining space */
+            min-width: 0; /* Enable truncation in flex item */
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
