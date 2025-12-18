@@ -122,7 +122,8 @@
   "Kingsoft Cloud": {
     "headers": {
       "x-kss-request-id": null,
-      "x-kss-pong": null
+      "x-cache-status": "KS-CLOUD-",
+      "x-link-via": null
     },
     "id_header": "x-kss-request-id",
     "priority": 10
@@ -132,6 +133,15 @@
       "x-bs-request-id": null
     },
     "custom_check_logic": "check_aws_compat",
+    "priority": 10
+  },
+  "Gcore": {
+    "headers": {
+      "x-id": null,
+      "x-id-fe": null,
+      "cache": null
+    },
+    "report-to": "gcore-nel",
     "priority": 10
   },
   "BytePlus CDN": {

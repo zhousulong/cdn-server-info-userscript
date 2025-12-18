@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.9.5
-// @description  [v7.9.5] Stable release: BytePlus/CacheFly/Medianova/BunnyCDN support. Refined ByteDance detection. All positioning issues resolved.
-// @description:en [v7.9.5] Stable release: BytePlus/CacheFly/Medianova/BunnyCDN support. Refined ByteDance detection. All positioning issues resolved.
+// @version      7.9.6
+// @description  [v7.9.6] Added Kingsoft Cloud and Gcore CDN support with official logos. Improved POP and Cache detection for multiple providers.
+// @description:en [v7.9.6] Added Kingsoft Cloud and Gcore CDN support with official logos. Improved POP and Cache detection for multiple providers.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.9.5
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.9.6
 // @run-at       document-idle
 // @noframes
 // ==/UserScript==
@@ -136,6 +136,60 @@
                     cache: cache,
                     pop: 'N/A',
                     extra: `Log-UUID: ${logUuid}`,
+                };
+            }
+        },
+        'Kingsoft Cloud': {
+            getInfo: (h, rule) => {
+                let cache = 'N/A';
+                const cacheStatus = h.get('x-cache-status');
+                if (cacheStatus) {
+                    const match = cacheStatus.match(/^([A-Z]+)\s+from/i);
+                    if (match) cache = match[1].toUpperCase();
+                }
+                if (cache === 'N/A') cache = getCacheStatus(h);
+
+                let pop = 'N/A';
+                if (cacheStatus) {
+                    // Extract from "KS-CLOUD-YANC-MP-16-05" -> "YANC"
+                    const match = cacheStatus.match(/KS-CLOUD-([A-Z]{2,6})-\w+/i);
+                    if (match) {
+                        pop = match[1].toUpperCase();
+                    }
+                }
+
+                if (pop === 'N/A') {
+                    const via = h.get('x-link-via');
+                    if (via) {
+                        // Extract from "ntct13:443;yancmp16:80;" -> "NTCT13"
+                        const match = via.match(/([^:;]+):/);
+                        if (match) pop = match[1].toUpperCase();
+                    }
+                }
+
+                const requestId = h.get('x-cdn-request-id') || h.get('x-kss-request-id') || 'N/A';
+
+                return {
+                    provider: 'Kingsoft Cloud',
+                    cache: cache,
+                    pop: pop,
+                    extra: `Req-ID: ${requestId}`,
+                };
+            }
+        },
+        'Gcore': {
+            getInfo: (h, rule) => {
+                let cache = h.get('cache') || 'N/A';
+                if (cache === 'N/A') cache = getCacheStatus(h);
+                else cache = cache.toUpperCase();
+
+                const traceparent = h.get('traceparent') || h.get('x-id') || 'N/A';
+
+                return {
+                    provider: 'Gcore',
+                    cache: cache,
+                    pop: 'N/A',
+                    extra: `ID: ${traceparent.split('-')[1] || traceparent}`,
                 };
             }
         },
@@ -517,6 +571,8 @@
 
     // --- Icons & Assets ---
     const cdnIcons = {
+        'Kingsoft Cloud': `<svg viewBox="0 0 1545 1542"><path fill="currentColor" fill-rule="evenodd" d="m772.2 1541.5c-426.8 0-771.8-344.4-771.8-770.5 0-426.1 345-770.5 771.8-770.5 426.9 0 771.9 344.4 771.9 770.5 0 426.1-345 770.5-771.9 770.5z"/><path fill="white" d="m1083.9 577.4c-24.7-150.3-154.7-264.6-311.9-264.6-156.7 0-287.2 114.3-311.9 264.6-136.5 9.8-243.9 123.6-243.9 262.1 0 145.8 118.3 263.5 263.6 263.5 78.4 0 148.8-34.4 197.1-88.6l74.4 106.4c27.1 36.9 70.5 61.1 119.2 61.1q12.8 0 24.7-2c34.5-5.9 65-23.6 86.7-48.8-12.3 5.4-25.6 8.4-39.4 8.4-31.6 0-59.6-15.3-76.9-39.4l-184.7-264.1c10.3-6.9 22.6-11.3 36.4-11.3 19.7 0 37 8.9 48.8 23.2l116.8 166.5c41.8 53.7 107.9 88.6 181.3 88.6l10.3-0.4c140.9-5.5 253.8-121.2 253.8-263.1 0-138.5-107.9-252.3-244.4-262.1zm-19.7 419.7l-7.9-0.5c-38.9-2.4-72.9-22.6-94.1-51.7-0.5-1-50.3-71.9-78.4-111.8l-6.9-9.9c-23.1-29.5-58.6-48.8-99-48.8-19.7 0-37.9 4.5-54.7 12.4-19.2 9.3-35.9 23.6-48.3 41.3l-3.9-5.9c-10.3-13.8-24.6-24.6-41.4-31 4.9 15.3 7.9 31.5 7.9 48.3 0 24.1-5.4 46.8-15.3 67q-3.9 8.8-8.8 16.7c-28.1 44.4-77.4 73.9-133.6 73.9-87.2 0-157.6-70.4-157.6-157.6 0-80.3 60.6-146.8 138.9-156.2q8.9-1 18.7-1c39 0 74.9 14.3 102.5 38-13.3-27.6-20.7-58.7-20.7-91.2 0-13.3 1.5-26.1 3.5-38.4 18.2-97.6 103.9-171.5 206.9-171.5 103 0 188.7 73.9 206.9 171.5q3.5 18.7 4 38.4c0 32.5-7.4 63.6-20.7 91.2 27.6-23.7 63-38 102-38q9.8 0 19.2 1c78.3 9.4 138.4 75.9 138.4 156.2 0 87.2-70.4 157.6-157.6 157.6z"/></svg>`,
+        'Gcore': `<svg viewBox="0 0 100.15 116"><path fill="currentColor" fill-rule="evenodd" d="M100.15,57.6c0,31.81-25.79,57.6-57.6,57.6-12.35.02-24.38-3.95-34.3-11.32,1.64.92,3.33,1.75,5.07,2.5,6.59,2.84,13.69,4.31,20.87,4.31,27.72-.01,50.76-21.36,52.88-49,.14-1.26.22-2.52.24-3.78,0-1.61-.13-3.47-.3-5.17-.01-.16-.02-.33-.03-.49,0-.19-.01-.38-.03-.56l-.05.05c-.24-2.21-.49-3.91-.49-3.91h-41.8l-3.25,6.08-7.46,14.1h31.58c-1.17,3.49-2.91,6.77-5.17,9.68-6.22,8.15-15.89,12.92-26.14,12.92-3.87,0-7.71-.7-11.34-2.04C9.85,83.81,1.2,71.44,1.19,57.6c0-18.23,14.77-33,33-33.01,6.99-.01,13.81,2.21,19.45,6.34l4.33-8.11,5.16-9.75c-8.61-5.61-18.67-8.59-28.95-8.58-9.02,0-17.88,2.3-25.76,6.68C17.98,4.16,29.78,0,42.55,0c31.81,0,57.6,25.79,57.6,57.6h0Z"/></svg>`,
         'Cloudflare': `<svg viewBox="0 0 256 116" preserveAspectRatio="xMidYMid"><path fill="currentColor" d="m202.357 49.394-5.311-2.124C172.085 103.434 72.786 69.289 66.81 85.997c-.996 11.286 54.227 2.146 93.706 4.059 12.039.583 18.076 9.671 12.964 24.484l10.069.031c11.615-36.209 48.683-17.73 50.232-29.68-2.545-7.857-42.601 0-31.425-35.497Z"/><path fill="currentColor" d="M176.332 108.348c1.593-5.31 1.062-10.622-1.593-13.809-2.656-3.187-6.374-5.31-11.154-5.842L71.17 87.634c-.531 0-1.062-.53-1.593-.53-.531-.532-.531-1.063 0-1.594.531-1.062 1.062-1.594 2.124-1.594l92.946-1.062c11.154-.53 22.839-9.56 27.087-20.182l5.312-13.809c0-.532.531-1.063 0-1.594C191.203 20.182 166.772 0 138.091 0 111.535 0 88.697 16.995 80.73 40.896c-5.311-3.718-11.684-5.843-19.12-5.31-12.747 1.061-22.838 11.683-24.432 24.43-.531 3.187 0 6.374.532 9.56C16.996 70.107 0 87.103 0 108.348c0 2.124 0 3.718.531 5.842 0 1.063 1.062 1.594 1.594 1.594h170.489c1.062 0 2.125-.53 2.125-1.594l1.593-5.842Z"/><path fill="currentColor" d="M205.544 48.863h-2.656c-.531 0-1.062.53-1.593 1.062l-3.718 12.747c-1.593 5.31-1.062 10.623 1.594 13.809 2.655 3.187 6.373 5.31 11.153 5.843l19.652 1.062c.53 0 1.062.53 1.593.53.53.532.53 1.063 0 1.594-.531 1.063-1.062 1.594-2.125 1.594l-20.182 1.062c-11.154.53-22.838 9.56-27.087 20.182l-1.063 4.78c-.531.532 0 1.594 1.063 1.594h70.108c1.062 0 1.593-.531 1.593-1.593 1.062-4.25 2.124-9.03 2.124-13.81 0-27.618-22.838-50.456-50.456-50.456"/></svg>`,
         'Vercel': `<svg viewBox="0 0 256 222" preserveAspectRatio="xMidYMid"><path fill="currentColor" d="m128 0 128 221.705H0z"/></svg>`,
         'CloudFront': `<svg xml:space="preserve" viewBox="0 0 304 182"><path fill="currentColor" d="m86 66 2 9c0 3 1 5 3 8v2l-1 3-7 4-2 1-3-1-4-5-3-6c-8 9-18 14-29 14-9 0-16-3-20-8-5-4-8-11-8-19s3-15 9-20c6-6 14-8 25-8a79 79 0 0 1 22 3v-7c0-8-2-13-5-16-3-4-8-5-16-5l-11 1a80 80 0 0 0-14 5h-2c-1 0-2-1-2-3v-5l1-3c0-1 1-2 3-2l12-5 16-2c12 0 20 3 26 8 5 6 8 14 8 25v32zM46 82l10-2c4-1 7-4 10-7l3-6 1-9v-4a84 84 0 0 0-19-2c-6 0-11 1-15 4-3 2-4 6-4 11s1 8 3 11c3 2 6 4 11 4zm80 10-4-1-2-3-23-78-1-4 2-2h10l4 1 2 4 17 66 15-66 2-4 4-1h8l4 1 2 4 16 67 17-67 2-4 4-1h9c2 0 3 1 3 2v2l-1 2-24 78-2 4-4 1h-9l-4-1-1-4-16-65-15 64-2 4-4 1h-9zm129 3a66 66 0 0 1-27-6l-3-3-1-2v-5c0-2 1-3 2-3h2l3 1a54 54 0 0 0 23 5c6 0 11-2 14-4 4-2 5-5 5-9l-2-7-10-5-15-5c-7-2-13-6-16-10a24 24 0 0 1 5-34l10-5a44 44 0 0 1 20-2 110 110 0 0 1 12 3l4 2 3 2 1 4v4c0 3-1 4-2 4l-4-2c-6-2-12-3-19-3-6 0-11 0-14 2s-4 5-4 9c0 3 1 5 3 7s5 4 11 6l14 4c7 3 12 6 15 10s5 9 5 14l-3 12-7 8c-3 3-7 5-11 6l-14 2z"/><path d="M274 144A220 220 0 0 1 4 124c-4-3-1-6 2-4a300 300 0 0 0 263 16c5-2 10 4 5 8z" fill="currentColor" fill-opacity="0.5"/><path d="M287 128c-4-5-28-3-38-1-4 0-4-3-1-5 19-13 50-9 53-5 4 5-1 36-18 51-3 2-6 1-5-2 5-10 13-33 9-38z" fill="currentColor" fill-opacity="0.5"/></svg>`,
