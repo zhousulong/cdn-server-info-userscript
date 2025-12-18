@@ -2,7 +2,7 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.9.1
+// @version      7.9.2
 // @description  [v7.9.1] Added BytePlus logo and refined International ByteDance detection. Added CacheFly CDN support. Simplified ByteDance POP detection.
 // @description:en [v7.9.1] Added BytePlus logo and refined International ByteDance detection. Added CacheFly CDN support. Simplified ByteDance POP detection.
 // @author       Zhou Sulong
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.9.1
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.9.2
 // @run-at       document-idle
 // @noframes
 // ==/UserScript==
@@ -182,16 +182,16 @@
                 if (cache === 'N/A') cache = getCacheStatus(h);
 
                 let pop = 'N/A';
-                // Extract from via: "live4.cn7594[899,0]" -> "CN" (simplified)
+                // Extract from via: "live4.cn7594[899,0]" or "ens-live7.cn8685" -> "CN"
                 const viaHeader = h.get('via');
                 if (viaHeader) {
-                    const match = viaHeader.match(/live\d+\.(cn\d+)/i);
+                    const match = viaHeader.match(/(?:ens-)?live\d+\.(cn\d+)/i);
                     if (match && match[1]) {
                         pop = 'CN'; // Simplified, just show CN for China
                     }
                 }
 
-                const traceId = h.get('x-tt-trace-id') || h.get('x-tt-logid') || 'N/A';
+                const traceId = h.get('x-tt-trace-id') || h.get('x-tt-logid') || h.get('eagleid') || 'N/A';
 
                 return {
                     provider: 'ByteDance CDN',

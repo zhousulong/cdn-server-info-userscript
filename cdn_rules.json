@@ -138,10 +138,7 @@
     "headers": {
       "x-cdn-request-id": null,
       "x-dynamic-status": null,
-      "x-link-via": null,
-      "x-tt-trace-tag": null,
-      "x-tt-trace-id": null,
-      "x-tt-logid": null
+      "x-link-via": null
     },
     "server": "TLB",
     "id_header": "x-cdn-request-id",
@@ -152,10 +149,11 @@
       "x-tt-trace-tag": null,
       "x-bdcdn-cache-status": null,
       "x-tt-trace-id": null,
-      "x-tt-logid": null
+      "x-tt-logid": null,
+      "eagleid": null
     },
     "server": "Byte-nginx|Tengine",
-    "via": "live\\d+\\.cn\\d+",
+    "via": "live\\d+\\.cn\\d+|ens-live\\d+\\.cn\\d+",
     "id_header": "x-tt-trace-tag",
     "priority": 11
   },
