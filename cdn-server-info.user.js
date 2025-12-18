@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.9.6
-// @description  [v7.9.6] Added Kingsoft Cloud and Gcore CDN support with official logos. Improved POP and Cache detection for multiple providers.
-// @description:en [v7.9.6] Added Kingsoft Cloud and Gcore CDN support with official logos. Improved POP and Cache detection for multiple providers.
+// @version      7.9.7
+// @description  [v7.9.7] Fixed Kingsoft Cloud misidentification as BytePlus. Optimized detection priorities.
+// @description:en [v7.9.7] Fixed Kingsoft Cloud misidentification as BytePlus. Optimized detection priorities.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.9.6
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.9.7
 // @run-at       document-idle
 // @noframes
 // ==/UserScript==

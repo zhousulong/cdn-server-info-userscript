@@ -126,7 +126,7 @@
       "x-link-via": null
     },
     "id_header": "x-kss-request-id",
-    "priority": 10
+    "priority": 15
   },
   "BaishanCloud": {
     "headers": {
