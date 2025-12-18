@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.9.2
-// @description  [v7.9.1] Added BytePlus logo and refined International ByteDance detection. Added CacheFly CDN support. Simplified ByteDance POP detection.
-// @description:en [v7.9.1] Added BytePlus logo and refined International ByteDance detection. Added CacheFly CDN support. Simplified ByteDance POP detection.
+// @version      7.9.3
+// @description  [v7.9.3] Fixed panel positioning issue in Chrome. Refined BytePlus/ByteDance detection and POP parsing. Added CacheFly support.
+// @description:en [v7.9.3] Fixed panel positioning issue in Chrome. Refined BytePlus/ByteDance detection and POP parsing. Added CacheFly support.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.9.2
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.9.3
 // @run-at       document-idle
 // @noframes
 // ==/UserScript==
@@ -1030,6 +1030,16 @@
         if (!info || document.getElementById('cdn-info-host-enhanced')) return;
         const host = document.createElement('div');
         host.id = 'cdn-info-host-enhanced';
+
+        // Explicitly set position on the host element to ensure it's not at top-left (especially for Chrome)
+        const posStyle = getPositionCSS();
+        host.style.cssText = `
+            position: fixed;
+            z-index: 2147483647;
+            ${posStyle}
+            display: block;
+        `;
+
         document.body.appendChild(host);
 
         const shadowRoot = host.attachShadow({ mode: 'open' });
