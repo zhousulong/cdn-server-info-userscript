@@ -164,7 +164,7 @@
     "id_header": "x-ct-request-id",
     "priority": 10
   },
-  "Adobe Experience Manager (AEM)": {
+  "Adobe Experience Manager": {
     "headers": {
       "x-dispatcher": null,
       "x-vhost": null
@@ -172,7 +172,7 @@
     "id_header": "x-dispatcher",
     "priority": 12
   },
-  "CDNetworks (ChinaNetCenter)": {
+  "CDNetworks": {
     "headers": {
       "x-ws-request-id": null,
       "x-px": null,
