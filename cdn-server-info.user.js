@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.8.0
-// @description  [v7.8.0] Added Medianova CDN support with cache status and POP extraction. Updated ChinaCache to EdgeNext. Enhanced ChinaNetCenter POP detection.
-// @description:en [v7.8.0] Added Medianova CDN support with cache status and POP extraction. Updated ChinaCache to EdgeNext. Enhanced ChinaNetCenter POP detection.
+// @version      7.8.1
+// @description  [v7.8.1] Fixed Medianova logo to use currentColor for theme adaptation. Added Medianova CDN support with cache status and POP extraction.
+// @description:en [v7.8.1] Fixed Medianova logo to use currentColor for theme adaptation. Added Medianova CDN support with cache status and POP extraction.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.8.0
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.8.1
 // @run-at       document-idle
 // @noframes
 // ==/UserScript==
