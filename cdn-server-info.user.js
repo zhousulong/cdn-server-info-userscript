@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.12.1
-// @description  [v7.12.1] Merged Huawei Cloud CDN rules and updated logo. Improved State Cloud identification.
-// @description:en [v7.12.1] Merged Huawei Cloud CDN rules and updated logo. Improved State Cloud identification.
+// @version      7.12.2
+// @description  [v7.12.2] Fixed Huawei Cloud POP identification (JSyangzhou -> JS-YANGZHOU).
+// @description:en [v7.12.2] Fixed Huawei Cloud POP identification (JSyangzhou -> JS-YANGZHOU).
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.12.1
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.12.2
 // @run-at       document-idle
 // @noframes
 // ==/UserScript==
@@ -290,13 +290,18 @@
                 let pop = 'N/A';
                 const via = h.get('via');
                 if (via) {
-                    // Extract from "CHN-JSyangzhou-CT3-CACHE19" -> "JS-YANGZHOU"
-                    const match = via.match(/CHN-([A-Z0-9]+)([A-Z][a-z]+)/);
+                    // Extract from "CHN-JSyangzhou-CT3" -> JSyangzhou -> "JS-YANGZHOU"
+                    // Extract from "CHN-SH-GLOBAL" -> SH -> "SH"
+                    const match = via.match(/CHN-([a-zA-Z0-9]+)/);
                     if (match) {
-                        pop = (match[1] + '-' + match[2]).toUpperCase();
-                    } else {
-                        const simpleMatch = via.match(/CHN-([A-Z0-9-]+)-/i);
-                        if (simpleMatch) pop = simpleMatch[1].toUpperCase();
+                        const loc = match[1];
+                        // If compound name like JSyangzhou -> JS-YANGZHOU
+                        const compound = loc.match(/^([A-Z]{2})([a-z]+)/);
+                        if (compound) {
+                            pop = (compound[1] + '-' + compound[2]).toUpperCase();
+                        } else {
+                            pop = loc.toUpperCase();
+                        }
                     }
                 }
 
