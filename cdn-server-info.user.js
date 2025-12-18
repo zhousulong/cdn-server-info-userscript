@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.14.7
-// @description  [v7.14.7] Fixed POP extraction using exec loop for better browser compatibility.
-// @description:en [v7.14.7] Fixed POP extraction using exec loop for better browser compatibility.
+// @version      7.14.8
+// @description  [v7.14.8] Added debug logging to diagnose POP extraction issues.
+// @description:en [v7.14.8] Added debug logging to diagnose POP extraction issues.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.14.7
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.14.8
 // @run-at       document-idle
 // @noframes
 // ==/UserScript==
@@ -223,6 +223,10 @@
 
                 let pop = 'N/A';
                 const via = h.get('via') || h.get('x-via');
+
+                console.log('[CDNetworks] via:', via);
+                console.log('[CDNetworks] x-via:', h.get('x-via'));
+
                 if (via) {
                     // Try to extract alphabetic codes first (e.g., PS-FOC, PS-NTG)
                     // Avoid pure numeric codes like CS-000
@@ -230,9 +234,11 @@
                     let match;
                     while ((match = regex.exec(via)) !== null) {
                         const code = match[2];
+                        console.log('[CDNetworks] Found:', code, 'HasLetter:', /[A-Z]/.test(code));
                         // Only accept codes that contain at least one letter
                         if (/[A-Z]/.test(code)) {
                             pop = code.toUpperCase();
+                            console.log('[CDNetworks] Selected POP:', pop);
                             break;
                         }
                     }
