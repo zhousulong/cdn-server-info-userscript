@@ -54,16 +54,6 @@
     "server": "yunjiasu-nginx",
     "priority": 10
   },
-  "ChinaNetCenter": {
-    "headers": {
-      "x-ws-request-id": null,
-      "x-via": null
-    },
-    "pop_header": "x-ws-request-id",
-    "pop_regex": "PS-([A-Z]{3})-",
-    "id_header": "x-ws-request-id",
-    "priority": 10
-  },
   "EdgeNext": {
     "headers": {
       "powered-by-edgenext": null,
@@ -174,13 +164,14 @@
     "id_header": "x-ct-request-id",
     "priority": 10
   },
-  "CDNetworks": {
+  "CDNetworks (ChinaNetCenter)": {
     "headers": {
       "x-ws-request-id": null,
       "x-px": null,
+      "x-via": null,
       "x-hello-human": "cdnetworks"
     },
-    "server": "PWS",
+    "server": "PWS|ChinaNetCenter",
     "via": "PS-",
     "id_header": "x-ws-request-id",
     "priority": 11
