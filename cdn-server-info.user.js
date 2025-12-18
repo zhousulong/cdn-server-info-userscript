@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.10.3
-// @description  [v7.10.3] Added CDNetworks support with new grayscale logo. Improved Alibaba Cloud CDN identification.
-// @description:en [v7.10.3] Added CDNetworks support with new grayscale logo. Improved Alibaba Cloud CDN identification.
+// @version      7.10.4
+// @description  [v7.10.4] Fixed CDNetworks/ChinaNetCenter and Alibaba/ByteDance misidentification issues.
+// @description:en [v7.10.4] Fixed CDNetworks/ChinaNetCenter and Alibaba/ByteDance misidentification issues.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.10.3
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.10.4
 // @run-at       document-idle
 // @noframes
 // ==/UserScript==

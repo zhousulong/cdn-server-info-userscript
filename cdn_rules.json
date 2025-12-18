@@ -161,7 +161,7 @@
       "x-tt-trace-id": null,
       "x-tt-logid": null
     },
-    "server": "Byte-nginx|Tengine",
+    "server": "Byte-nginx",
     "via": "live\\d+\\.cn\\d+|ens-live\\d+\\.cn\\d+",
     "id_header": "x-tt-trace-tag",
     "priority": 11
@@ -175,7 +175,7 @@
     "server": "PWS",
     "via": "PS-",
     "id_header": "x-ws-request-id",
-    "priority": 10
+    "priority": 11
   },
   "Cloudflare": {
     "headers": {
