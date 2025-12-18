@@ -86,6 +86,22 @@
     "id_header": "x-mnrequest-id",
     "priority": 10
   },
+  "CacheFly": {
+    "headers": {
+      "x-cf-reqid": null,
+      "x-cf-tsc": null,
+      "x-cf1": null,
+      "x-cf2": null,
+      "x-cf3": null,
+      "cf4age": null,
+      "cf4ttl": null
+    },
+    "server": "CFS",
+    "pop_header": "x-cf1",
+    "pop_regex": "([a-z]{3,4}\\d*)\\.",
+    "id_header": "x-cf-reqid",
+    "priority": 10
+  },
   "Qiniu Cloud": {
     "headers": {
       "x-qnm-cache": null,
@@ -118,12 +134,28 @@
     "custom_check_logic": "check_aws_compat",
     "priority": 10
   },
+  "BytePlus CDN": {
+    "headers": {
+      "x-cdn-request-id": null,
+      "x-dynamic-status": null,
+      "x-link-via": null,
+      "x-tt-trace-tag": null,
+      "x-tt-trace-id": null,
+      "x-tt-logid": null
+    },
+    "server": "TLB",
+    "id_header": "x-cdn-request-id",
+    "priority": 12
+  },
   "ByteDance CDN": {
     "headers": {
       "x-tt-trace-tag": null,
-      "x-bdcdn-cache-status": null
+      "x-bdcdn-cache-status": null,
+      "x-tt-trace-id": null,
+      "x-tt-logid": null
     },
-    "server": "Byte-nginx",
+    "server": "Byte-nginx|Tengine",
+    "via": "live\\d+\\.cn\\d+",
     "id_header": "x-tt-trace-tag",
     "priority": 11
   },

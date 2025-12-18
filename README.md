@@ -35,6 +35,8 @@
   - StackPath
   - QUIC.cloud
   - Medianova
+  - CacheFly
+  - BytePlus CDN (TikTok)
 
 - **国内 CDN**
   - 腾讯云 EdgeOne

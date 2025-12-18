@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.8.2
-// @description  [v7.8.2] Added ChinaNetCenter (Wangsu) logo. Fixed Medianova logo theme adaptation. Added Medianova CDN support.
-// @description:en [v7.8.2] Added ChinaNetCenter (Wangsu) logo. Fixed Medianova logo theme adaptation. Added Medianova CDN support.
+// @version      7.9.1
+// @description  [v7.9.1] Added BytePlus logo and refined International ByteDance detection. Added CacheFly CDN support. Simplified ByteDance POP detection.
+// @description:en [v7.9.1] Added BytePlus logo and refined International ByteDance detection. Added CacheFly CDN support. Simplified ByteDance POP detection.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.8.2
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.9.1
 // @run-at       document-idle
 // @noframes
 // ==/UserScript==
@@ -139,48 +139,65 @@
                 };
             }
         },
+        'BytePlus CDN': {
+            getInfo: (h, rule) => {
+                let cache = 'N/A';
+                // Parse from server-timing: cdn-cache;desc=miss
+                const serverTiming = h.get('server-timing');
+                if (serverTiming) {
+                    const match = serverTiming.match(/cdn-cache;desc=([^,]+)/);
+                    if (match) cache = match[1].toUpperCase();
+                }
+                if (cache === 'N/A') cache = getCacheStatus(h);
+
+                // BytePlus CDN doesn't have standard airport codes, skip POP
+                let pop = 'N/A';
+
+                const requestId = h.get('x-cdn-request-id') || h.get('x-tt-trace-id') || 'N/A';
+
+                return {
+                    provider: 'BytePlus CDN',
+                    cache: cache,
+                    pop: pop,
+                    extra: `Req-ID: ${requestId}`,
+                };
+            }
+        },
         'ByteDance CDN': {
             getInfo: (h, rule) => {
                 let cache = 'N/A';
-                const ttTrace = h.get('x-tt-trace-tag');
-                if (ttTrace) {
-                    const match = ttTrace.match(/cdn-cache=([^;]+)/);
+                // Parse from server-timing: cdn-cache;desc=MISS
+                const serverTiming = h.get('server-timing');
+                if (serverTiming) {
+                    const match = serverTiming.match(/cdn-cache;desc=([^,]+)/);
                     if (match) cache = match[1].toUpperCase();
                 }
                 if (cache === 'N/A') {
-                    const serverTiming = h.get('server-timing');
-                    if (serverTiming) {
-                        const match = serverTiming.match(/cdn-cache;desc=([^,]+)/);
+                    const ttTrace = h.get('x-tt-trace-tag');
+                    if (ttTrace) {
+                        const match = ttTrace.match(/cdn-cache=([^;]+)/);
                         if (match) cache = match[1].toUpperCase();
                     }
                 }
                 if (cache === 'N/A') cache = getCacheStatus(h);
 
                 let pop = 'N/A';
+                // Extract from via: "live4.cn7594[899,0]" -> "CN" (simplified)
                 const viaHeader = h.get('via');
                 if (viaHeader) {
-                    const viaParts = viaHeader.split(',');
-                    for (let i = viaParts.length - 1; i >= 0; i--) {
-                        const part = viaParts[i].trim();
-                        const cityMatch = part.match(/\.([a-zA-Z]+)/);
-                        if (cityMatch && cityMatch[1]) {
-                            if (!/cn\d+/.test(cityMatch[1])) {
-                                pop = cityMatch[1].split('-')[0].toUpperCase();
-                                break;
-                            }
-                        }
-                        const internalCodeMatch = part.match(/\b([a-z]*cn\d+)\b/i);
-                        if (internalCodeMatch && internalCodeMatch[1]) {
-                            pop = 'CN';
-                            break;
-                        }
+                    const match = viaHeader.match(/live\d+\.(cn\d+)/i);
+                    if (match && match[1]) {
+                        pop = 'CN'; // Simplified, just show CN for China
                     }
                 }
+
+                const traceId = h.get('x-tt-trace-id') || h.get('x-tt-logid') || 'N/A';
+
                 return {
                     provider: 'ByteDance CDN',
-                    cache,
-                    pop,
-                    extra: `Trace Tag: ${h.get('x-tt-trace-tag') || 'N/A'}`,
+                    cache: cache,
+                    pop: pop,
+                    extra: `Trace-ID: ${traceId}`,
                 };
             }
         },
@@ -263,6 +280,43 @@
                     cache: cache,
                     pop: pop,
                     extra: `Req-ID: ${requestId}`,
+                };
+            }
+        },
+        'CacheFly': {
+            getInfo: (h, rule) => {
+                let cache = 'N/A';
+                // x-cf3: H = HIT, M = MISS
+                const cf3 = h.get('x-cf3');
+                if (cf3) {
+                    if (cf3.toUpperCase() === 'H') {
+                        cache = 'HIT';
+                    } else if (cf3.toUpperCase() === 'M') {
+                        cache = 'MISS';
+                    }
+                } else {
+                    cache = getCacheStatus(h);
+                }
+
+                let pop = 'N/A';
+                const cf1 = h.get('x-cf1');
+                if (cf1) {
+                    // Extract POP from format like "28787:fP.tko2:co:1765918716:cacheN.tko2-01:M"
+                    // Looking for pattern like "tko2" or "cache location"
+                    const match = cf1.match(/\.([a-z]{3,4}\d*)[:\-\.]/i);
+                    if (match && match[1]) {
+                        pop = match[1].toUpperCase();
+                    }
+                }
+
+                const requestId = h.get('x-cf-reqid') || 'N/A';
+                const age = h.get('cf4age') || 'N/A';
+
+                return {
+                    provider: 'CacheFly',
+                    cache: cache,
+                    pop: pop,
+                    extra: `Req-ID: ${requestId}, Age: ${age}s`,
                 };
             }
         }
@@ -473,6 +527,7 @@
         'Tencent': `<svg viewBox="0 0 1053 720"><path fill="currentColor" d="M724.4 396.5c-8.7 8.7-26.1 21.7-56.5 21.7h-187c56.5-54.1 104.4-99.6 108.8-104 8.3-8.4 17-16.3 26.1-23.8 21.8-19.5 39.1-21.7 54.4-21.7 21.7 0 39.1 8.7 54.4 21.6 30.3 28.2 30.3 78.1-.2 106.2m37-140.9c-23-24.8-55.3-39-89.2-39-30.4 0-56.5 10.9-80.5 28.2-8.8 8.7-21.8 17.3-32.7 30.3-8.7 8.7-195.7 190.7-195.7 190.7 10.9 2.2 23.9 2.2 34.8 2.2h237.1c17.4 0 30.5 0 43.5-2.2 30-2.2 58.3-14.4 80.5-34.7 49.9-47.6 49.9-127.7 2.2-175.5M456.9 242.6c-23.9-17.3-47.9-26-76.1-26-33.9 0-66.2 14.2-89.2 39-48.4 49.7-47.4 129.2 2.2 177.7 21.7 19.5 43.5 30.3 69.6 32.5l50-47.7h-28.3c-28.3-2.1-45.7-10.8-56.5-21.6-30-29.6-30.9-77.6-2.2-108.3 15.2-15.2 32.6-21.7 54.4-21.7 13.1 0 32.6 2.1 52.2 21.6 8.7 8.7 32.6 26 41.3 34.7h2.1l32.6-32.5v-2.2c-15.2-15.2-39.1-34.7-52.1-45.5"/><path fill="currentColor" d="M685.3 188.5c-24.7-66.3-88-110.4-158.8-110.5-84.8 0-152.2 62.8-165.3 140.8 6.5 0 13.1-2.1 21.8-2.1 8.7 0 19.6 2.1 28.3 2.1 10.9-54.2 58.7-93.2 115.3-93.2 47.8 0 89.2 28.2 108.7 69.3 0 0 2.2 2.2 2.2 0 15.2-2.1 32.6-6.4 47.8-6.4"/></svg>`,
         'Alibaba': `<svg viewBox="0 0 120 75"><path fill="currentColor" d="M40.1 32.8h40.1v9H40.1z"/><path fill="currentColor" d="M100.2 0h-26.5l6.4 9.1 19.4 5.9c3.6 1.1 5.9 4.5 5.8 8v29c0 3.6-2.3 6.9-5.8 8l-19.3 5.9-6.5 9.1h26.5c11.1 0 20-9 20-20V20c.1-11-8.9-20-20-20M20 0h26.5l-6.4 9.1-19.3 5.9c-3.6 1.1-5.9 4.5-5.8 8v29c0 3.6 2.3 6.9 5.8 8l19.3 5.9 6.4 9.1H20c-11 0-20-9-20-20V20C0 9 9 0 20 0"/></svg>`,
         'ByteDance': `<svg viewBox="0 0 285 280"><path fill="currentColor" d="M0 11l49.5 14.3v198.2L0 237.8zM78.2 112.3l48.4 12.1v106.8l-48.4 9.9zM160.7 91.4l45.2-12.1v131l-45.2-13.2zM235.6 0l49.5 14.3v222.4l-49.5 12.1z"/></svg>`,
+        'BytePlus': `<svg viewBox="0 0 23.92 18.78"><path fill="currentColor" d="M14.74 7.79c-.09.08-.23.07-.31-.02-.04-.04-.06-.1-.05-.16V.22c0-.19-.23-.29-.36-.17L5.18 7.55c-.09.08-.23.07-.3-.02-.04-.04-.06-.1-.05-.15V2.25c0-.15-.12-.26-.26-.26H.26c-.15 0-.26.12-.26.26v16.05c0 .19.23.29.36.17l8.83-7.5c.09-.08.23-.07.3.02.04.04.06.1.05.15v7.41c0 .18.23.29.36.17l8.83-7.5c.09-.08.23-.07.3.02.04.04.06.1.05.15v5.13c0 .15.12.26.27.26h4.29c.15 0 .27-.12.27-.26V.46c0-.19-.23-.29-.36-.17l-8.82 7.5z"/></svg>`,
         'Google': `<svg viewBox="0 0 34.5 28"><path fill="currentColor" d="M21.9 7.4h1l2.8-2.8.2-1.2C20.5-1.3 12.4-.8 7.8 4.5c-1.3 1.5-2.2 3.2-2.8 5.1.3-.1.7-.2 1-.1l5.7-.9s.3-.5.4-.5c2.5-2.8 6.8-3.1 9.7-.7h.1z"/><path fill="currentColor" d="M29.8 9.6c-.7-2.4-2-4.6-3.9-6.2l-4 4c1.7 1.4 2.7 3.5 2.6 5.6v.7c2 0 3.6 1.6 3.6 3.6s-1.6 3.6-3.6 3.6h-7.1l-.7.7v4.3l.7.7h7.1c5.1 0 9.3-4.1 9.3-9.2 0-3.1-1.5-6-4.1-7.7z"/><path fill="currentColor" d="M10.3 26.5h7.1v-5.7h-7.1c-.5 0-1-.1-1.5-.3l-1 .3-2.9 2.9-.2 1c1.6 1.2 3.6 1.9 5.6 1.9z"/><path fill="currentColor" d="M10.3 8c-5.1 0-9.2 4.2-9.2 9.3 0 2.9 1.4 5.5 3.6 7.3l4.1-4.1c-1.8-.8-2.6-2.9-1.8-4.7s2.9-2.6 4.7-1.8c.8.4 1.4 1 1.8 1.8l4.1-4.1c-1.8-2.3-4.5-3.6-7.4-3.6z"/></svg>`,
         'QUIC': `<svg viewBox="0 0 64 32"><path fill="currentColor" d="M61.3 7.6c-2.5-3.3-6.2-5.5-10.3-6-.7-.1-1.4-.2-2.1-.2-2.6 0-5 .6-7.3 1.8-.4.2-.8.4-1.1.7h-.1l-1.3.9-.4.3.3.4 3.3 4.3.3.4.4-.3 1-.7c.2-.1.4-.2.6-.3 1.3-.7 2.8-1.1 4.3-1.1.4 0 .8 0 1.2.1 2.5.3 4.6 1.6 6.1 3.6 1.5 2 2.1 4.4 1.8 6.8-.6 4.6-4.6 8-9.2 8-.4 0-.8 0-1.2-.1-1.9-.3-3.7-1.1-5.1-2.4-.2-.2-.3-.3-.5-.5L29.8 7.3l-.8-1v.1l-.5-.7-.2-.2c-.3-.4-.6-.7-1-1-2.5-2.3-5.6-3.8-9-4.2-.7-.1-1.5-.2-2.2-.2C8.2 0 1.2 6.1.2 14.1c-.6 4.3.6 8.6 3.2 12 2.6 3.5 6.5 5.7 10.8 6.3.7.1 1.5.2 2.2.2 2.7 0 5.2-.6 7.6-1.9.1 0 .2-.1.3-.2l.1-.1.5-.3-.4-.5-3.3-4.3-.2-.3-.4.2c-1.3.6-2.8.9-4.2.9-.4 0-.9 0-1.3-.1-5.4-.7-9.2-5.7-8.5-11.1.7-4.9 4.9-8.6 9.8-8.6.4 0 .9 0 1.3.1 2.1.3 3.9 1.2 5.5 2.6.2.2.3.3.5.5l9.6 12.6.8 1v-.1l3.1 4.1.2.2c.3.3.6.7.9 1 2.4 2.2 5.4 3.7 8.6 4.1.7.1 1.4.1 2.1.1 7.8 0 14.4-5.8 15.5-13.5.6-4.1-.5-8.2-3.1-11.5z"/><path fill="currentColor" fill-opacity="0.6" d="M34.7 29.2l-.2-.2-6.2-8.2c-.3-.3-.6-.6-.9-.9-2.3-2.2-5.2-3.6-8.3-4-.3 0-.6-.1-.9-.1h-.5l2.3 3s.1.1.2.2l6.2 8.2c.3.3.6.6.9.9 2.3 2.2 5.2 3.6 8.3 4 .3 0 .6.1.9.1h.5l-2.3-3z"/></svg>`,
         'Bunny': `<svg viewBox="0 0 38 43"><path fill="currentColor" d="M21 6.9l9.9 5.4L21.8 0c-1.5 2-1.8 4.6-.8 6.9M16.5 26.7c1.2 0 2.3 1 2.3 2.2 0 1.2-1 2.3-2.2 2.3-1.2 0-2.3-1-2.3-2.2 0-.6.2-1.2.7-1.6.4-.4 1-.7 1.6-.7M9.7 1.8l27.6 15c.5.2.8.7.8 1.2s-.3 1-.8 1.2c-2.1 1.3-4.4 2.2-6.8 2.6l-5.8 11.8s-1.8 4.1-6.8 2.6c2.1-2.1 4.6-4 4.6-7.2s-2.7-6.1-6.1-6.1-6.1 2.7-6.1 6.1c0 4.2 4.2 6 6.5 8.9 1 1.5.9 3.5-.3 4.8-2.9-2.8-8.4-7.6-10.7-10.8-1.3-1.6-1.9-3.5-2-5.6.2-4.4 3.2-8.2 7.4-9.5 1.3-.4 2.6-.5 3.9-.5 1.8.1 3.6.7 5.2 1.6 2.5 1.4 3.6 1.1 5.3-.4 1-.8 2.1-3.5.4-4.1-.6-.2-1.1-.3-1.7-.4-3.1-.6-8.6-1.2-10.7-2.3-3.2-1.8-5.4-5.4-4.1-9M22.6 29c1.3-6.7-5.6-13.2-10.8-12.2l.4-.1c-.3.1-.6.1-.8.2-4.2 1.3-7.2 5.1-7.4 9.5 0 2 .7 4 2 5.6 2.3 3.1 7.8 7.9 10.7 10.8 1.2-1.3 1.4-3.3.3-4.8-2.4-2.9-6.5-4.7-6.5-8.9 0-3.4 2.7-6.1 6.1-6.1s6.1 2.7 6.1 6.1M9.7 1.8l21 11.4.6.3c.5.4 1 1.2.4 2.6-1 2.2-5 4.2-9.6 2.6 1.4.4 2.4-.1 3.7-1.1 1-.8 2.1-3.5.4-4.1-.6-.2-1.1-.3-1.7-.4-3.1-.6-8.6-1.2-10.7-2.3-3.2-1.8-5.3-5.4-4.1-9M9.7 1.8c2.2 8 15.4 8.7 22 12L9.7 1.8zM16.9 37.9c-2.3-2.9-6.5-4.7-6.5-8.9 0-3.1 2.3-5.6 5.3-6-4.8 0-8.7 3.9-8.8 8.8 0 .6.1 1.2.2 1.8 1.9 2.2 4.7 4.7 7 6.9.9.9 1.8 1.7 2.4 2.3.6-.7.9-1.5 1-2.4.1-.9-.2-1.7-.7-2.4M22.5 29.7v-.7c1.3-6.7-5.6-13.2-10.8-12.2 1.1-.3 2.3-.4 3.4-.3 6.9.3 8.8 7.6 7.3 13.2M2.3 14.8c1.3 0 2.3 1 2.3 2.3v2.3H2.3c-1.3 0-2.3-1-2.3-2.3s1-2.3 2.3-2.3"/></svg>`,
@@ -483,6 +538,7 @@
         'EdgeNext': `<svg viewBox="0 0 159.81 128.06"><defs><linearGradient id="edgenext-grad1" x1="42.07" y1="26.6" x2="117.57" y2="26.6" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#fad364"/><stop offset=".34" stop-color="#fabc0a"/><stop offset="1" stop-color="#f0a800"/></linearGradient><linearGradient id="edgenext-grad2" x1="25.47" y1="102.37" x2="56.64" y2="71.45" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#27944b"/><stop offset="1" stop-color="#35a853"/></linearGradient><linearGradient id="edgenext-grad3" x1="83.48" y1="81.52" x2="107.2" y2="104.09" gradientUnits="userSpaceOnUse"><stop offset=".49" stop-color="#27944b"/><stop offset="1" stop-color="#35a853"/></linearGradient></defs><path fill="#35a853" d="M101.87 110.4c13.2 13.3 34.7 13.3 48 0s13.2-34.7 0-48-34.7-13.2-48 0l-42 41.9c-8 8-20 9.6-29.6 4.8l34.4-34.4 6.3-6.3c3.1-3.1 3.1-8.2 0-11.3-1.9-1.9-4-3.6-6.2-5.1-16.2-10.9-38.3-9.2-52.6 5.1S-3.83 93.5 7.07 109.7c1.5 2.2 3.2 4.3 5.1 6.2s4 3.6 6.2 5.1c15.4 10.4 36.3 9.3 50.6-3.2l20.2-20.1 12.7 12.7ZM23.57 68.1c8-8 20-9.6 29.6-4.8l-34.3 34.5c-4.9-9.6-3.3-21.7 4.7-29.7ZM138.47 99c-7 7-18.3 7-25.3 0l-12.7-12.7 12.7-12.6c7-7 18.3-7 25.3 0s7 18.3 0 25.3Z"/><path fill="url(#edgenext-grad1)" d="M88.27 53.2c7.5-8.4 17.7-14.2 29.3-16.1C116.87 16.5 99.97 0 79.17 0c-17.9 0-32.9 12.3-37.1 28.8 19.1.3 35.9 9.9 46.2 24.4Z"/><path fill="url(#edgenext-grad2)" d="M59.87 68.1c2 2 3.5 4.2 4.8 6.6l-34.4 34.4c-2.4-1.2-4.6-2.8-6.6-4.8s-3.6-4.2-4.8-6.6l34.4-34.4c2.4 1.2 4.6 2.8 6.6 4.8Z"/><path fill="url(#edgenext-grad3)" d="M100.47 86.3l-11.4 11.3 12.8 12.8 11.3-11.4-12.7-12.7Z"/></svg>`,
         'Medianova': `<svg viewBox="0 0 157.46 172.69"><path fill="currentColor" fill-rule="evenodd" d="M58.79 56.27l-.22.22L0 22.27V0h25.92l32.87 56.27ZM30.51 108.69l11.85-11.85L0 44.3v-6.66l63.82 37.74 13.42-13.41L40.59 0h7.87l50.24 40.5 12.29-12.3L74.4 0h83.06l-22.5 172.69h-61.95c-48.95.01-73.01-14.41-73.01-53.09v-50.48l30.51 39.57Z"/></svg>`,
         'ChinaNetCenter': `<svg viewBox="0 0 244.5 99.53"><path fill="currentColor" d="M244 60.24c-4.1 4.6-29.3 36.7-56.9 26.7-3.6-1.3-7.2-3.3-10.9-6.2 3.8.2 7.5 0 10.9-.3 5.3-.5 9.8-1.5 12.4-2.9 6.1-3 4.5-13.2-12.4-16.2-.4-.1-.9-.2-1.3-.2-11.3-1.7-19.5 1.7-23.7 5.3-.1 0-.3-.1-.4-.2-2.6-1.1-5.2-2.2-7.8-3.2 20-.9 23.4-14.1 4.8-26.4-7.5-5-16.3-9.4-25.6-13.4-10.7-4.5-22.3-8.5-33.7-11.7-7.9-2.2-15.7-4.1-23.1-5.7C63.9 3.34 52.7 1.54 44 .74 25.1-.96 12.1.24 4.8 4.54 1.7 6.34 0 8.74 0 11.74v.3c0 1.6.5 3.3 1.4 5.2 3 6.3 11.1 13.5 24.1 21.5 11.5 7.1 28.8 15.2 43.5 20.3.1.8.2 1.6.6 2.6.9 2.4 3.1 5.2 6.7 8.3.5.5 1.1 1 1.8 1.5 5.7 4.5 12.7 8.7 21.1 12.2l.2.1c10.9 4.6 22.6 8.2 33.7 10.8 16.7 3.8 32.2 5.4 42.6 4.9.5-.2.7-.4.4-.6-.1-.1-.2-.2-.4-.2-5.7-.4-12.9-1.2-21.7-2.3-7.3-1-14.3-2.3-21-3.8-12.1-2.7-23.1-6.2-33-10.5-.2-.1-.4-.2-.7-.3-6.7-2.9-10.5-5.7-11.4-8.2-1.2-3.4 1.9-5.2 5-6 2 .7 4.1 1.3 6.4 1.9 10.2 2.9 22.2 5.5 33.7 7.4 11.1 1.9 21.7 3.2 29.5 3.6 7.6 6.7 16.1 10.2 24.6 11.3 15.2 1.8 30.4-4.1 41.1-13.8 7.3-6.6 13.2-13 16.3-17l-.5-.7ZM99.3 29.04c8.5.3 17.4 1.3 26.7 3.1 2.5.5 4.8 1 7 1.5 6.7 1.6 11.5 3.3 14.5 5.2 3.4 2.1 4.1 3.7 2.1 4.9-1.5.9-4.6 1.5-9.4 2-2.4.2-4.8.4-7.2.4-2.4.1-4.9 0-7.4 0-4.9-.2-9.8-.9-14.8-1.8-4.9-1-8.3-2-10-3-1.3-.8-1.6-1.4-1-1.9.4-.2 1.1-.4 2.3-.5.9-.1 1.5-.4 2.1-.7 1.1-.7 1.4-1.6.8-2.9-.7-1.3-2-2.6-4-3.8-.5-.3-1.1-.6-1.7-1-.7-.4-1.6-.8-2.6-1.3.9-.2 1.7-.2 2.6-.2ZM99.3 49.74c-6-.5-11.4-.5-16.2.1-2.7.3-5 .7-6.9 1.3-1.3.4-2.5.9-3.4 1.4-.3-.1-.6-.2-1-.4-12.8-4.5-26.4-14.1-19.6-18.1 4.8-2.8 12.8-4.4 24-4.8 2-.1 4.1-.1 6.3-.1-1.7 5.1 2.7 10.8 12.9 17.1 1.3.8 2.6 1.6 3.8 2.3.9.5 1.7 1 2.6 1.4-.8-.1-1.7-.1-2.5-.2ZM160.7 78.14c-8.5-.8-18.3-2.9-27.7-5.2-10.6-2.7-20.7-5.7-27.7-7.9 6.4-1.5 14.8-2.2 25.6-2h2.1c10.8.4 20 1.9 27.8 4.6-2.2 2.6-3 6-.1 10.5ZM187.1 65.64c.4 0 .7 0 1.1.1 3.6.4 6.7.9 9.8 3.1 3.5 2.4 3.5 4.4 2.1 6.5-1.3 2.1-7.1 2.9-13 3.2-4.6.2-9.3.1-12.2 0-4.8-5.1 1-13.4 12.2-12.9Z"/></svg>`,
+        'CacheFly': `<svg viewBox="0 0 181.57 186"><path fill="currentColor" d="M102.47 25.64l-1.61 16.66 17.58-10.09 18.84 12.2L180.83 0l-98.67 5.8 18.19 16.04 58.6-16.04-56.49 19.84h0ZM66.66 33.93l-20.11-2.34 1.84-15.93 20.11 2.34-1.84 15.93h0ZM85.81 54.84l-20.03-2.69 1.8-18.23 20.07 2.72-1.84 18.19ZM63.82 67.89l-19.99-2.23 1.92-16.04 20.03 2.26-1.96 16ZM67.01 91.38l-14.97-1.81 1.5-13.85 14.97 1.88-1.5 13.78h0ZM25.98 101.81l-15.04-1.57 1.46-11.47 15.01 1.65s-1.42 11.4-1.42 11.4ZM39.68 122.73l-15.01-1.61 1.38-11.47 15.04 1.65-1.42 11.44Z"/><path fill="currentColor" d="M26.25 130.56l-12.59-1.3 1.19-9.13 12.55 1.27-1.15 9.17ZM53.27 99.2l-14.93-1.84 1.53-13.82 14.89 1.88s-1.5 13.78-1.5 13.78ZM116.13 65.28l-17.46-1.92 1.65-13.74 17.5 1.92s-1.69 13.74-1.69 13.74ZM91.8 70.5l-15.08-1.65 1.34-11.4 15.08 1.69-1.34 11.36h0ZM23.49 146.22l-12.55-1.34 1.19-9.1 12.55 1.38s-1.19 9.06-1.19 9.06ZM28.97 164.48l-12.51-1.34 1.11-9.1 12.59 1.34-1.19 9.1h0ZM51 177.53l-9.9-1.15 1.07-9.29 9.86 1.19-1.04 9.25ZM67.43 180.14l-9.86-1.15 1-9.29 9.94 1.19s-1.07 9.25-1.08 9.25ZM75.91 172.31l-7.41-.84.77-6.99 7.45.92-.81 6.91h0ZM89.65 185.36l-7.49-.85.81-6.99 7.41.92-.73 6.91h0ZM108.8 180.14l-7.41-.85.81-6.99 7.41.92-.81 6.91ZM117.28 167.09l-4.95-.58.54-4.64 4.95.58s-.54 4.64-.54 4.64ZM42.87 156.65l-9.98-1.23 1-9.21 9.94 1.23-.96 9.21h0Z"/><path fill="currentColor" d="M51.08 161.87l-9.98-.88 1-6.95 9.94.96-.96 6.87h0ZM12.55 135.78l-12.55-1.34 1.11-9.1 12.55 1.38-1.11 9.06h0ZM12.55 107.03l-12.55-1.3 1.11-9.13 12.55 1.38-1.11 9.06h0ZM36.84 78.33l-14.89-1.8 1.5-13.85 14.89 1.8s-1.5 13.85-1.5 13.85Z"/></svg>`,
     };
 
     // --- UI & Execution Functions ---
