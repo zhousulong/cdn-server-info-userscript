@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.13.0
-// @description  [v7.13.0] Merged ChinaNetCenter and CDNetworks into a unified provider. Updated rules and icons.
-// @description:en [v7.13.0] Merged ChinaNetCenter and CDNetworks into a unified provider. Updated rules and icons.
+// @version      7.13.1
+// @description  [v7.13.1] Expanded panel width to display full CDN names (e.g. CDNetworks (ChinaNetCenter)).
+// @description:en [v7.13.1] Expanded panel width to display full CDN names (e.g. CDNetworks (ChinaNetCenter)).
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.13.0
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.13.1
 // @run-at       document-idle
 // @noframes
 // ==/UserScript==
@@ -830,7 +830,7 @@
             all: unset; /* Clear inherited styles on container */
             position: relative;
             box-sizing: border-box;
-            width: 252px; /* Restored original visual width (220 + 32 padding) */
+            width: 280px; /* Increased to accommodate longer names */
             padding: 14px 16px;
             border-radius: 14px;
             background-color: ${materialBase};
@@ -959,7 +959,7 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            max-width: 140px; /* Text truncation constraint */
+            max-width: 200px; /* Increased truncation constraint */
         }
 
         .cache-HIT { color: ${greenColor} !important; }
