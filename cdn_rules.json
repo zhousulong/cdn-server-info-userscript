@@ -354,6 +354,17 @@
     "server": "Apache",
     "priority": 5
   },
+  "Angie": {
+    "server": "Angie",
+    "priority": 6
+  },
+  "QRATOR": {
+    "headers": {
+      "x-app-instance-ing": null
+    },
+    "server": "QRATOR",
+    "priority": 10
+  },
   "Nginx": {
     "server": "nginx",
     "priority": 5
