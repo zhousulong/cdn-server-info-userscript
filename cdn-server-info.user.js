@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.14.4
-// @description  [v7.14.4] Fixed text truncation by allowing value area to occupy all remaining horizontal space.
-// @description:en [v7.14.4] Fixed text truncation by allowing value area to occupy all remaining horizontal space.
+// @version      7.14.5
+// @description  [v7.14.5] Removed hardcoded 20-character truncation to allow CSS ellipsis to handle overflow naturally.
+// @description:en [v7.14.5] Removed hardcoded 20-character truncation to allow CSS ellipsis to handle overflow naturally.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.14.4
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.14.5
 // @run-at       document-idle
 // @noframes
 // ==/UserScript==
@@ -1241,11 +1241,8 @@
                 ? 'CDN'
                 : 'Server';
 
-        // Truncate provider name if too long
-        let displayProvider = info.provider;
-        if (displayProvider.length > 20) {
-            displayProvider = displayProvider.substring(0, 17) + '...';
-        }
+        // Use full provider name - let CSS handle truncation
+        const displayProvider = info.provider;
 
         // Build panel content with new structure
         // Determine current theme for icon display
