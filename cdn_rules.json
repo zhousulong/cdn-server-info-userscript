@@ -166,6 +166,14 @@
     "id_header": "x-tt-trace-tag",
     "priority": 11
   },
+  "State Cloud": {
+    "headers": {
+      "ctl-cache-status": null,
+      "x-ct-request-id": null
+    },
+    "id_header": "x-ct-request-id",
+    "priority": 10
+  },
   "CDNetworks": {
     "headers": {
       "x-ws-request-id": null,
