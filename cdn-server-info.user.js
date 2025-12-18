@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.14.0
-// @description  [v7.14.0] Added Adobe Experience Manager (AEM) detection. Expanded panel width for full visibility.
-// @description:en [v7.14.0] Added Adobe Experience Manager (AEM) detection. Expanded panel width for full visibility.
+// @version      7.14.1
+// @description  [v7.14.1] Reverted panel width to 252px and improved text wrapping for long CDN names.
+// @description:en [v7.14.1] Reverted panel width to 252px and improved text wrapping for long CDN names.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.14.0
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.14.1
 // @run-at       document-idle
 // @noframes
 // ==/UserScript==
@@ -850,7 +850,7 @@
             all: unset; /* Clear inherited styles on container */
             position: relative;
             box-sizing: border-box;
-            width: 280px; /* Increased to accommodate longer names */
+            width: 252px; /* Reverted to 252px as requested */
             padding: 14px 16px;
             border-radius: 14px;
             background-color: ${materialBase};
@@ -975,11 +975,10 @@
             color: ${textColor};
             text-align: right;
             opacity: 0.95;
-            letter-spacing: -0.2px; /* Tighter mono spacing */
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 200px; /* Increased truncation constraint */
+            max-width: 170px; /* Adjusted to fit 252px container */
+            word-break: break-word; /* Allow wrapping */
+            text-align: right;
+            line-height: 1.2;
         }
 
         .cache-HIT { color: ${greenColor} !important; }
