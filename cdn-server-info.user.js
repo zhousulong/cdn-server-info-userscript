@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.14.8
-// @description  [v7.14.8] Added debug logging to diagnose POP extraction issues.
-// @description:en [v7.14.8] Added debug logging to diagnose POP extraction issues.
+// @version      7.14.9
+// @description  [v7.14.9] Fixed POP extraction by prioritizing x-via header over via header.
+// @description:en [v7.14.9] Fixed POP extraction by prioritizing x-via header over via header.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.14.8
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.14.9
 // @run-at       document-idle
 // @noframes
 // ==/UserScript==
@@ -222,7 +222,8 @@
                 let cache = getCacheStatus(h);
 
                 let pop = 'N/A';
-                const via = h.get('via') || h.get('x-via');
+                // Prioritize x-via as it contains more detailed POP info
+                const via = h.get('x-via') || h.get('via');
 
                 console.log('[CDNetworks] via:', via);
                 console.log('[CDNetworks] x-via:', h.get('x-via'));
