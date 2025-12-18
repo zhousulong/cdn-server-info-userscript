@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.14.5
-// @description  [v7.14.5] Removed hardcoded 20-character truncation to allow CSS ellipsis to handle overflow naturally.
-// @description:en [v7.14.5] Removed hardcoded 20-character truncation to allow CSS ellipsis to handle overflow naturally.
+// @version      7.14.6
+// @description  [v7.14.6] Improved CDNetworks POP extraction: prioritize alphabetic codes, filter numeric-only codes.
+// @description:en [v7.14.6] Improved CDNetworks POP extraction: prioritize alphabetic codes, filter numeric-only codes.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.14.5
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.14.6
 // @run-at       document-idle
 // @noframes
 // ==/UserScript==
@@ -224,10 +224,16 @@
                 let pop = 'N/A';
                 const via = h.get('via') || h.get('x-via');
                 if (via) {
-                    // Extract from "1.1 PS-NTG-010GD53:6" -> "NTG"
-                    const match = via.match(/PS-([A-Z0-9]{3})-/);
-                    if (match) {
-                        pop = match[1].toUpperCase();
+                    // Try to extract alphabetic codes first (e.g., PS-FOC, PS-NTG)
+                    // Avoid pure numeric codes like CS-000
+                    const matches = via.matchAll(/(PS|CS)-([A-Z0-9]{3})-/g);
+                    for (const match of matches) {
+                        const code = match[2];
+                        // Only accept codes that contain at least one letter
+                        if (/[A-Z]/.test(code)) {
+                            pop = code.toUpperCase();
+                            break;
+                        }
                     }
                 }
 
@@ -236,11 +242,15 @@
                     const altHeaders = [h.get('x-px'), h.get('x-ws-request-id')];
                     for (const val of altHeaders) {
                         if (val) {
-                            const match = val.match(/PS-([A-Z0-9]{3})-/);
-                            if (match) {
-                                pop = match[1].toUpperCase();
-                                break;
+                            const matches = val.matchAll(/(PS|CS)-([A-Z0-9]{3})-/g);
+                            for (const match of matches) {
+                                const code = match[2];
+                                if (/[A-Z]/.test(code)) {
+                                    pop = code.toUpperCase();
+                                    break;
+                                }
                             }
+                            if (pop !== 'N/A') break;
                         }
                     }
                 }
