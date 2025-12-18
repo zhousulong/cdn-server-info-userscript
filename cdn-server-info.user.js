@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.14.2
-// @description  [v7.14.2] Optimized 252px layout: reduced font size and padding to fit long names without wrapping.
-// @description:en [v7.14.2] Optimized 252px layout: reduced font size and padding to fit long names without wrapping.
+// @version      7.14.3
+// @description  [v7.14.3] Reverted design (11px font, 16px padding). Increased value width to prevent truncation.
+// @description:en [v7.14.3] Reverted design (11px font, 16px padding). Increased value width to prevent truncation.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.14.2
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.14.3
 // @run-at       document-idle
 // @noframes
 // ==/UserScript==
@@ -851,7 +851,7 @@
             position: relative;
             box-sizing: border-box;
             width: 252px; /* Reverted to 252px as requested */
-            padding: 14px 12px; /* Reduced for more horizontal space */
+            padding: 14px 16px;
             border-radius: 14px;
             background-color: ${materialBase};
             backdrop-filter: ${backdropFilter};
@@ -970,16 +970,16 @@
         .info-value {
             display: inline-block;
             font-family: ${monoFont}; /* Mono for data */
-            font-size: 10px; /* Reduced to fit long names */
+            font-size: 11px;
             font-weight: 500;
             color: ${textColor};
             text-align: right;
             opacity: 0.95;
-            max-width: 185px; /* Increased to use more space */
+            max-width: 200px; /* Increased to use available left space */
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            letter-spacing: -0.3px;
+            letter-spacing: -0.2px;
         }
 
         .cache-HIT { color: ${greenColor} !important; }
