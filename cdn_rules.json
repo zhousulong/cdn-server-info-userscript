@@ -190,7 +190,6 @@
     "headers": {
       "x-ws-request-id": null,
       "x-px": null,
-      "x-via": null,
       "x-hello-human": "cdnetworks"
     },
     "server": "PWS|ChinaNetCenter",
@@ -255,8 +254,7 @@
   },
   "Imperva": {
     "headers": {
-      "x-iinfo": null,
-      "x-cdn": "Incapsula"
+      "x-iinfo": null
     },
     "id_header": "x-iinfo",
     "priority": 10
@@ -286,12 +284,14 @@
   },
   "StackPath": {
     "headers": {
+      "x-provided-by": "StackCDN",
       "x-scp-served-by": null,
       "x-scp-cache-status": null,
       "x-hw": null
     },
     "server": "stackpath",
-    "priority": 8
+    "id_header": "x-proxy-cache-info",
+    "priority": 9
   },
   "JD Cloud CDN": {
     "headers": {
@@ -386,6 +386,15 @@
   "Angie": {
     "server": "Angie",
     "priority": 6
+  },
+  "SiteGround": {
+    "headers": {
+      "x-sg-cdn": null
+    },
+    "pop_header": "x-ce",
+    "pop_regex": "^([a-z]+-[a-z]+\\d+)",
+    "id_header": "x-proxy-cache-info",
+    "priority": 10
   },
   "QRATOR": {
     "headers": {

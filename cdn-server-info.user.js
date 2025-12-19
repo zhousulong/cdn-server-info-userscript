@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.40.0
-// @description  [v7.40.0] Cleaned up debug logging. CORS-limited sites (like raw.github) will show as Unknown.
-// @description:en [v7.40.0] Cleaned up debug logging. CORS-limited sites (like raw.github) will show as Unknown.
+// @version      7.41.0
+// @description  [v7.41.0] Added SiteGround CDN detection support. Fixed UI alignment for theme toggle and close buttons.
+// @description:en [v7.41.0] Added SiteGround CDN detection support. Fixed UI alignment for theme toggle and close buttons.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.40.0
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.41.0
 // @run-at       document-idle
 // @noframes
 // ==/UserScript==
@@ -701,6 +701,99 @@
                     cache: cache,
                     pop: pop,
                     extra: 'Detected via x-cache header',
+                };
+            }
+        },
+        'SiteGround': {
+            getInfo: (h, rule) => {
+                let cache = 'N/A';
+
+                // Extract cache status from x-proxy-cache header
+                const proxyCache = h.get('x-proxy-cache');
+                if (proxyCache) {
+                    cache = proxyCache.toUpperCase();
+                } else {
+                    cache = getCacheStatus(h);
+                }
+
+                let pop = 'N/A';
+                // Extract POP from x-ce header: "asia-northeast1-zp5x" -> "ASIA-NORTHEAST1"
+                const xCe = h.get('x-ce');
+                if (xCe) {
+                    // Remove the trailing hash part (e.g., "-zp5x")
+                    const match = xCe.match(/^([a-z]+-[a-z]+\d+)/i);
+                    if (match && match[1]) {
+                        pop = match[1].toUpperCase();
+                    }
+                }
+
+                const requestId = h.get('x-proxy-cache-info') || 'N/A';
+
+                return {
+                    provider: 'SiteGround',
+                    cache: cache,
+                    pop: pop,
+                    extra: `Cache-Info: ${requestId}`,
+                };
+            }
+        },
+        'StackPath': {
+            getInfo: (h, rule) => {
+                let cache = 'N/A';
+
+                // Priority 1: x-cdn-cache-status (StackCDN)
+                const cdnCache = h.get('x-cdn-cache-status');
+                if (cdnCache) {
+                    cache = cdnCache.toUpperCase();
+                } else {
+                    // Priority 2: x-scp-cache-status (newer StackPath)
+                    const scpCache = h.get('x-scp-cache-status');
+                    if (scpCache) {
+                        cache = scpCache.toUpperCase();
+                    } else {
+                        // Priority 3: x-proxy-cache (older configs)
+                        const proxyCache = h.get('x-proxy-cache');
+                        if (proxyCache) {
+                            cache = proxyCache.toUpperCase();
+                        } else {
+                            cache = getCacheStatus(h);
+                        }
+                    }
+                }
+
+                let pop = 'N/A';
+
+                // Priority 1: x-via (StackCDN) - e.g., "NRT1"
+                const xVia = h.get('x-via');
+                if (xVia) {
+                    pop = xVia.toUpperCase();
+                } else {
+                    // Priority 2: x-scp-served-by (newer StackPath)
+                    const servedBy = h.get('x-scp-served-by');
+                    if (servedBy) {
+                        const match = servedBy.match(/([A-Z]{3,4})/i);
+                        if (match && match[1]) {
+                            pop = match[1].toUpperCase();
+                        }
+                    }
+                }
+
+                // Extra info: show origin cache status if available
+                const originCache = h.get('x-origin-cache-status');
+                const cacheInfo = h.get('x-proxy-cache-info');
+
+                let extra = 'Detected via StackCDN/StackPath headers';
+                if (originCache) {
+                    extra = `Origin: ${originCache}`;
+                } else if (cacheInfo && cacheInfo !== 'N/A') {
+                    extra = `Cache-Info: ${cacheInfo}`;
+                }
+
+                return {
+                    provider: 'StackPath',
+                    cache: cache,
+                    pop: pop,
+                    extra: extra,
                 };
             }
         }
