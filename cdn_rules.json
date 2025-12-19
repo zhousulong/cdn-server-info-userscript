@@ -4,6 +4,7 @@
       "x-akamai-transformed": null,
       "x-akam-sw-version": null,
       "x-akamai-request-id": null,
+      "x-ak-cache": null,
       "server-timing": "ak_p"
     },
     "server": "AkamaiGHost",
@@ -11,7 +12,8 @@
       "ak_bmsc": null,
       "akacd_": null,
       "bm_sv": null,
-      "bm_sz": null
+      "bm_sz": null,
+      "bm_s": null
     },
     "pop_header": "x-served-by",
     "pop_regex": "cache-([a-z0-9]+)-",

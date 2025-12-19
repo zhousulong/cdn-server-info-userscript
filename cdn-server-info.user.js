@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.27.0
-// @description  [v7.27.0] Removed generic headers from Gcore and HiNet to prevent false positives.
-// @description:en [v7.27.0] Removed generic headers from Gcore and HiNet to prevent false positives.
+// @version      7.29.0
+// @description  [v7.29.0] Added x-ak-cache header and bm_s cookie to Akamai detection.
+// @description:en [v7.29.0] Added x-ak-cache header and bm_s cookie to Akamai detection.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.27.0
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.29.0
 // @run-at       document-idle
 // @noframes
 // ==/UserScript==
@@ -106,14 +106,26 @@
             getInfo: (h, rule) => {
                 let cache = 'N/A';
 
-                // Check x-age header first
-                const xAge = h.get('x-age');
-                if (xAge !== null) {
-                    const age = parseInt(xAge);
-                    if (age === 0) {
-                        cache = 'MISS';
-                    } else if (age > 0) {
+                // Priority 1: Check x-ak-cache (Akamai specific)
+                const xAkCache = h.get('x-ak-cache');
+                if (xAkCache) {
+                    if (xAkCache.toUpperCase().includes('HIT')) {
                         cache = 'HIT';
+                    } else if (xAkCache.toUpperCase().includes('MISS')) {
+                        cache = 'MISS';
+                    }
+                }
+
+                // Priority 2: Check x-age header
+                if (cache === 'N/A') {
+                    const xAge = h.get('x-age');
+                    if (xAge !== null) {
+                        const age = parseInt(xAge);
+                        if (age === 0) {
+                            cache = 'MISS';
+                        } else if (age > 0) {
+                            cache = 'HIT';
+                        }
                     }
                 }
 
@@ -123,14 +135,29 @@
                 }
 
                 let pop = 'N/A';
-                const servedBy = h.get('x-served-by');
-                if (servedBy) {
-                    const match = servedBy.match(/cache-([a-z0-9]+)-/i);
-                    if (match && match[1]) pop = match[1].toUpperCase();
+
+                // Try multiple POP extraction strategies
+                // Strategy 1: x-tzla-edge-server (Tesla's Akamai)
+                const tzlaServer = h.get('x-tzla-edge-server');
+                if (tzlaServer) {
+                    // Extract from "sjc38p1tegvr67.teslamotors.com" -> "SJC"
+                    const match = tzlaServer.match(/^([a-z]{3})\d+/i);
+                    if (match && match[1]) {
+                        pop = match[1].toUpperCase();
+                    }
+                }
+
+                // Strategy 2: x-served-by (standard Akamai)
+                if (pop === 'N/A') {
+                    const servedBy = h.get('x-served-by');
+                    if (servedBy) {
+                        const match = servedBy.match(/cache-([a-z0-9]+)-/i);
+                        if (match && match[1]) pop = match[1].toUpperCase();
+                    }
                 }
 
                 // Extract request ID if available
-                const requestId = h.get('x-request-id') || h.get('x-akamai-request-id');
+                const requestId = h.get('x-request-id') || h.get('x-akamai-request-id') || h.get('x-cache-uuid');
                 const extra = requestId ? `Req-ID: ${requestId}` : 'Detected via Akamai header/cookie';
 
                 return {
