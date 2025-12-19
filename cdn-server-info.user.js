@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.29.0
-// @description  [v7.29.0] Added x-ak-cache header and bm_s cookie to Akamai detection.
-// @description:en [v7.29.0] Added x-ak-cache header and bm_s cookie to Akamai detection.
+// @version      7.30.0
+// @description  [v7.30.0] Enhanced Akamai detection and added GET fallback for 403 responses.
+// @description:en [v7.30.0] Enhanced Akamai detection and added GET fallback for 403 responses.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.29.0
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.30.0
 // @run-at       document-idle
 // @noframes
 // ==/UserScript==
@@ -109,14 +109,25 @@
                 // Priority 1: Check x-ak-cache (Akamai specific)
                 const xAkCache = h.get('x-ak-cache');
                 if (xAkCache) {
-                    if (xAkCache.toUpperCase().includes('HIT')) {
+                    const status = xAkCache.toUpperCase();
+                    if (status.includes('HIT')) {
                         cache = 'HIT';
-                    } else if (xAkCache.toUpperCase().includes('MISS')) {
+                    } else if (status.includes('MISS')) {
                         cache = 'MISS';
+                    } else if (status.includes('ERROR')) {
+                        cache = 'ERROR';
                     }
                 }
 
-                // Priority 2: Check x-age header
+                // Priority 2: Check x-tzla-edge-cache-hit (Tesla specific)
+                if (cache === 'N/A') {
+                    const tzlaHit = h.get('x-tzla-edge-cache-hit');
+                    if (tzlaHit) {
+                        cache = tzlaHit.toUpperCase().includes('HIT') ? 'HIT' : 'MISS';
+                    }
+                }
+
+                // Priority 3: Check x-age header
                 if (cache === 'N/A') {
                     const xAge = h.get('x-age');
                     if (xAge !== null) {
@@ -157,7 +168,7 @@
                 }
 
                 // Extract request ID if available
-                const requestId = h.get('x-request-id') || h.get('x-akamai-request-id') || h.get('x-cache-uuid');
+                const requestId = h.get('x-request-id') || h.get('x-akamai-request-id') || h.get('x-cache-uuid') || h.get('x-reference-error');
                 const extra = requestId ? `Req-ID: ${requestId}` : 'Detected via Akamai header/cookie';
 
                 return {
@@ -1609,7 +1620,7 @@
             return;
         console.log(`[CDN Detector] Attempting to fetch headers... Retries left: ${retriesLeft}`);
         try {
-            const response = await fetch(currentHref, {
+            let response = await fetch(currentHref, {
                 method: 'HEAD',
                 cache: 'no-store',
                 redirect: 'follow',
@@ -1618,6 +1629,21 @@
                     Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
                 },
             });
+
+            // If HEAD returns 403, try GET as some CDNs like Akamai block HEAD requests
+            if (response.status === 403) {
+                console.log('[CDN Detector] HEAD request returned 403, retrying with GET...');
+                response = await fetch(currentHref, {
+                    method: 'GET',
+                    cache: 'no-store',
+                    redirect: 'follow',
+                    headers: {
+                        'User-Agent': navigator.userAgent,
+                        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                        'Range': 'bytes=0-0' // Try to minimize data transfer
+                    },
+                });
+            }
             const info = parseInfo(response);
             if (info) {
                 createDisplayPanel(info);

@@ -5,6 +5,7 @@
       "x-akam-sw-version": null,
       "x-akamai-request-id": null,
       "x-ak-cache": null,
+      "x-reference-error": null,
       "server-timing": "ak_p"
     },
     "server": "AkamaiGHost",
