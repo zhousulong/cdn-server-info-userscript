@@ -3,12 +3,15 @@
     "headers": {
       "x-akamai-transformed": null,
       "x-akam-sw-version": null,
-      "x-akamai-request-id": null
+      "x-akamai-request-id": null,
+      "server-timing": "ak_p"
     },
     "server": "AkamaiGHost",
     "cookies": {
       "ak_bmsc": null,
-      "akacd_": null
+      "akacd_": null,
+      "bm_sv": null,
+      "bm_sz": null
     },
     "pop_header": "x-served-by",
     "pop_regex": "cache-([a-z0-9]+)-",
@@ -353,6 +356,15 @@
     },
     "server": "Netlify",
     "id_header": "x-nf-request-id",
+    "priority": 10
+  },
+  "HiNet CDN": {
+    "headers": {
+      "x-request-id": null,
+      "x-cache": null
+    },
+    "server": "HiNetCDN",
+    "id_header": "x-request-id",
     "priority": 10
   },
   "LiteSpeed": {
