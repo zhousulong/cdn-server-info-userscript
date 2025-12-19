@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.39.0
-// @description  [v7.39.0] Added Akamai mPulse cache detection (mpulse_cdn_cache header).
-// @description:en [v7.39.0] Added Akamai mPulse cache detection (mpulse_cdn_cache header).
+// @version      7.40.0
+// @description  [v7.40.0] Cleaned up debug logging. CORS-limited sites (like raw.github) will show as Unknown.
+// @description:en [v7.40.0] Cleaned up debug logging. CORS-limited sites (like raw.github) will show as Unknown.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.39.0
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.40.0
 // @run-at       document-idle
 // @noframes
 // ==/UserScript==
@@ -872,6 +872,7 @@
                 });
             }
         }
+
         if (detectedProviders.length > 0) {
             detectedProviders.sort((a, b) => b.priority - a.priority);
             const result = detectedProviders[0];
@@ -1113,7 +1114,7 @@
         /* --- Buttons (Hidden by default) --- */
         button.icon-btn {
             position: absolute !important;
-            top: 13px !important;
+            top: 14px !important;
             width: 18px !important;
             height: 18px !important;
             border-radius: 50% !important;
