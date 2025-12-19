@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.43.0
-// @description  [v7.43.0] Improved Alibaba Cloud CDN detection accuracy (priority adjustment & via header recognition). Fixed incorrect identification as ByteDance.
-// @description:en [v7.43.0] Improved Alibaba Cloud CDN detection accuracy (priority adjustment & via header recognition). Fixed incorrect identification as ByteDance.
+// @version      7.44.0
+// @description  [v7.44.0] Introduced DNS (CNAME) based detection for higher accuracy. Prioritizes CNAME results over Header results to solve misidentification issues (e.g., Alibaba vs ByteDance).
+// @description:en [v7.44.0] Introduced DNS (CNAME) based detection for higher accuracy. Prioritizes CNAME results over Header results to solve misidentification issues (e.g., Alibaba vs ByteDance).
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,10 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.43.0
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.44.0
+// @connect      dns.alidns.com
+// @connect      dns.google
+// @grant        GM_xmlhttpRequest
 // @run-at       document-idle
 // @noframes
 // ==/UserScript==
@@ -1031,6 +1034,115 @@
         'HiNet CDN': `<svg viewBox="0 0 117.7 60.02"><g><g><g><g><polygon fill="currentColor" fill-opacity="0.7" points="62.6 37.1 66.6 37.1 66.6 40.5 62.6 40.5 62.6 37.1 62.6 37.1 62.6 37.1 62.6 37.1"/><polygon fill="currentColor" fill-opacity="0.7" points="67.2 40.8 71.1 40.8 71.1 44.3 67.2 44.3 67.2 40.8 67.2 40.8 67.2 40.8 67.2 40.8"/><polygon fill="currentColor" fill-opacity="0.7" points="71.1 25.4 75 25.4 75 28.8 71.1 28.8 71.1 25.4 71.1 25.4 71.1 25.4 71.1 25.4"/><polygon fill="currentColor" fill-opacity="0.7" points="78.9 17.7 82.7 17.7 82.7 21.1 78.9 21.1 78.9 17.7 78.9 17.7 78.9 17.7 78.9 17.7"/><polygon fill="currentColor" fill-opacity="0.7" points="75 13.8 78.8 13.8 78.8 17.2 75 17.2 75 13.8 75 13.8 75 13.8 75 13.8"/></g><path fill="currentColor" fill-opacity="0.7" d="M88.2,4.1S86,.1,77,0c0,0-12.5.6-25,10.8,0,0-3,2.2-6.8,5.9-1.7,1.6-3.4,3.2-4.4,4.6h.1c-2.2,2.6-4.5,5.6-6.5,8.8h-.1l-.2.5h0c-1.1,1.8-1.9,3.6-2.8,5.6h0s-5.7,12.7-.2,19.9c0,0,3.7,5,13.5,3.7,0,0,12.2-1.5,21.8-9.6h0v-5.2h-4v-3.9h-3.9v-4.7h3.8v-4.2h4.1v-6.9h-4v-4.5h4.6v3.8h3.7v-3.7h4.1v-3.1h-4.1v-4.7h3.7v-3.4h4.6v3.4h4.1v4.2h7.4c-.1-.1,2.3-8.3-2.3-13.2h0Z"/></g></g><g><polygon fill="currentColor" points="19.7 21 19.7 28.2 7.7 28.2 7.7 21 0 21 0 39.8 7.7 39.8 7.7 31.8 19.7 31.8 19.7 39.8 27.4 39.8 27.4 21 19.7 21 19.7 21 19.7 21 19.7 21"/><polygon fill="currentColor" points="33.2 26 33.2 39.8 40.6 39.8 40.6 26 33.2 26 33.2 26 33.2 26 33.2 26"/><polygon fill="currentColor" points="66.2 21 66.2 32.4 53.7 21 46.3 21 46.3 39.8 53.6 39.8 53.7 28.7 66 39.8 73.6 39.8 73.6 21 66.2 21 66.2 21 66.2 21 66.2 21"/><path fill="currentColor" d="M89.6,40.1h.3c2.7,0,5.1-.4,7-1.1,1.8-.7,3.1-1.6,3.9-3h0l.2-.2-.6-.1-6.3-.6-.6-.1-.2.2h0c-.2.5-.5.9-.9,1.2-.6.3-1.4.6-2.5.6-.1,0-.2,0-.3-.1h0v3.2h0ZM89.6,34.2h11.5v-.2h0c0-2.4-.7-4.2-2.3-5.6-2-1.7-5.1-2.6-9.2-2.6h0v3.2h.1c1.3,0,2.3.2,3,.6.7.5,1.1,1.1,1.1,1.9h-4.2v2.7h0ZM89.2,25.7h.3v3.2h0c-1.2,0-2.3.2-3,.8-.7.4-1.1,1-1.2,1.8h4.2v2.7h-4.3c.1.7.5,1.4,1.2,1.8.8.6,1.8.9,3.1.9h0v3.2h0c-1.9,0-3.4-.2-4.8-.5-2.6-.6-4.4-1.5-5.6-2.9-.5-.6-1-1.2-1.2-1.9s-.2-1.3-.2-1.8c0-2,.8-3.7,2.6-5,2.2-1.5,5.2-2.3,8.9-2.3Z"/><path fill="currentColor" d="M117.7,39.2l-.5-2.7-.1-.3-.6.1h-.4c-.5.2-.8.2-1.1.2h0c-.2,0-.6.1-1,.1-1,0-1-.2-1-.3-.1-.4-.2-1-.2-2h0v-5h4.3v-3.3h-4.3v-5.1h-7.5v5.1h-2.9v3.3h2.9v5.5h0c0,1.1.1,1.9.2,2.4.1.5.4.9.8,1.4.5.5,1.3.8,2.6,1.2,1,.2,2.1.3,3.3.3.5,0,1.2-.1,2.3-.2,1.2,0,2.2-.2,2.9-.4h0l.3-.1v-.2h0Z"/><circle fill="currentColor" fill-opacity="0.5" cx="36.7" cy="20.8" r="4"/></g></g></svg>`,
     };
 
+    // --- DNS Detection Logic ---
+    const dnsCache = new Map(); // Cache results to avoid redundant requests
+
+    async function checkDNS(domain) {
+        if (!domain) return null;
+        if (dnsCache.has(domain)) return dnsCache.get(domain);
+
+        // Try Alibaba DNS first (China friendly), then Google DNS
+        const dohProviders = [
+            `https://dns.alidns.com/resolve?name=${domain}&type=CNAME`,
+            `https://dns.google/resolve?name=${domain}&type=CNAME`
+        ];
+
+        for (const url of dohProviders) {
+            try {
+                const result = await new Promise((resolve, reject) => {
+                    GM_xmlhttpRequest({
+                        method: "GET",
+                        url: url,
+                        onload: function (response) {
+                            if (response.status === 200) {
+                                try {
+                                    resolve(JSON.parse(response.responseText));
+                                } catch (e) { reject(e); }
+                            } else {
+                                reject(new Error(response.statusText));
+                            }
+                        },
+                        onerror: reject,
+                        ontimeout: reject
+                    });
+                });
+
+                if (result && result.Answer) {
+                    for (const record of result.Answer) {
+                        const cname = record.data;
+                        if (!cname) continue;
+
+                        // Check against rules
+                        // Remove trailing dot if present
+                        const cleanCname = cname.endsWith('.') ? cname.slice(0, -1) : cname;
+
+                        for (const [providerName, rule] of Object.entries(cdnRules)) {
+                            if (rule.cnames && Array.isArray(rule.cnames)) {
+                                for (const pattern of rule.cnames) {
+                                    if (cleanCname.includes(pattern)) {
+                                        console.log(`[CDN DNS] Confirmed ${providerName} via CNAME: ${cleanCname}`);
+                                        const match = { provider: providerName, cname: cleanCname };
+                                        dnsCache.set(domain, match);
+                                        return match;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn(`[CDN DNS] Failed to query ${url}:`, e);
+                // Continue to next provider
+            }
+        }
+
+        dnsCache.set(domain, null);
+        return null;
+    }
+
+    // Update the panel if DNS detection finds a better result
+    function updatePanelWithDNS(dnsResult, currentInfo) {
+        if (!dnsResult) return;
+
+        const panel = document.getElementById('cdn-info-host-enhanced');
+        if (!panel || !panel.shadowRoot) return;
+
+        const providerValue = panel.shadowRoot.querySelector('.info-value[title*="Provider"]');
+        const extraLine = panel.shadowRoot.querySelector('.info-line:last-child .info-value');
+
+        if (providerValue && dnsResult.provider !== currentInfo.provider) {
+            console.log(`[CDN DNS] Correcting provider from ${currentInfo.provider} to ${dnsResult.provider}`);
+
+            // Flash effect
+            providerValue.style.transition = 'color 0.5s';
+            providerValue.style.color = '#4ADE80'; // Green
+            providerValue.textContent = dnsResult.provider + ' (DNS)';
+
+            // Update watermark if possible (basic implementation requires re-render, 
+            // but for now let's just update text)
+
+            // Add CNAME info to extra
+            if (extraLine) {
+                // Create a new line for CNAME if possible, or append
+                // Since structure is fixed, let's just log it or maybe replace extra if it was generic
+                const linesContainer = panel.shadowRoot.querySelector('.info-lines-container');
+                const cnameLine = document.createElement('div');
+                cnameLine.className = 'info-line';
+                cnameLine.innerHTML = `
+                    <span class="info-label">DNS</span>
+                    <span class="info-value" title="${dnsResult.cname}">${dnsResult.cname}</span>
+                 `;
+                linesContainer.appendChild(cnameLine);
+            }
+        } else if (providerValue && dnsResult.provider === currentInfo.provider) {
+            // Just verify
+            if (!providerValue.textContent.includes('(DNS)')) {
+                providerValue.textContent += ' (DNS)';
+                providerValue.title = `Verified by CNAME: ${dnsResult.cname}`;
+            }
+        }
+    }
+
     // --- UI & Execution Functions ---
 
     // Detect if the current page is using dark or light theme
@@ -1626,7 +1738,13 @@
             `;
         }
 
-        // Add extra info if enabled
+
+        // Trigger generic DNS check for current domain
+        checkDNS(window.location.hostname).then(dnsResult => {
+            updatePanelWithDNS(dnsResult, info);
+        });
+
+        // Auto-hide logic (if enabled)
         // Removed as per request to keep it minimal
 
         panelContent += `</div>`; // Close info-lines-container

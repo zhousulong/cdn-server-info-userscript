@@ -19,6 +19,12 @@
     "pop_header": "x-served-by",
     "pop_regex": "cache-([a-z0-9]+)-",
     "id_header": "x-akamai-request-id",
+    "cnames": [
+      "akamai",
+      "akadns",
+      "edgekey",
+      "akamaiedge"
+    ],
     "priority": 10
   },
   "Tencent Cloud": {
@@ -33,6 +39,12 @@
     },
     "server": "Lego Server|edgeone-pages|CloudWAF|SLT-MID",
     "id_header": "x-nws-log-uuid",
+    "cnames": [
+      "cdntip",
+      "myqcloud",
+      "dnsv1",
+      "tcdn"
+    ],
     "priority": 10
   },
   "Alibaba Cloud CDN": {
@@ -50,6 +62,11 @@
       "at=": null
     },
     "id_header": "eagleid",
+    "cnames": [
+      "kunlun",
+      "alicdn",
+      "tbcache"
+    ],
     "priority": 20
   },
   "Baidu Cloud CDN": {
@@ -65,6 +82,11 @@
     },
     "server": "yunjiasu-nginx|JSP3",
     "id_header": "x-bce-request-id",
+    "cnames": [
+      "bdydns",
+      "yunjiasu",
+      "jomax"
+    ],
     "priority": 10
   },
   "EdgeNext": {
@@ -73,6 +95,11 @@
       "powered-by-chinacache": null
     },
     "server": "EdgeNext|ChinaCache",
+    "cnames": [
+      "edgenext",
+      "chinacache",
+      "ccgslb"
+    ],
     "priority": 10
   },
   "Medianova": {
@@ -143,6 +170,9 @@
       "x-id-fe": null
     },
     "report-to": "gcore-nel",
+    "cnames": [
+      "gcdn"
+    ],
     "priority": 10
   },
   "BytePlus CDN": {
@@ -153,6 +183,10 @@
     },
     "server": "TLB",
     "id_header": "x-cdn-request-id",
+    "cnames": [
+      "byteplus",
+      "volcco"
+    ],
     "priority": 12
   },
   "ByteDance CDN": {
@@ -168,6 +202,11 @@
     "server": "Byte-nginx",
     "via": "live\\d+\\.cn\\d+|ens-live\\d+\\.cn\\d+|cache\\d+\\.",
     "id_header": "x-tt-trace-tag",
+    "cnames": [
+      "bytedns",
+      "toutiaocloud",
+      "volc"
+    ],
     "priority": 11
   },
   "State Cloud": {
@@ -195,6 +234,12 @@
     "server": "PWS|ChinaNetCenter",
     "via": "PS-",
     "id_header": "x-ws-request-id",
+    "cnames": [
+      "cdnetworks",
+      "cdngc",
+      "panthercdn",
+      "gccdn"
+    ],
     "priority": 11
   },
   "Cloudflare": {
@@ -205,6 +250,10 @@
     "pop_header": "cf-ray",
     "pop_regex": "([A-Z]{3})$",
     "id_header": "cf-ray",
+    "cnames": [
+      "cloudflare",
+      "cdn.cloudflare.net"
+    ],
     "priority": 10
   },
   "AWS CloudFront": {
@@ -216,6 +265,9 @@
     "pop_header": "x-amz-cf-pop",
     "pop_regex": "^([A-Z]{3})",
     "id_header": "x-amz-cf-id",
+    "cnames": [
+      "cloudfront"
+    ],
     "priority": 10
   },
   "Google Cloud CDN": {
@@ -232,6 +284,10 @@
       "x-azure-ref-originshield": null
     },
     "id_header": "x-azure-ref",
+    "cnames": [
+      "azureedge",
+      "azurefd"
+    ],
     "priority": 10
   },
   "Fastly": {
@@ -243,6 +299,9 @@
     "pop_header": "x-served-by",
     "pop_regex": "-([^-]+)$",
     "id_header": "x-fastly-request-id",
+    "cnames": [
+      "fastly"
+    ],
     "priority": 9
   },
   "Edgio": {
@@ -250,6 +309,10 @@
       "x-limelight-edge-traffic": null
     },
     "server": "ECS|ECAcc",
+    "cnames": [
+      "llnwd",
+      "edgecast"
+    ],
     "priority": 10
   },
   "Imperva": {
@@ -258,6 +321,10 @@
       "x-cdn": "Imperva"
     },
     "id_header": "x-iinfo",
+    "cnames": [
+      "imperva",
+      "incapdns"
+    ],
     "priority": 10
   },
   "BunnyCDN": {
@@ -300,6 +367,9 @@
     },
     "via": "\\(jcs",
     "id_header": "x-jss-request-id",
+    "cnames": [
+      "jcloud"
+    ],
     "priority": 10
   },
   "QUIC.cloud": {
@@ -342,6 +412,10 @@
     },
     "server": "HuaweiCloud",
     "id_header": "x-obs-request-id",
+    "cnames": [
+      "huaweicloud",
+      "hwcdn"
+    ],
     "priority": 12
   },
   "CDN77": {
