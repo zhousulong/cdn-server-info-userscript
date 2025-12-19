@@ -137,8 +137,7 @@
   "Gcore": {
     "headers": {
       "x-id": null,
-      "x-id-fe": null,
-      "cache": null
+      "x-id-fe": null
     },
     "report-to": "gcore-nel",
     "priority": 10
@@ -215,7 +214,7 @@
     "pop_header": "x-amz-cf-pop",
     "pop_regex": "^([A-Z]{3})",
     "id_header": "x-amz-cf-id",
-    "priority": 9
+    "priority": 10
   },
   "Google Cloud CDN": {
     "headers": {
@@ -359,12 +358,14 @@
     "priority": 10
   },
   "HiNet CDN": {
-    "headers": {
-      "x-request-id": null,
-      "x-cache": null
-    },
     "server": "HiNetCDN",
     "id_header": "x-request-id",
+    "priority": 10
+  },
+  "SwiftServe CDN": {
+    "headers": {
+      "x-cache": "swiftserve"
+    },
     "priority": 10
   },
   "LiteSpeed": {

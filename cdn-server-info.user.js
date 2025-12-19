@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.21.0
-// @description  [v7.21.0] Improved HiNet CDN logo to use currentColor for theme adaptation.
-// @description:en [v7.21.0] Improved HiNet CDN logo to use currentColor for theme adaptation.
+// @version      7.27.0
+// @description  [v7.27.0] Removed generic headers from Gcore and HiNet to prevent false positives.
+// @description:en [v7.27.0] Removed generic headers from Gcore and HiNet to prevent false positives.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.21.0
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.27.0
 // @run-at       document-idle
 // @noframes
 // ==/UserScript==
@@ -65,6 +65,7 @@
 
         const headersToCheck = [
             h.get('eo-cache-status'), // Prioritize specific headers
+            h.get('hascache'), // Kestrel-based CDN
             h.get('x-cache'),
             h.get('x-bdcdn-cache-status'),
             h.get('x-response-cache'),
@@ -621,6 +622,41 @@
                     cache: cache,
                     pop: pop,
                     extra: `Req-ID: ${requestId}, Age: ${age}s`,
+                };
+            }
+        },
+        'SwiftServe CDN': {
+            getInfo: (h, rule) => {
+                let cache = 'N/A';
+                let pop = 'N/A';
+
+                // Parse x-cache header: "HIT from da010.vn17.swiftserve.com:443"
+                const xCache = h.get('x-cache');
+                if (xCache) {
+                    // Extract cache status
+                    if (xCache.toUpperCase().includes('HIT')) {
+                        cache = 'HIT';
+                    } else if (xCache.toUpperCase().includes('MISS')) {
+                        cache = 'MISS';
+                    }
+
+                    // Extract POP from domain: da010.vn17.swiftserve.com -> VN17
+                    const match = xCache.match(/from\s+([a-z0-9]+)\.([a-z0-9]+)\.swiftserve\.com/i);
+                    if (match && match[2]) {
+                        pop = match[2].toUpperCase();
+                    }
+                }
+
+                // Fallback to generic cache status if not found
+                if (cache === 'N/A') {
+                    cache = getCacheStatus(h);
+                }
+
+                return {
+                    provider: 'SwiftServe CDN',
+                    cache: cache,
+                    pop: pop,
+                    extra: 'Detected via x-cache header',
                 };
             }
         }
