@@ -1165,42 +1165,16 @@
         if (!providerValue) return;
 
         if (dnsResult.provider !== currentInfo.provider) {
-            // DNS result differs from header detection - OVERRIDE
+            // DNS result differs from header detection - SILENTLY OVERRIDE
             console.log(`[CDN DNS] ⚠️ Correcting provider from ${currentInfo.provider} to ${dnsResult.provider}`);
 
-            // Flash effect
-            providerValue.style.transition = 'color 0.3s';
-            providerValue.style.color = '#F59E0B'; // Orange warning
-            setTimeout(() => {
-                providerValue.style.color = '#4ADE80'; // Green success
-            }, 300);
-
-            // Update text with DNS badge
+            // Simply update the text, no colors, no badges, no flash
             providerValue.textContent = dnsResult.provider;
-            providerValue.title = `DNS Override: ${dnsResult.cname}`;
-
-            // Add DNS verification line
-            const linesContainer = panel.shadowRoot.querySelector('.info-lines-container');
-            if (linesContainer) {
-                const dnsLine = document.createElement('div');
-                dnsLine.className = 'info-line';
-                dnsLine.style.borderTop = '1px solid rgba(255,165,0,0.2)';
-                dnsLine.innerHTML = `
-                    <span class="info-label">DNS</span>
-                    <span class="info-value" style="color: #4ADE80;" title="${dnsResult.cname}">✓ Verified</span>
-                `;
-                linesContainer.appendChild(dnsLine);
-            }
+            providerValue.title = `Detected via DNS: ${dnsResult.cname}`;
         } else {
-            // DNS result matches header detection - CONFIRM
+            // DNS result matches header detection - DO NOTHING (silent confirmation)
             console.log(`[CDN DNS] ✓ Confirmed ${dnsResult.provider} via CNAME: ${dnsResult.cname}`);
-
-            // Add checkmark to indicate DNS verification
-            if (!providerValue.textContent.includes('✓')) {
-                const originalText = providerValue.textContent;
-                providerValue.innerHTML = `${originalText} <span style="color: #4ADE80;">✓</span>`;
-                providerValue.title = `DNS Verified: ${dnsResult.cname}`;
-            }
+            // No visual change needed
         }
     }
 
