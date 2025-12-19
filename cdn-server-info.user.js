@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.30.0
-// @description  [v7.30.0] Enhanced Akamai detection and added GET fallback for 403 responses.
-// @description:en [v7.30.0] Enhanced Akamai detection and added GET fallback for 403 responses.
+// @version      7.39.0
+// @description  [v7.39.0] Added Akamai mPulse cache detection (mpulse_cdn_cache header).
+// @description:en [v7.39.0] Added Akamai mPulse cache detection (mpulse_cdn_cache header).
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.30.0
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.39.0
 // @run-at       document-idle
 // @noframes
 // ==/UserScript==
@@ -56,14 +56,8 @@
 
     // --- Core Info Parsing Functions ---
     function getCacheStatus(h) {
-        // 1. Check server-timing first as it's often the most accurate
-        const serverTiming = h.get('server-timing');
-        if (serverTiming) {
-            if (serverTiming.includes('cdn-cache; desc=HIT')) return 'HIT';
-            if (serverTiming.includes('cdn-cache; desc=MISS')) return 'MISS';
-        }
-
         const headersToCheck = [
+            h.get('mpulse_cdn_cache'),    // Akamai mPulse (reliable with fetch)
             h.get('eo-cache-status'), // Prioritize specific headers
             h.get('hascache'), // Kestrel-based CDN
             h.get('x-cache'),
@@ -95,6 +89,7 @@
         if (parseInt(h.get('age'), 10) > 0) return 'HIT (inferred)';
         return 'N/A';
     }
+
 
     // CDN Providers Configuration
     // --- Rule Loading & Custom Handlers ---
@@ -167,8 +162,19 @@
                     }
                 }
 
+
                 // Extract request ID if available
-                const requestId = h.get('x-request-id') || h.get('x-akamai-request-id') || h.get('x-cache-uuid') || h.get('x-reference-error');
+                let requestId = h.get('x-request-id') || h.get('x-akamai-request-id') || h.get('x-cache-uuid') || h.get('x-reference-error');
+
+                // Fallback: extract from server-timing (Akamai's ak_p)
+                if (!requestId) {
+                    const serverTiming = h.get('server-timing');
+                    if (serverTiming) {
+                        const akMatch = serverTiming.match(/ak_p;\s*desc="?([^;"]+)"?/i);
+                        if (akMatch) requestId = akMatch[1];
+                    }
+                }
+
                 const extra = requestId ? `Req-ID: ${requestId}` : 'Detected via Akamai header/cookie';
 
                 return {
@@ -767,8 +773,8 @@
         const server = h.get('server');
         if (!server) return 'N/A';
 
-        // Clean up server string
-        return server.split(';')[0].trim(); // Remove additional info after semicolon
+        // Clean up server string: handle cases like "AkamaiGHost; opt=..." or "nginx/1.2.3"
+        return server.split(';')[0].trim();
     }
 
     function getConnectionInfo(response) {
@@ -872,6 +878,9 @@
 
             // Add extended information
             result.server = getServerInfo(lowerCaseHeaders);
+            if (result.server === 'N/A' && result.provider) {
+                result.server = result.provider; // Intelligent fallback when server header is hidden
+            }
             result.connection = getConnectionInfo(response);
             result.additional = getAdditionalInfo(lowerCaseHeaders);
 
@@ -1630,9 +1639,9 @@
                 },
             });
 
-            // If HEAD returns 403, try GET as some CDNs like Akamai block HEAD requests
-            if (response.status === 403) {
-                console.log('[CDN Detector] HEAD request returned 403, retrying with GET...');
+            // If HEAD returns 403, try GET as some CDNs block HEAD requests
+            if (response.status === 403 || response.status === 405) {
+                console.log(`[CDN Detector] HEAD returned ${response.status}, retrying with GET...`);
                 response = await fetch(currentHref, {
                     method: 'GET',
                     cache: 'no-store',
@@ -1640,10 +1649,10 @@
                     headers: {
                         'User-Agent': navigator.userAgent,
                         Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                        'Range': 'bytes=0-0' // Try to minimize data transfer
                     },
                 });
             }
+
             const info = parseInfo(response);
             if (info) {
                 createDisplayPanel(info);
