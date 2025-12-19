@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.16.0
-// @description  [v7.15.2] Added Microsoft Azure CDN icon and adapted to watermark design.
-// @description:en [v7.15.2] Added Microsoft Azure CDN icon and adapted to watermark design.
+// @version      7.16.6
+// @description  [v7.16.6] Improved Huawei Cloud detection with x-ccdn-* headers and nginx-hit support.
+// @description:en [v7.16.6] Improved Huawei Cloud detection with x-ccdn-* headers and nginx-hit support.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.15.2
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.16.6
 // @run-at       document-idle
 // @noframes
 // ==/UserScript==
@@ -342,18 +342,25 @@
         'Huawei Cloud': {
             getInfo: (h, rule) => {
                 let cache = 'N/A';
-                if (h.get('nginx-hit') === '1' || h.get('ohc-cache-hit') === 'HIT') cache = 'HIT';
-                if (cache === 'N/A') cache = getCacheStatus(h);
+                const xHCache = h.get('x-h-cache-status');
+                const xCacheStatus = h.get('x-cache-status');
+
+                if (xHCache) {
+                    cache = xHCache.toUpperCase();
+                } else if (xCacheStatus) {
+                    cache = xCacheStatus.toUpperCase();
+                } else if (h.get('nginx-hit') === '1') {
+                    cache = 'HIT';
+                } else {
+                    cache = getCacheStatus(h);
+                }
 
                 let pop = 'N/A';
                 const via = h.get('via');
                 if (via) {
-                    // Extract from "CHN-JSyangzhou-CT3" -> JSyangzhou -> "JS-YANGZHOU"
-                    // Extract from "CHN-SH-GLOBAL" -> SH -> "SH"
-                    const match = via.match(/CHN-([a-zA-Z0-9]+)/);
+                    const match = via.match(/(?:HCDN|CHN)-([a-zA-Z0-9]+)/);
                     if (match) {
                         const loc = match[1];
-                        // If compound name like JSyangzhou -> JS-YANGZHOU
                         const compound = loc.match(/^([A-Z]{2})([a-z]+)/);
                         if (compound) {
                             pop = (compound[1] + '-' + compound[2]).toUpperCase();
@@ -363,7 +370,17 @@
                     }
                 }
 
-                const requestId = h.get('x-obs-request-id') || 'N/A';
+                // Extract x-ccdn-req-id (format: x-ccdn-req-id-46b1)
+                let requestId = 'N/A';
+                for (const [key, value] of h.entries()) {
+                    if (key.startsWith('x-ccdn-req-id')) {
+                        requestId = value;
+                        break;
+                    }
+                }
+                if (requestId === 'N/A') {
+                    requestId = h.get('x-obs-request-id') || h.get('x-hw-request-id') || 'N/A';
+                }
 
                 return {
                     provider: 'Huawei Cloud',
@@ -373,6 +390,39 @@
                 };
             }
         },
+        'Baidu Cloud CDN': {
+            getInfo: (h, rule) => {
+                let cache = 'N/A';
+                const ohcCacheHit = h.get('ohc-cache-hit');
+                const xCacheStatus = h.get('x-cache-status');
+
+                if (ohcCacheHit) {
+                    cache = 'HIT';
+                } else if (xCacheStatus) {
+                    cache = xCacheStatus.toUpperCase();
+                } else {
+                    cache = getCacheStatus(h);
+                }
+
+                let pop = 'N/A';
+                if (ohcCacheHit) {
+                    const popMatch = ohcCacheHit.match(/([a-z]+\d+)/i);
+                    if (popMatch && popMatch[1]) {
+                        pop = popMatch[1].toUpperCase();
+                    }
+                }
+
+                const requestId = h.get('x-bce-request-id') || h.get('x-life-unique-id') || 'N/A';
+
+                return {
+                    provider: 'Baidu Cloud CDN',
+                    cache: cache,
+                    pop: pop,
+                    extra: `Req-ID: ${requestId}`,
+                };
+            }
+        },
+
         'ByteDance CDN': {
             getInfo: (h, rule) => {
                 let cache = 'N/A';

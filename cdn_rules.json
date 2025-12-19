@@ -46,12 +46,19 @@
     "id_header": "eagleid",
     "priority": 10
   },
-  "Baidu Cloud": {
+  "Baidu Cloud CDN": {
     "headers": {
       "x-logserver": "yunjiasu-nginx",
-      "x-server-ip": null
+      "x-server-ip": null,
+      "ohc-cache-hit": null,
+      "ohc-file-size": null,
+      "ohc-global-saved-time": null,
+      "x-bce-request-id": null,
+      "x-bce-storage-class": null,
+      "x-life-unique-id": null
     },
-    "server": "yunjiasu-nginx",
+    "server": "yunjiasu-nginx|JSP3",
+    "id_header": "x-bce-request-id",
     "priority": 10
   },
   "EdgeNext": {
@@ -64,7 +71,6 @@
   },
   "Medianova": {
     "headers": {
-      "x-cache-status": null,
       "x-edge-location": null,
       "x-mnrequest-id": null,
       "x-mserver": null,
@@ -314,16 +320,20 @@
   },
   "Huawei Cloud": {
     "headers": {
-      "ohc-cache-hit": null,
-      "ohc-file-size": null,
-      "ohc-global-saved-time": null,
+      "x-h-cache-status": null,
+      "x-hw-request-id": null,
       "x-obs-request-id": null,
+      "x-ccdn-cachettl": null,
+      "x-ccdn-expires": null,
+      "x-ccdn-req-id": null,
+      "x-hcs-proxy-type": null,
+      "nginx-hit": null,
       "dl-from": "HWCDN",
-      "via": "huaweicloud|CHN-"
+      "via": "huaweicloud|HCDN|CHN-"
     },
     "server": "HuaweiCloud",
     "id_header": "x-obs-request-id",
-    "priority": 10
+    "priority": 12
   },
   "CDN77": {
     "headers": {
