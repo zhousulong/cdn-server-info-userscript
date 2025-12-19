@@ -28,7 +28,7 @@
     ],
     "priority": 10
   },
-  "Tencent Cloud": {
+  "Tencent Cloud CDN": {
     "headers": {
       "x-nws-log-uuid": null,
       "eo-log-uuid": null,

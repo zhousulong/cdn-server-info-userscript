@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.47.1
-// @description  [v7.47.1] UI Refinement: Silent DNS detection with clean interface. Removed all visual indicators for maximum readability.
-// @description:en [v7.47.1] UI Refinement: Silent DNS detection with clean interface. Removed all visual indicators for maximum readability.
+// @version      7.47.2
+// @description  [v7.47.2] DNS detection enhancements: watermark auto-update on conflict, bottom status line. Renamed Tencent Cloud to Tencent Cloud CDN.
+// @description:en [v7.47.2] DNS detection enhancements: watermark auto-update on conflict, bottom status line. Renamed Tencent Cloud to Tencent Cloud CDN.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.47.1
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.47.2
 // @connect      dns.alidns.com
 // @connect      dns.google
 // @grant        GM_xmlhttpRequest
@@ -1168,14 +1168,47 @@
             // DNS result differs from header detection - SILENTLY OVERRIDE
             console.log(`[CDN DNS] ⚠️ Correcting provider from ${currentInfo.provider} to ${dnsResult.provider}`);
 
-            // Simply update the text, no colors, no badges, no flash
+            // Update provider text
             providerValue.textContent = dnsResult.provider;
             providerValue.title = `Detected via DNS: ${dnsResult.cname}`;
+
+            // Update watermark to match new provider
+            const watermark = panel.shadowRoot.querySelector('.cdn-watermark');
+            if (watermark) {
+                let iconKey = Object.keys(cdnIcons).find(key => key === dnsResult.provider);
+                if (!iconKey) {
+                    iconKey = Object.keys(cdnIcons).find(key => {
+                        const providerLower = dnsResult.provider.toLowerCase();
+                        const keyLower = key.toLowerCase();
+                        return providerLower.includes(keyLower) || keyLower.includes(providerLower);
+                    });
+                }
+                if (iconKey) {
+                    watermark.innerHTML = cdnIcons[iconKey];
+                }
+            }
+
+            // Add DNS status at bottom
+            addDNSStatus(panel, `DNS: ${dnsResult.cname}`);
         } else {
-            // DNS result matches header detection - DO NOTHING (silent confirmation)
+            // DNS result matches header detection - silent confirmation
             console.log(`[CDN DNS] ✓ Confirmed ${dnsResult.provider} via CNAME: ${dnsResult.cname}`);
-            // No visual change needed
+            addDNSStatus(panel, `DNS: ${dnsResult.cname}`);
         }
+    }
+
+    // Helper function to add DNS status line at bottom
+    function addDNSStatus(panel, statusText) {
+        if (!panel || !panel.shadowRoot) return;
+
+        // Check if status already exists
+        let statusLine = panel.shadowRoot.querySelector('.dns-status');
+        if (!statusLine) {
+            statusLine = document.createElement('div');
+            statusLine.className = 'dns-status';
+            panel.shadowRoot.querySelector('#cdn-info-panel-enhanced').appendChild(statusLine);
+        }
+        statusLine.textContent = statusText;
     }
 
     // --- UI & Execution Functions ---
@@ -1469,6 +1502,19 @@
             display: block;
         }
 
+        /* DNS Status Line */
+        .dns-status {
+            text-align: center;
+            font-family: ${monoFont};
+            font-size: 9px;
+            color: ${isDarkTheme ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.3)'};
+            margin-top: 8px;
+            padding-top: 6px;
+            border-top: 1px solid ${isDarkTheme ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)'};
+            letter-spacing: 0.3px;
+            opacity: 0.8;
+        }
+        
         
         /* Settings panel styles */
         #settings-panel {
