@@ -155,10 +155,13 @@
       "x-tt-trace-tag": null,
       "x-bdcdn-cache-status": null,
       "x-tt-trace-id": null,
-      "x-tt-logid": null
+      "x-tt-logid": null,
+      "x-tos-request-id": null,
+      "x-tos-storage-class": null,
+      "x-response-cache": null
     },
     "server": "Byte-nginx",
-    "via": "live\\d+\\.cn\\d+|ens-live\\d+\\.cn\\d+",
+    "via": "live\\d+\\.cn\\d+|ens-live\\d+\\.cn\\d+|cache\\d+\\.",
     "id_header": "x-tt-trace-tag",
     "priority": 11
   },

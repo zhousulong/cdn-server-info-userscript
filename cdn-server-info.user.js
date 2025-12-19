@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.16.6
-// @description  [v7.16.6] Improved Huawei Cloud detection with x-ccdn-* headers and nginx-hit support.
-// @description:en [v7.16.6] Improved Huawei Cloud detection with x-ccdn-* headers and nginx-hit support.
+// @version      7.16.9
+// @description  [v7.16.9] Improved Akamai cache detection using x-age header.
+// @description:en [v7.16.9] Improved Akamai cache detection using x-age header.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.16.6
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.16.9
 // @run-at       document-idle
 // @noframes
 // ==/UserScript==
@@ -103,17 +103,40 @@
     const customHandlers = {
         'Akamai': {
             getInfo: (h, rule) => {
+                let cache = 'N/A';
+
+                // Check x-age header first
+                const xAge = h.get('x-age');
+                if (xAge !== null) {
+                    const age = parseInt(xAge);
+                    if (age === 0) {
+                        cache = 'MISS';
+                    } else if (age > 0) {
+                        cache = 'HIT';
+                    }
+                }
+
+                // Fallback to generic cache status
+                if (cache === 'N/A') {
+                    cache = getCacheStatus(h);
+                }
+
                 let pop = 'N/A';
                 const servedBy = h.get('x-served-by');
                 if (servedBy) {
                     const match = servedBy.match(/cache-([a-z0-9]+)-/i);
                     if (match && match[1]) pop = match[1].toUpperCase();
                 }
+
+                // Extract request ID if available
+                const requestId = h.get('x-request-id') || h.get('x-akamai-request-id');
+                const extra = requestId ? `Req-ID: ${requestId}` : 'Detected via Akamai header/cookie';
+
                 return {
                     provider: 'Akamai',
-                    cache: getCacheStatus(h),
+                    cache: cache,
                     pop: pop,
-                    extra: 'Detected via Akamai header/cookie',
+                    extra: extra,
                 };
             }
         },
@@ -426,12 +449,27 @@
         'ByteDance CDN': {
             getInfo: (h, rule) => {
                 let cache = 'N/A';
-                // Parse from server-timing: cdn-cache;desc=MISS
-                const serverTiming = h.get('server-timing');
-                if (serverTiming) {
-                    const match = serverTiming.match(/cdn-cache;desc=([^,]+)/);
-                    if (match) cache = match[1].toUpperCase();
+
+                // Priority 1: x-bdcdn-cache-status
+                const bdcdnCache = h.get('x-bdcdn-cache-status');
+                if (bdcdnCache) {
+                    cache = bdcdnCache.replace('TCP_', '').toUpperCase();
+                } else {
+                    // Priority 2: x-response-cache
+                    const responseCache = h.get('x-response-cache');
+                    if (responseCache) {
+                        cache = responseCache.replace('edge_', '').toUpperCase();
+                    } else {
+                        // Priority 3: server-timing
+                        const serverTiming = h.get('server-timing');
+                        if (serverTiming) {
+                            const match = serverTiming.match(/cdn-cache;desc=([^,]+)/);
+                            if (match) cache = match[1].toUpperCase();
+                        }
+                    }
                 }
+
+                // Fallback to x-tt-trace-tag or generic
                 if (cache === 'N/A') {
                     const ttTrace = h.get('x-tt-trace-tag');
                     if (ttTrace) {
@@ -442,16 +480,22 @@
                 if (cache === 'N/A') cache = getCacheStatus(h);
 
                 let pop = 'N/A';
-                // Extract from via: "live4.cn7594[899,0]" or "ens-live7.cn8685" -> "CN"
                 const viaHeader = h.get('via');
                 if (viaHeader) {
-                    const match = viaHeader.match(/(?:ens-)?live\d+\.(cn\d+)/i);
+                    // Try to extract from "cache17.jswuxi-ct32" -> "JSWUXI"
+                    let match = viaHeader.match(/cache\d+\.([a-z]+)/i);
                     if (match && match[1]) {
-                        pop = 'CN'; // Simplified, just show CN for China
+                        pop = match[1].toUpperCase();
+                    } else {
+                        // Fallback: Extract from "live4.cn7594[899,0]" or "ens-live7.cn8685" -> "CN"
+                        match = viaHeader.match(/(?:ens-)?live\d+\.(cn\d+)/i);
+                        if (match && match[1]) {
+                            pop = 'CN';
+                        }
                     }
                 }
 
-                const traceId = h.get('x-tt-trace-id') || h.get('x-tt-logid') || h.get('eagleid') || 'N/A';
+                const traceId = h.get('x-tt-trace-id') || h.get('x-tt-logid') || h.get('x-tos-request-id') || 'N/A';
 
                 return {
                     provider: 'ByteDance CDN',
@@ -807,6 +851,7 @@
         'Angie': `<svg viewBox="0 0 53.2 68.4"><polygon fill="currentColor" points="53.2 30.9 37.5 30.9 37.5 0 30.9 0 30.9 26.2 12.4 7.7 7.7 12.4 26.2 30.9 0 30.9 0 37.5 26.2 37.5 7.7 56.1 12.4 60.8 30.9 42.2 30.9 68.4 37.5 68.4 37.5 37.5 53.2 37.5 53.2 30.9"/></svg>`,
         'QRATOR': `<svg viewBox="0 0 26.37 26.58"><path fill="currentColor" d="M20.99,26.58c-2.98,0-5.39-2.45-5.39-5.43s2.43-5.43,5.39-5.43,5.39,2.45,5.39,5.43-2.41,5.43-5.39,5.43ZM20.99,16.54c-2.51,0-4.58,2.06-4.58,4.61s2.04,4.61,4.58,4.61,4.58-2.06,4.58-4.61-2.06-4.61-4.58-4.61Z"/><path fill="currentColor" d="M12.98,26.18C5.83,26.18,0,20.32,0,13.09S5.81,0,12.98,0s12.98,5.86,12.98,13.09-5.83,13.09-12.98,13.09ZM12.98.84C6.28.84.83,6.33.83,13.09s5.45,12.25,12.15,12.25,12.15-5.49,12.15-12.25S19.69.84,12.98.84Z"/><path fill="currentColor" fill-opacity="0.5" d="M12.86.6C6.39.86.66,6.46.66,13.05s5.77,12.14,12.24,12.4l-.04-24.85Z"/><path fill="currentColor" fill-opacity="0.3" d="M12.86.6c-.4.02-3.3.49-3.3.49l3.3,14.1V.6Z"/></svg>`,
         'CacheFly': `<svg viewBox="0 0 181.57 186"><path fill="currentColor" d="M102.47 25.64l-1.61 16.66 17.58-10.09 18.84 12.2L180.83 0l-98.67 5.8 18.19 16.04 58.6-16.04-56.49 19.84h0ZM66.66 33.93l-20.11-2.34 1.84-15.93 20.11 2.34-1.84 15.93h0ZM85.81 54.84l-20.03-2.69 1.8-18.23 20.07 2.72-1.84 18.19ZM63.82 67.89l-19.99-2.23 1.92-16.04 20.03 2.26-1.96 16ZM67.01 91.38l-14.97-1.81 1.5-13.85 14.97 1.88-1.5 13.78h0ZM25.98 101.81l-15.04-1.57 1.46-11.47 15.01 1.65s-1.42 11.4-1.42 11.4ZM39.68 122.73l-15.01-1.61 1.38-11.47 15.04 1.65-1.42 11.44Z"/><path fill="currentColor" d="M26.25 130.56l-12.59-1.3 1.19-9.13 12.55 1.27-1.15 9.17ZM53.27 99.2l-14.93-1.84 1.53-13.82 14.89 1.88s-1.5 13.78-1.5 13.78ZM116.13 65.28l-17.46-1.92 1.65-13.74 17.5 1.92s-1.69 13.74-1.69 13.74ZM91.8 70.5l-15.08-1.65 1.34-11.4 15.08 1.69-1.34 11.36h0ZM23.49 146.22l-12.55-1.34 1.19-9.1 12.55 1.38s-1.19 9.06-1.19 9.06ZM28.97 164.48l-12.51-1.34 1.11-9.1 12.59 1.34-1.19 9.1h0ZM51 177.53l-9.9-1.15 1.07-9.29 9.86 1.19-1.04 9.25ZM67.43 180.14l-9.86-1.15 1-9.29 9.94 1.19s-1.07 9.25-1.08 9.25ZM75.91 172.31l-7.41-.84.77-6.99 7.45.92-.81 6.91h0ZM89.65 185.36l-7.49-.85.81-6.99 7.41.92-.73 6.91h0ZM108.8 180.14l-7.41-.85.81-6.99 7.41.92-.81 6.91ZM117.28 167.09l-4.95-.58.54-4.64 4.95.58s-.54 4.64-.54 4.64ZM42.87 156.65l-9.98-1.23 1-9.21 9.94 1.23-.96 9.21h0Z"/><path fill="currentColor" d="M51.08 161.87l-9.98-.88 1-6.95 9.94.96-.96 6.87h0ZM12.55 135.78l-12.55-1.34 1.11-9.1 12.55 1.38-1.11 9.06h0ZM12.55 107.03l-12.55-1.3 1.11-9.13 12.55 1.38-1.11 9.06h0ZM36.84 78.33l-14.89-1.8 1.5-13.85 14.89 1.8s-1.5 13.85-1.5 13.85Z"/></svg>`,
+        'Baidu Cloud CDN': `<svg viewBox="0 0 229.34 77.78"><path fill="currentColor" d="M90.02,41.57c7.75-1.67,6.69-10.94,6.46-12.96-.38-3.12-4.06-8.58-9.04-8.15-6.28.56-7.19,9.62-7.19,9.62-.85,4.2,2.03,13.15,9.77,11.49"/><path fill="currentColor" d="M104.41,26.03c4.28,0,7.74-4.93,7.74-11.02s-3.46-11.01-7.74-11.01-7.75,4.92-7.75,11.01,3.47,11.02,7.75,11.02"/><path fill="currentColor" d="M122.86,26.75c5.73.75,9.4-5.36,10.13-9.99.75-4.62-2.95-10-7-10.92-4.06-.93-9.14,5.57-9.59,9.81-.56,5.19.74,10.36,6.46,11.1"/><path fill="currentColor" d="M145.54,34.53c0-2.21-1.83-8.89-8.66-8.89s-7.74,6.3-7.74,10.75.35,10.17,8.85,9.99c8.49-.19,7.56-9.62,7.56-11.85"/><path fill="currentColor" d="M101.36,54.93c-1.96.58-2.91,2.10-3.11,2.76-.22.66-.73,2.32-.29,3.76.86,3.26,3.69,3.4,3.69,3.4h4.06v-9.92h-4.35Z"/><path fill="currentColor" d="M136.88,53.96s-8.85-6.85-14.02-14.25c-7.02-10.92-16.97-6.47-20.3-.93-3.32,5.56-8.48,9.07-9.21,10-.74.91-10.69,6.29-8.49,16.1,2.21,9.81,9.97,9.62,9.97,9.62,0,0,5.72.56,12.35-.92,6.64-1.48,12.36.36,12.36.36,0,0,15.5,5.2,19.73-4.8,4.24-9.99-2.39-15.18-2.39-15.18ZM110.35,68.85h-10.07c-4.35-.87-6.09-3.84-6.3-4.35-.22-.51-1.45-2.9-.79-6.96,1.88-6.08,7.24-6.53,7.24-6.53h5.37v-6.59l4.56.07v24.36ZM129.12,68.77h-11.59c-4.5-1.16-4.71-4.35-4.71-4.35v-12.82l4.71-.08v11.52c.29,1.23,1.81,1.45,1.81,1.45h4.77v-12.9h5v17.18Z"/></svg>`,
     };
 
     // --- UI & Execution Functions ---
