@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.47.0
-// @description  [v7.47.0] Major BytePlus/ByteDance detection fix. Added internal service headers (x-bytefaas-*, x-goofy-*) to ByteDance. Enhanced DNS override logic with visual feedback (✓ for match, override for conflict).
-// @description:en [v7.47.0] Major BytePlus/ByteDance detection fix. Added internal service headers (x-bytefaas-*, x-goofy-*) to ByteDance. Enhanced DNS override logic with visual feedback (✓ for match, override for conflict).
+// @version      7.47.1
+// @description  [v7.47.1] UI Refinement: Silent DNS detection with clean interface. Removed all visual indicators for maximum readability.
+// @description:en [v7.47.1] UI Refinement: Silent DNS detection with clean interface. Removed all visual indicators for maximum readability.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.47.0
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.47.1
 // @connect      dns.alidns.com
 // @connect      dns.google
 // @grant        GM_xmlhttpRequest
