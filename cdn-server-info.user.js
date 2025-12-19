@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.45.1
-// @description  [v7.45.1] Fixed watermark SVG scaling issue that caused wide logos (e.g., Baidu) to display too small. Changed from height-based to width-based scaling.
-// @description:en [v7.45.1] Fixed watermark SVG scaling issue that caused wide logos (e.g., Baidu) to display too small. Changed from height-based to width-based scaling.
+// @version      7.46.0
+// @description  [v7.46.0] Fixed BytePlus vs ByteDance detection conflict. Enhanced DNS matching to use priority-based selection when multiple CDNs share the same CNAME. Fixed Baidu logo display issue.
+// @description:en [v7.46.0] Fixed BytePlus vs ByteDance detection conflict. Enhanced DNS matching to use priority-based selection when multiple CDNs share the same CNAME. Fixed Baidu logo display issue.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.45.1
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.46.0
 // @connect      dns.alidns.com
 // @connect      dns.google
 // @grant        GM_xmlhttpRequest
