@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.42.0
-// @description  [v7.42.0] Fixed Imperva CDN detection (now shows as CDN instead of Server). Optimized label width to give more space for POP values.
-// @description:en [v7.42.0] Fixed Imperva CDN detection (now shows as CDN instead of Server). Optimized label width to give more space for POP values.
+// @version      7.43.0
+// @description  [v7.43.0] Improved Alibaba Cloud CDN detection accuracy (priority adjustment & via header recognition). Fixed incorrect identification as ByteDance.
+// @description:en [v7.43.0] Improved Alibaba Cloud CDN detection accuracy (priority adjustment & via header recognition). Fixed incorrect identification as ByteDance.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.42.0
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.43.0
 // @run-at       document-idle
 // @noframes
 // ==/UserScript==
