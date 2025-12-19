@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.44.0
-// @description  [v7.44.0] Introduced DNS (CNAME) based detection for higher accuracy. Prioritizes CNAME results over Header results to solve misidentification issues (e.g., Alibaba vs ByteDance).
-// @description:en [v7.44.0] Introduced DNS (CNAME) based detection for higher accuracy. Prioritizes CNAME results over Header results to solve misidentification issues (e.g., Alibaba vs ByteDance).
+// @version      7.45.0
+// @description  [v7.45.0] Implemented accumulative scoring system for CDN detection to reduce false positives. Adjusted all rule priorities to distinguish between major CDNs and generic servers.
+// @description:en [v7.45.0] Implemented accumulative scoring system for CDN detection to reduce false positives. Adjusted all rule priorities to distinguish between major CDNs and generic servers.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.44.0
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.45.0
 // @connect      dns.alidns.com
 // @connect      dns.google
 // @grant        GM_xmlhttpRequest
@@ -890,7 +890,7 @@
         return `Type: ${mimeType}`;
     }
 
-    // Enhanced parseInfo function to include extended information
+    // Enhanced parseInfo function with Scoring System
     function parseInfo(response) {
         if (Object.keys(cdnRules).length === 0) loadRules();
 
@@ -899,89 +899,102 @@
         for (const [key, value] of h.entries()) {
             lowerCaseHeaders.set(key.toLowerCase(), value);
         }
-        const detectedProviders = [];
+
+        const candidates = [];
 
         for (const [name, rule] of Object.entries(cdnRules)) {
-            let isMatch = false;
-
-            // Header Check
+            let score = 0;
+            // 1. Header Checks
+            // - Exact Key Match: +20
+            // - Regex Value Match: +30
             if (rule.headers) {
                 for (const [header, val] of Object.entries(rule.headers)) {
                     if (lowerCaseHeaders.has(header)) {
                         if (val === null) {
-                            isMatch = true;
+                            score += 20;
                         } else {
-                            // Regex or value check
-                            const headerVal = lowerCaseHeaders.get(header);
-                            if (new RegExp(val, 'i').test(headerVal)) {
-                                isMatch = true;
+                            if (new RegExp(val, 'i').test(lowerCaseHeaders.get(header))) {
+                                score += 30;
                             }
                         }
                     }
                 }
             }
 
-            // Server Header Check
-            if (!isMatch && rule.server) {
+            // 2. ID Header Check (Strong Signal) -> +50
+            if (rule.id_header && lowerCaseHeaders.has(rule.id_header)) {
+                score += 50;
+            }
+
+            // 3. Server Header Check -> +10
+            if (rule.server) {
                 const server = lowerCaseHeaders.get('server');
                 if (server && new RegExp(rule.server, 'i').test(server)) {
-                    isMatch = true;
+                    score += 10;
                 }
             }
 
-            // Via Header Check
-            if (!isMatch && rule.via) {
+            // 4. Via Header Check -> +10
+            if (rule.via) {
                 const via = lowerCaseHeaders.get('via');
                 if (via && new RegExp(rule.via, 'i').test(via)) {
-                    isMatch = true;
+                    score += 10;
                 }
             }
 
-            // Cookie Check
-            if (!isMatch && rule.cookies) {
+            // 5. Cookie Check -> +20
+            if (rule.cookies) {
                 const cookie = lowerCaseHeaders.get('set-cookie') || '';
                 for (const [cName, cVal] of Object.entries(rule.cookies)) {
                     if (cookie.includes(cName)) {
                         if (cVal === null || cookie.includes(cVal)) {
-                            isMatch = true;
+                            score += 20;
                         }
                     }
                 }
             }
 
-            // Custom Logic Check (e.g. BaishanCloud mimicking AWS)
-            if (!isMatch && rule.custom_check_logic === 'check_aws_compat') {
-                // Example: Check for X-Amz-Cf-Id but NOT AWS/CloudFront specific Via
+            // 6. Custom Logic Match -> +20
+            if (rule.custom_check_logic === 'check_aws_compat') {
                 if (lowerCaseHeaders.has('x-amz-cf-id')) {
                     const via = lowerCaseHeaders.get('via') || '';
                     if (!via.includes('cloudfront.net')) {
-                        isMatch = true;
+                        score += 20;
                     }
                 }
             }
 
-            if (isMatch) {
+            if (score > 0) {
+                // Add base priority from rules
+                score += (rule.priority || 0);
+
                 const handler = customHandlers[name] ? customHandlers[name].getInfo : genericGetInfo;
-                detectedProviders.push({
+                candidates.push({
                     ...handler(lowerCaseHeaders, rule, name),
-                    priority: rule.priority || 5,
+                    score: score,
                 });
             }
         }
 
-        if (detectedProviders.length > 0) {
-            detectedProviders.sort((a, b) => b.priority - a.priority);
-            const result = detectedProviders[0];
+        if (candidates.length > 0) {
+            // Sort by score descending
+            candidates.sort((a, b) => b.score - a.score);
+            const winner = candidates[0];
+
+            // Console log for debugging the scoring decision
+            if (candidates.length > 1) {
+                console.log(`[CDN Scoring] Winner: ${winner.provider} (${winner.score}) vs Runner-up: ${candidates[1].provider} (${candidates[1].score})`);
+            }
 
             // Add extended information
-            result.server = getServerInfo(lowerCaseHeaders);
-            if (result.server === 'N/A' && result.provider) {
-                result.server = result.provider; // Intelligent fallback when server header is hidden
+            winner.server = getServerInfo(lowerCaseHeaders);
+            if (winner.server === 'N/A' && winner.provider) {
+                winner.server = winner.provider; // Intelligent fallback check
             }
-            result.connection = getConnectionInfo(response);
-            result.additional = getAdditionalInfo(lowerCaseHeaders);
+            winner.connection = getConnectionInfo(response);
+            winner.additional = getAdditionalInfo(lowerCaseHeaders);
 
-            return result;
+            return winner;
         }
 
         // Fallback: No CDN detected, check if server header exists
