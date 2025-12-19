@@ -23,7 +23,8 @@
       "akamai",
       "akadns",
       "edgekey",
-      "akamaiedge"
+      "akamaiedge",
+      "edgesuite"
     ],
     "priority": 10
   },
@@ -185,11 +186,10 @@
       "x-tt-trace-tag": null
     },
     "server": "TLB",
-    "id_header": "x-tt-trace-id",
+    "id_header": "x-cdn-request-id",
     "cnames": [
       "byteplus",
-      "volcco",
-      "edgesuite"
+      "volcco"
     ],
     "priority": 25
   },
@@ -201,7 +201,10 @@
       "x-tt-logid": null,
       "x-tos-request-id": null,
       "x-tos-storage-class": null,
-      "x-response-cache": null
+      "x-response-cache": null,
+      "x-bytefaas-request-id": null,
+      "x-goofy-custom-server": null,
+      "x-ggw-config-version": null
     },
     "server": "Byte-nginx",
     "via": "live\\d+\\.cn\\d+|ens-live\\d+\\.cn\\d+|cache\\d+\\.",
@@ -211,7 +214,7 @@
       "toutiaocloud",
       "volc"
     ],
-    "priority": 11
+    "priority": 26
   },
   "State Cloud": {
     "headers": {

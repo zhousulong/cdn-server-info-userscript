@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.46.2
-// @description  [v7.46.2] Comprehensive server signature scoring update. Added aggressive weighting (+50) for 20+ unique CDN server headers (e.g. Byte-nginx, ESA, Lego Server) to prevent false positives.
-// @description:en [v7.46.2] Comprehensive server signature scoring update. Added aggressive weighting (+50) for 20+ unique CDN server headers (e.g. Byte-nginx, ESA, Lego Server) to prevent false positives.
+// @version      7.47.0
+// @description  [v7.47.0] Major BytePlus/ByteDance detection fix. Added internal service headers (x-bytefaas-*, x-goofy-*) to ByteDance. Enhanced DNS override logic with visual feedback (✓ for match, override for conflict).
+// @description:en [v7.47.0] Major BytePlus/ByteDance detection fix. Added internal service headers (x-bytefaas-*, x-goofy-*) to ByteDance. Enhanced DNS override logic with visual feedback (✓ for match, override for conflict).
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.46.2
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.47.0
 // @connect      dns.alidns.com
 // @connect      dns.google
 // @grant        GM_xmlhttpRequest
@@ -1157,38 +1157,49 @@
         const panel = document.getElementById('cdn-info-host-enhanced');
         if (!panel || !panel.shadowRoot) return;
 
-        const providerValue = panel.shadowRoot.querySelector('.info-value[title*="Provider"]');
-        const extraLine = panel.shadowRoot.querySelector('.info-line:last-child .info-value');
+        // Find the provider value element (first info-line's info-value)
+        const firstInfoLine = panel.shadowRoot.querySelector('.info-line');
+        if (!firstInfoLine) return;
 
-        if (providerValue && dnsResult.provider !== currentInfo.provider) {
-            console.log(`[CDN DNS] Correcting provider from ${currentInfo.provider} to ${dnsResult.provider}`);
+        const providerValue = firstInfoLine.querySelector('.info-value');
+        if (!providerValue) return;
+
+        if (dnsResult.provider !== currentInfo.provider) {
+            // DNS result differs from header detection - OVERRIDE
+            console.log(`[CDN DNS] ⚠️ Correcting provider from ${currentInfo.provider} to ${dnsResult.provider}`);
 
             // Flash effect
-            providerValue.style.transition = 'color 0.5s';
-            providerValue.style.color = '#4ADE80'; // Green
-            providerValue.textContent = dnsResult.provider + ' (DNS)';
+            providerValue.style.transition = 'color 0.3s';
+            providerValue.style.color = '#F59E0B'; // Orange warning
+            setTimeout(() => {
+                providerValue.style.color = '#4ADE80'; // Green success
+            }, 300);
 
-            // Update watermark if possible (basic implementation requires re-render, 
-            // but for now let's just update text)
+            // Update text with DNS badge
+            providerValue.textContent = dnsResult.provider;
+            providerValue.title = `DNS Override: ${dnsResult.cname}`;
 
-            // Add CNAME info to extra
-            if (extraLine) {
-                // Create a new line for CNAME if possible, or append
-                // Since structure is fixed, let's just log it or maybe replace extra if it was generic
-                const linesContainer = panel.shadowRoot.querySelector('.info-lines-container');
-                const cnameLine = document.createElement('div');
-                cnameLine.className = 'info-line';
-                cnameLine.innerHTML = `
+            // Add DNS verification line
+            const linesContainer = panel.shadowRoot.querySelector('.info-lines-container');
+            if (linesContainer) {
+                const dnsLine = document.createElement('div');
+                dnsLine.className = 'info-line';
+                dnsLine.style.borderTop = '1px solid rgba(255,165,0,0.2)';
+                dnsLine.innerHTML = `
                     <span class="info-label">DNS</span>
-                    <span class="info-value" title="${dnsResult.cname}">${dnsResult.cname}</span>
-                 `;
-                linesContainer.appendChild(cnameLine);
+                    <span class="info-value" style="color: #4ADE80;" title="${dnsResult.cname}">✓ Verified</span>
+                `;
+                linesContainer.appendChild(dnsLine);
             }
-        } else if (providerValue && dnsResult.provider === currentInfo.provider) {
-            // Just verify
-            if (!providerValue.textContent.includes('(DNS)')) {
-                providerValue.textContent += ' (DNS)';
-                providerValue.title = `Verified by CNAME: ${dnsResult.cname}`;
+        } else {
+            // DNS result matches header detection - CONFIRM
+            console.log(`[CDN DNS] ✓ Confirmed ${dnsResult.provider} via CNAME: ${dnsResult.cname}`);
+
+            // Add checkmark to indicate DNS verification
+            if (!providerValue.textContent.includes('✓')) {
+                const originalText = providerValue.textContent;
+                providerValue.innerHTML = `${originalText} <span style="color: #4ADE80;">✓</span>`;
+                providerValue.title = `DNS Verified: ${dnsResult.cname}`;
             }
         }
     }
