@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.41.0
-// @description  [v7.41.0] Added SiteGround CDN detection support. Fixed UI alignment for theme toggle and close buttons.
-// @description:en [v7.41.0] Added SiteGround CDN detection support. Fixed UI alignment for theme toggle and close buttons.
+// @version      7.42.0
+// @description  [v7.42.0] Fixed Imperva CDN detection (now shows as CDN instead of Server). Increased panel width to 272px for better POP display.
+// @description:en [v7.42.0] Fixed Imperva CDN detection (now shows as CDN instead of Server). Increased panel width to 272px for better POP display.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.41.0
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.42.0
 // @run-at       document-idle
 // @noframes
 // ==/UserScript==
@@ -1159,7 +1159,7 @@
             all: unset; /* Clear inherited styles on container */
             position: relative;
             box-sizing: border-box;
-            width: 252px; /* Reverted to 252px as requested */
+            width: 272px; /* Increased to 272px to accommodate longer POP values */
             padding: 14px 16px;
             border-radius: 14px;
             background-color: ${materialBase};
@@ -1547,7 +1547,12 @@
         const providerLabel =
             info.provider.includes('CDN') ||
                 info.provider.includes('Cloud') ||
-                info.provider.includes('Edge')
+                info.provider.includes('Edge') ||
+                info.provider === 'Imperva' ||
+                info.provider === 'Fastly' ||
+                info.provider === 'Vercel' ||
+                info.provider === 'Netlify' ||
+                info.provider === 'Akamai'
                 ? 'CDN'
                 : 'Server';
 

@@ -254,7 +254,8 @@
   },
   "Imperva": {
     "headers": {
-      "x-iinfo": null
+      "x-iinfo": null,
+      "x-cdn": "Imperva"
     },
     "id_header": "x-iinfo",
     "priority": 10
