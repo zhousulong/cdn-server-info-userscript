@@ -185,7 +185,7 @@
       "x-tt-trace-tag": null
     },
     "server": "TLB",
-    "id_header": "x-cdn-request-id",
+    "id_header": "x-tt-trace-id",
     "cnames": [
       "byteplus",
       "volcco",

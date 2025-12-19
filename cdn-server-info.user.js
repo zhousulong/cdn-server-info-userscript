@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.46.0
-// @description  [v7.46.0] Fixed BytePlus vs ByteDance detection conflict. Enhanced DNS matching to use priority-based selection when multiple CDNs share the same CNAME. Fixed Baidu logo display issue.
-// @description:en [v7.46.0] Fixed BytePlus vs ByteDance detection conflict. Enhanced DNS matching to use priority-based selection when multiple CDNs share the same CNAME. Fixed Baidu logo display issue.
+// @version      7.46.2
+// @description  [v7.46.2] Comprehensive server signature scoring update. Added aggressive weighting (+50) for 20+ unique CDN server headers (e.g. Byte-nginx, ESA, Lego Server) to prevent false positives.
+// @description:en [v7.46.2] Comprehensive server signature scoring update. Added aggressive weighting (+50) for 20+ unique CDN server headers (e.g. Byte-nginx, ESA, Lego Server) to prevent false positives.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.46.0
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.46.2
 // @connect      dns.alidns.com
 // @connect      dns.google
 // @grant        GM_xmlhttpRequest
@@ -926,11 +926,33 @@
                 score += 50;
             }
 
-            // 3. Server Header Check -> +10
+            // 3. Server Header Check -> +10 (or +50 for unique signatures)
             if (rule.server) {
                 const server = lowerCaseHeaders.get('server');
                 if (server && new RegExp(rule.server, 'i').test(server)) {
-                    score += 10;
+                    // Unique server signatures get higher weight (+50)
+                    // These are exclusive to specific CDNs and should almost guarantee a win against generic headers
+                    const uniqueServers = [
+                        'TLB', 'Byte-nginx', 'AkamaiGHost', 'cloudflare',
+                        'Lego Server', 'edgeone', 'CloudWAF', 'SLT-MID', // Tencent
+                        'ESA', // Alibaba
+                        'yunjiasu', 'JSP3', // Baidu
+                        'EdgeNext', 'ChinaCache',
+                        'MNCDN',
+                        'CFS', // CacheFly
+                        'ECS', 'ECAcc', // Edgio
+                        'PWS', 'ChinaNetCenter', // Wangsu
+                        'BunnyCDN',
+                        'keycdn',
+                        'stackpath',
+                        'HuaweiCloud',
+                        'CDN77',
+                        'Netlify',
+                        'HiNetCDN',
+                        'QRATOR'
+                    ];
+                    const isUnique = uniqueServers.some(sig => new RegExp(sig, 'i').test(rule.server));
+                    score += isUnique ? 50 : 10;
                 }
             }
 
