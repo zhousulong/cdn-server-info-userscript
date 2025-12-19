@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.16.9
-// @description  [v7.16.9] Improved Akamai cache detection using x-age header.
-// @description:en [v7.16.9] Improved Akamai cache detection using x-age header.
+// @version      7.17.0
+// @description  [v7.17.0] Fixed panel not showing when server header is missing.
+// @description:en [v7.17.0] Fixed panel not showing when server header is missing.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.16.9
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.17.0
 // @run-at       document-idle
 // @noframes
 // ==/UserScript==
@@ -803,20 +803,19 @@
 
             return result;
         }
+
+        // Fallback: No CDN detected, check if server header exists
         const server = lowerCaseHeaders.get('server');
-        if (server) {
-            const result = {
-                provider: server,
-                cache: getCacheStatus(lowerCaseHeaders),
-                pop: 'N/A',
-                extra: 'No CDN detected',
-                server: getServerInfo(lowerCaseHeaders),
-                connection: getConnectionInfo(response),
-                additional: getAdditionalInfo(lowerCaseHeaders),
-            };
-            return result;
-        }
-        return null;
+        const result = {
+            provider: server || 'Unknown',
+            cache: getCacheStatus(lowerCaseHeaders),
+            pop: 'N/A',
+            extra: server ? 'No CDN detected' : 'No server header found',
+            server: getServerInfo(lowerCaseHeaders),
+            connection: getConnectionInfo(response),
+            additional: getAdditionalInfo(lowerCaseHeaders),
+        };
+        return result;
     }
 
     // --- Icons & Assets ---
