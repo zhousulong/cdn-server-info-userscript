@@ -3,8 +3,8 @@
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
 // @version      7.42.0
-// @description  [v7.42.0] Fixed Imperva CDN detection (now shows as CDN instead of Server). Increased panel width to 272px for better POP display.
-// @description:en [v7.42.0] Fixed Imperva CDN detection (now shows as CDN instead of Server). Increased panel width to 272px for better POP display.
+// @description  [v7.42.0] Fixed Imperva CDN detection (now shows as CDN instead of Server). Optimized label width to give more space for POP values.
+// @description:en [v7.42.0] Fixed Imperva CDN detection (now shows as CDN instead of Server). Optimized label width to give more space for POP values.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -1159,7 +1159,7 @@
             all: unset; /* Clear inherited styles on container */
             position: relative;
             box-sizing: border-box;
-            width: 272px; /* Increased to 272px to accommodate longer POP values */
+            width: 252px; /* Optimal width for compact display */
             padding: 14px 16px;
             border-radius: 14px;
             background-color: ${materialBase};
@@ -1276,6 +1276,7 @@
             letter-spacing: 0px;
             flex-shrink: 0; /* Protect label from squeezing */
             margin-right: 8px;
+            width: 42px; /* Fixed width for labels */
         }
 
         .info-value {
@@ -1552,7 +1553,8 @@
                 info.provider === 'Fastly' ||
                 info.provider === 'Vercel' ||
                 info.provider === 'Netlify' ||
-                info.provider === 'Akamai'
+                info.provider === 'Akamai' ||
+                info.provider === 'SiteGround'
                 ? 'CDN'
                 : 'Server';
 
@@ -1613,8 +1615,8 @@
         // Add POP location if available and not N/A
         if (info.pop && info.pop !== 'N/A') {
             let displayPop = info.pop;
-            if (displayPop.length > 12) {
-                displayPop = displayPop.substring(0, 9) + '...';
+            if (displayPop.length > 18) {
+                displayPop = displayPop.substring(0, 15) + '...';
             }
             panelContent += `
                 <div class="info-line">
