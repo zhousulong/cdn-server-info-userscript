@@ -179,15 +179,19 @@
     "headers": {
       "x-cdn-request-id": null,
       "x-dynamic-status": null,
-      "x-link-via": null
+      "x-link-via": null,
+      "x-tt-trace-id": null,
+      "x-tt-logid": null,
+      "x-tt-trace-tag": null
     },
     "server": "TLB",
     "id_header": "x-cdn-request-id",
     "cnames": [
       "byteplus",
-      "volcco"
+      "volcco",
+      "edgesuite"
     ],
-    "priority": 12
+    "priority": 25
   },
   "ByteDance CDN": {
     "headers": {

@@ -1081,6 +1081,7 @@
                 });
 
                 if (result && result.Answer) {
+                    const candidates = [];
                     for (const record of result.Answer) {
                         const cname = record.data;
                         if (!cname) continue;
@@ -1093,14 +1094,28 @@
                             if (rule.cnames && Array.isArray(rule.cnames)) {
                                 for (const pattern of rule.cnames) {
                                     if (cleanCname.includes(pattern)) {
-                                        console.log(`[CDN DNS] Confirmed ${providerName} via CNAME: ${cleanCname}`);
-                                        const match = { provider: providerName, cname: cleanCname };
-                                        dnsCache.set(domain, match);
-                                        return match;
+                                        candidates.push({
+                                            provider: providerName,
+                                            cname: cleanCname,
+                                            priority: rule.priority || 0
+                                        });
                                     }
                                 }
                             }
                         }
+                    }
+
+                    // If multiple matches, choose the one with highest priority
+                    if (candidates.length > 0) {
+                        candidates.sort((a, b) => b.priority - a.priority);
+                        const winner = candidates[0];
+                        console.log(`[CDN DNS] Confirmed ${winner.provider} via CNAME: ${winner.cname} (Priority: ${winner.priority})`);
+                        if (candidates.length > 1) {
+                            console.log(`[CDN DNS] Runner-up: ${candidates[1].provider} (Priority: ${candidates[1].priority})`);
+                        }
+                        const match = { provider: winner.provider, cname: winner.cname };
+                        dnsCache.set(domain, match);
+                        return match;
                     }
                 }
             } catch (e) {
