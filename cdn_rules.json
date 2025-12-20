@@ -49,7 +49,9 @@
       "dnsv1",
       "tcdn",
       "spcdntip",
-      "dnse4"
+      "dnse4",
+      "dnse2",
+      "dnse5"
     ],
     "priority": 10
   },
@@ -167,7 +169,7 @@
     ],
     "priority": 10
   },
-  "Kingsoft Cloud": {
+  "Kingsoft Cloud CDN": {
     "headers": {
       "x-kss-request-id": null,
       "x-cache-status": "KS-CLOUD-",
@@ -248,7 +250,7 @@
     ],
     "priority": 26
   },
-  "State Cloud": {
+  "State Cloud CDN": {
     "headers": {
       "ctl-cache-status": null,
       "x-ct-request-id": null
@@ -282,7 +284,8 @@
       "wsglb0",
       "wscdns",
       "lxdns",
-      "chinanetcenter"
+      "chinanetcenter",
+      "wswebcdn"
     ],
     "priority": 11
   },
@@ -459,7 +462,7 @@
     },
     "priority": 9
   },
-  "Huawei Cloud": {
+  "Huawei Cloud CDN": {
     "headers": {
       "x-h-cache-status": null,
       "x-hw-request-id": null,
