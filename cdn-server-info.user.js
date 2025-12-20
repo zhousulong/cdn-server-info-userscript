@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.47.13
-// @description  [v7.47.13] Renamed Kingsoft Cloud and State Cloud to include CDN suffix for consistency.
-// @description:en [v7.47.13] Renamed Kingsoft Cloud and State Cloud to include CDN suffix for consistency.
+// @version      7.48.0
+// @description  [v7.48.0] Enhanced CDN detection: improved Akamai cache/POP detection, added Azure fingerprints, fixed DNS display and icon rendering.
+// @description:en [v7.48.0] Enhanced CDN detection: improved Akamai cache/POP detection, added Azure fingerprints, fixed DNS display and icon rendering.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
