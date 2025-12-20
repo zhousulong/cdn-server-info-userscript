@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.47.3
-// @description  [v7.47.3] Added comprehensive DNS detection logging for debugging. Now shows: start, cache hit, no CNAME, query failures.
-// @description:en [v7.47.3] Added comprehensive DNS detection logging for debugging. Now shows: start, cache hit, no CNAME, query failures.
+// @version      7.47.7
+// @description  [v7.47.7] UI adjustment: Reduced spacing for DNS status line for a more compact look.
+// @description:en [v7.47.7] UI adjustment: Reduced spacing for DNS status line for a more compact look.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.47.3
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.47.7
 // @connect      dns.alidns.com
 // @connect      dns.google
 // @grant        GM_xmlhttpRequest
@@ -1112,6 +1112,8 @@
 
                 if (result && result.Answer) {
                     const candidates = [];
+                    const foundCnames = [];
+
                     for (const record of result.Answer) {
                         const cname = record.data;
                         if (!cname) continue;
@@ -1119,6 +1121,7 @@
                         // Check against rules
                         // Remove trailing dot if present
                         const cleanCname = cname.endsWith('.') ? cname.slice(0, -1) : cname;
+                        foundCnames.push(cleanCname);
 
                         for (const [providerName, rule] of Object.entries(cdnRules)) {
                             if (rule.cnames && Array.isArray(rule.cnames)) {
@@ -1146,6 +1149,8 @@
                         const match = { provider: winner.provider, cname: winner.cname };
                         dnsCache.set(domain, match);
                         return match;
+                    } else if (foundCnames.length > 0) {
+                        console.log(`[CDN DNS] Found CNAME(s) but no matching CDN: ${foundCnames.join(', ')}`);
                     }
                 }
             } catch (e) {
@@ -1517,11 +1522,12 @@
             font-family: ${monoFont};
             font-size: 9px;
             color: ${isDarkTheme ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.3)'};
-            margin-top: 8px;
-            padding-top: 6px;
+            margin-top: 3px;
+            padding-top: 2px;
             border-top: 1px solid ${isDarkTheme ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)'};
             letter-spacing: 0.3px;
             opacity: 0.8;
+            line-height: 1.2;
         }
         
         

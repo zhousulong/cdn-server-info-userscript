@@ -24,7 +24,10 @@
       "akadns",
       "edgekey",
       "akamaiedge",
-      "edgesuite"
+      "edgesuite",
+      "akamaized",
+      "akamaihd",
+      "akamaiorigin"
     ],
     "priority": 10
   },
@@ -44,7 +47,8 @@
       "cdntip",
       "myqcloud",
       "dnsv1",
-      "tcdn"
+      "tcdn",
+      "spcdntip"
     ],
     "priority": 10
   },
@@ -66,7 +70,9 @@
     "cnames": [
       "kunlun",
       "alicdn",
-      "tbcache"
+      "tbcache",
+      "initac",
+      "cdngslb"
     ],
     "priority": 20
   },
@@ -86,7 +92,8 @@
     "cnames": [
       "bdydns",
       "yunjiasu",
-      "jomax"
+      "jomax",
+      "jomodns"
     ],
     "priority": 10
   },
@@ -139,6 +146,11 @@
       "x-reqid": null,
       "x-m-reqid": null
     },
+    "cnames": [
+      "qiniudns",
+      "qbox",
+      "qiniu"
+    ],
     "priority": 11
   },
   "UpYun": {
@@ -147,6 +159,10 @@
       "x-upyun-height": null,
       "x-upyun-frames": null
     },
+    "cnames": [
+      "aicdn",
+      "upai"
+    ],
     "priority": 10
   },
   "Kingsoft Cloud": {
@@ -155,6 +171,10 @@
       "x-cache-status": "KS-CLOUD-",
       "x-link-via": null
     },
+    "cnames": [
+      "ksyuncdn",
+      "ks-cdn"
+    ],
     "id_header": "x-kss-request-id",
     "priority": 15
   },
@@ -162,6 +182,12 @@
     "headers": {
       "x-bs-request-id": null
     },
+    "cnames": [
+      "qingcdn",
+      "trpcdn",
+      "bsclink",
+      "bsgslb"
+    ],
     "custom_check_logic": "check_aws_compat",
     "priority": 10
   },
@@ -172,7 +198,9 @@
     },
     "report-to": "gcore-nel",
     "cnames": [
-      "gcdn"
+      "gcdn",
+      "gcore",
+      "gcorelabs"
     ],
     "priority": 10
   },
@@ -212,7 +240,9 @@
     "cnames": [
       "bytedns",
       "toutiaocloud",
-      "volc"
+      "volc",
+      "volcgslb",
+      "bytefcdn"
     ],
     "priority": 26
   },
@@ -245,7 +275,12 @@
       "cdnetworks",
       "cdngc",
       "panthercdn",
-      "gccdn"
+      "gccdn",
+      "wsdvs",
+      "wsglb0",
+      "wscdns",
+      "lxdns",
+      "chinanetcenter"
     ],
     "priority": 11
   },
@@ -259,7 +294,8 @@
     "id_header": "cf-ray",
     "cnames": [
       "cloudflare",
-      "cdn.cloudflare.net"
+      "cdn.cloudflare.net",
+      "cloudflare.net"
     ],
     "priority": 10
   },
@@ -293,7 +329,8 @@
     "id_header": "x-azure-ref",
     "cnames": [
       "azureedge",
-      "azurefd"
+      "azurefd",
+      "msecnd"
     ],
     "priority": 10
   },
@@ -307,7 +344,8 @@
     "pop_regex": "-([^-]+)$",
     "id_header": "x-fastly-request-id",
     "cnames": [
-      "fastly"
+      "fastly",
+      "fastlylb"
     ],
     "priority": 9
   },
@@ -421,7 +459,10 @@
     "id_header": "x-obs-request-id",
     "cnames": [
       "huaweicloud",
-      "hwcdn"
+      "hwcdn",
+      "cdnhwc",
+      "cdnhwc2",
+      "hcdn"
     ],
     "priority": 12
   },
