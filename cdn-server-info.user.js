@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.47.2
-// @description  [v7.47.2] DNS detection enhancements: watermark auto-update on conflict, bottom status line. Renamed Tencent Cloud to Tencent Cloud CDN.
-// @description:en [v7.47.2] DNS detection enhancements: watermark auto-update on conflict, bottom status line. Renamed Tencent Cloud to Tencent Cloud CDN.
+// @version      7.47.3
+// @description  [v7.47.3] Added comprehensive DNS detection logging for debugging. Now shows: start, cache hit, no CNAME, query failures.
+// @description:en [v7.47.3] Added comprehensive DNS detection logging for debugging. Now shows: start, cache hit, no CNAME, query failures.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.47.2
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.47.3
 // @connect      dns.alidns.com
 // @connect      dns.google
 // @grant        GM_xmlhttpRequest
@@ -1073,8 +1073,16 @@
     const dnsCache = new Map(); // Cache results to avoid redundant requests
 
     async function checkDNS(domain) {
-        if (!domain) return null;
-        if (dnsCache.has(domain)) return dnsCache.get(domain);
+        if (!domain) {
+            console.log('[CDN DNS] Skipped: no domain');
+            return null;
+        }
+        if (dnsCache.has(domain)) {
+            console.log('[CDN DNS] Using cached result for', domain);
+            return dnsCache.get(domain);
+        }
+
+        console.log('[CDN DNS] Starting DNS lookup for', domain);
 
         // Try Alibaba DNS first (China friendly), then Google DNS
         const dohProviders = [
@@ -1146,6 +1154,7 @@
             }
         }
 
+        console.log('[CDN DNS] No CNAME found for', domain);
         dnsCache.set(domain, null);
         return null;
     }
