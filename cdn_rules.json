@@ -48,7 +48,8 @@
       "myqcloud",
       "dnsv1",
       "tcdn",
-      "spcdntip"
+      "spcdntip",
+      "dnse4"
     ],
     "priority": 10
   },
@@ -161,7 +162,8 @@
     },
     "cnames": [
       "aicdn",
-      "upai"
+      "upai",
+      "upyun"
     ],
     "priority": 10
   },
@@ -386,6 +388,9 @@
     "pop_header": "server",
     "pop_regex": "BunnyCDN-([A-Z0-9]+)-",
     "id_header": "cdn-requestid",
+    "cnames": [
+      "b-cdn"
+    ],
     "priority": 10
   },
   "KeyCDN": {
@@ -393,6 +398,9 @@
       "x-keycdn-cache": null
     },
     "server": "keycdn-engine",
+    "cnames": [
+      "kxcdn"
+    ],
     "priority": 8
   },
   "StackPath": {
@@ -404,6 +412,9 @@
     },
     "server": "stackpath",
     "id_header": "x-proxy-cache-info",
+    "cnames": [
+      "stackpathdns"
+    ],
     "priority": 9
   },
   "JD Cloud CDN": {
@@ -424,6 +435,9 @@
     },
     "pop_header": "x-qc-pop",
     "pop_regex": "^[A-Z]{2}-[A-Z]{2}-([A-Z]{3,4})-",
+    "cnames": [
+      "quicns"
+    ],
     "priority": 9
   },
   "Vercel": {
@@ -433,6 +447,9 @@
     "pop_header": "x-vercel-id",
     "pop_regex": "^([a-zA-Z]+)",
     "id_header": "x-vercel-id",
+    "cnames": [
+      "vercel"
+    ],
     "priority": 10
   },
   "Wovn.io": {
@@ -473,6 +490,9 @@
     },
     "server": "CDN77",
     "pop_header": "x-cdn-pop",
+    "cnames": [
+      "cdn77"
+    ],
     "priority": 8
   },
   "Netlify": {
@@ -481,11 +501,13 @@
     },
     "server": "Netlify",
     "id_header": "x-nf-request-id",
+    "cnames": [
+      "netlify"
+    ],
     "priority": 10
   },
   "HiNet CDN": {
     "server": "HiNetCDN",
-    "id_header": "x-request-id",
     "priority": 10
   },
   "SwiftServe CDN": {
@@ -524,6 +546,26 @@
       "x-app-instance-ing": null
     },
     "server": "QRATOR",
+    "priority": 10
+  },
+  "UCloud": {
+    "cnames": [
+      "ucloud.com.cn",
+      "cdn.ucloud.com.cn"
+    ],
+    "priority": 10
+  },
+  "QingCloud": {
+    "cnames": [
+      "qingcache"
+    ],
+    "priority": 10
+  },
+  "Diliun": {
+    "cnames": [
+      "dnion",
+      "fastcdn"
+    ],
     "priority": 10
   },
   "Nginx": {

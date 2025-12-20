@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.47.7
-// @description  [v7.47.7] UI adjustment: Reduced spacing for DNS status line for a more compact look.
-// @description:en [v7.47.7] UI adjustment: Reduced spacing for DNS status line for a more compact look.
+// @version      7.47.9
+// @description  [v7.47.9] Added UCloud, QingCloud, Diliun CDN CNAME patterns. Comprehensive CNAME update continued.
+// @description:en [v7.47.9] Added UCloud, QingCloud, Diliun CDN CNAME patterns. Comprehensive CNAME update continued.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.47.7
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.47.9
 // @connect      dns.alidns.com
 // @connect      dns.google
 // @grant        GM_xmlhttpRequest
@@ -1199,6 +1199,9 @@
                 }
                 if (iconKey) {
                     watermark.innerHTML = cdnIcons[iconKey];
+                } else {
+                    // No matching icon found, clear the watermark
+                    watermark.innerHTML = '';
                 }
             }
 
