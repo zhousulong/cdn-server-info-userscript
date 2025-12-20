@@ -6,7 +6,9 @@
       "x-akamai-request-id": null,
       "x-ak-cache": null,
       "x-reference-error": null,
-      "server-timing": "ak_p"
+      "server-timing": "ak_p",
+      "x-visitor-country": null,
+      "x-visitor-continent": null
     },
     "server": "AkamaiGHost",
     "cookies": {
@@ -335,7 +337,11 @@
     "cnames": [
       "azureedge",
       "azurefd",
-      "msecnd"
+      "msecnd",
+      "chinacloudsites",
+      "cloudapp.azure",
+      "azurewebsites",
+      "blob.core.windows"
     ],
     "priority": 10
   },

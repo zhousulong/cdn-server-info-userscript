@@ -104,20 +104,31 @@
             getInfo: (h, rule) => {
                 let cache = 'N/A';
 
-                // Priority 1: Check x-ak-cache (Akamai specific)
-                const xAkCache = h.get('x-ak-cache');
-                if (xAkCache) {
-                    const status = xAkCache.toUpperCase();
-                    if (status.includes('HIT')) {
-                        cache = 'HIT';
-                    } else if (status.includes('MISS')) {
-                        cache = 'MISS';
-                    } else if (status.includes('ERROR')) {
-                        cache = 'ERROR';
+                // Priority 1: Check server-timing cdn-cache (modern Akamai)
+                const serverTiming = h.get('server-timing');
+                if (serverTiming) {
+                    const cdnCacheMatch = serverTiming.match(/cdn-cache;\s*desc=([^,;]+)/i);
+                    if (cdnCacheMatch && cdnCacheMatch[1]) {
+                        cache = cdnCacheMatch[1].trim().toUpperCase();
                     }
                 }
 
-                // Priority 2: Check x-tzla-edge-cache-hit (Tesla specific)
+                // Priority 2: Check x-ak-cache (Akamai specific)
+                if (cache === 'N/A') {
+                    const xAkCache = h.get('x-ak-cache');
+                    if (xAkCache) {
+                        const status = xAkCache.toUpperCase();
+                        if (status.includes('HIT')) {
+                            cache = 'HIT';
+                        } else if (status.includes('MISS')) {
+                            cache = 'MISS';
+                        } else if (status.includes('ERROR')) {
+                            cache = 'ERROR';
+                        }
+                    }
+                }
+
+                // Priority 3: Check x-tzla-edge-cache-hit (Tesla specific)
                 if (cache === 'N/A') {
                     const tzlaHit = h.get('x-tzla-edge-cache-hit');
                     if (tzlaHit) {
@@ -125,7 +136,7 @@
                     }
                 }
 
-                // Priority 3: Check x-age header
+                // Priority 4: Check x-age header
                 if (cache === 'N/A') {
                     const xAge = h.get('x-age');
                     if (xAge !== null) {
@@ -165,6 +176,19 @@
                     }
                 }
 
+                // Strategy 3: EdgeScape geo headers (fallback for location info)
+                if (pop === 'N/A') {
+                    const country = h.get('x-visitor-country');
+                    const continent = h.get('x-visitor-continent');
+                    if (country) {
+                        // Use country code as POP indicator (e.g., "JP", "US", "CN")
+                        pop = country.toUpperCase();
+                        // Add continent info if available for better context
+                        if (continent) {
+                            pop = `${continent.toUpperCase()}-${pop}`;
+                        }
+                    }
+                }
 
                 // Extract request ID if available
                 let requestId = h.get('x-request-id') || h.get('x-akamai-request-id') || h.get('x-cache-uuid') || h.get('x-reference-error');
@@ -1150,7 +1174,11 @@
                         dnsCache.set(domain, match);
                         return match;
                     } else if (foundCnames.length > 0) {
+                        // Found CNAME but no matching CDN - still return the CNAME for display
                         console.log(`[CDN DNS] Found CNAME(s) but no matching CDN: ${foundCnames.join(', ')}`);
+                        const match = { provider: null, cname: foundCnames[0] };
+                        dnsCache.set(domain, match);
+                        return match;
                     }
                 }
             } catch (e) {
@@ -1178,7 +1206,7 @@
         const providerValue = firstInfoLine.querySelector('.info-value');
         if (!providerValue) return;
 
-        if (dnsResult.provider !== currentInfo.provider) {
+        if (dnsResult.provider && dnsResult.provider !== currentInfo.provider) {
             // DNS result differs from header detection - SILENTLY OVERRIDE
             console.log(`[CDN DNS] ⚠️ Correcting provider from ${currentInfo.provider} to ${dnsResult.provider}`);
 
@@ -1187,29 +1215,52 @@
             providerValue.title = `Detected via DNS: ${dnsResult.cname}`;
 
             // Update watermark to match new provider
-            const watermark = panel.shadowRoot.querySelector('.cdn-watermark');
-            if (watermark) {
-                let iconKey = Object.keys(cdnIcons).find(key => key === dnsResult.provider);
-                if (!iconKey) {
-                    iconKey = Object.keys(cdnIcons).find(key => {
-                        const providerLower = dnsResult.provider.toLowerCase();
-                        const keyLower = key.toLowerCase();
-                        return providerLower.includes(keyLower) || keyLower.includes(providerLower);
-                    });
-                }
-                if (iconKey) {
-                    watermark.innerHTML = cdnIcons[iconKey];
+            let watermark = panel.shadowRoot.querySelector('.cdn-watermark');
+
+            // Find the icon for the new provider
+            let iconKey = Object.keys(cdnIcons).find(key => key === dnsResult.provider);
+            if (!iconKey) {
+                iconKey = Object.keys(cdnIcons).find(key => {
+                    const providerLower = dnsResult.provider.toLowerCase();
+                    const keyLower = key.toLowerCase();
+                    return providerLower.includes(keyLower) || keyLower.includes(providerLower);
+                });
+            }
+
+            if (iconKey) {
+                const iconSvg = cdnIcons[iconKey];
+                if (watermark) {
+                    // Update existing watermark
+                    watermark.innerHTML = iconSvg;
+                    console.log('[CDN DNS] Updated existing watermark icon');
                 } else {
-                    // No matching icon found, clear the watermark
+                    // Create new watermark element
+                    watermark = document.createElement('div');
+                    watermark.className = 'cdn-watermark';
+                    watermark.innerHTML = iconSvg;
+                    const panelElement = panel.shadowRoot.querySelector('#cdn-info-panel-enhanced');
+                    if (panelElement) {
+                        panelElement.insertBefore(watermark, panelElement.firstChild);
+                        console.log('[CDN DNS] Created new watermark icon');
+                    }
+                }
+            } else {
+                // No matching icon found
+                if (watermark) {
                     watermark.innerHTML = '';
                 }
+                console.log('[CDN DNS] No icon found for:', dnsResult.provider);
             }
 
             // Add DNS status at bottom
             addDNSStatus(panel, `DNS: ${dnsResult.cname}`);
         } else {
-            // DNS result matches header detection - silent confirmation
-            console.log(`[CDN DNS] ✓ Confirmed ${dnsResult.provider} via CNAME: ${dnsResult.cname}`);
+            // No provider match or provider matches - just show CNAME
+            if (dnsResult.provider) {
+                console.log(`[CDN DNS] ✓ Confirmed ${dnsResult.provider} via CNAME: ${dnsResult.cname}`);
+            } else {
+                console.log(`[CDN DNS] Found CNAME but no CDN match: ${dnsResult.cname}`);
+            }
             addDNSStatus(panel, `DNS: ${dnsResult.cname}`);
         }
     }
@@ -1225,7 +1276,14 @@
             statusLine.className = 'dns-status';
             panel.shadowRoot.querySelector('#cdn-info-panel-enhanced').appendChild(statusLine);
         }
-        statusLine.textContent = statusText;
+
+        const prefix = "DNS: ";
+        let value = statusText;
+        if (statusText.startsWith(prefix)) {
+            value = statusText.substring(prefix.length);
+        }
+
+        statusLine.innerHTML = `<span class="dns-label">DNS:</span><span class="dns-value" title="${value}">${value}</span>`;
     }
 
     // --- UI & Execution Functions ---
@@ -1520,17 +1578,37 @@
         }
 
         /* DNS Status Line */
+        /* DNS Status Line */
         .dns-status {
-            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             font-family: ${monoFont};
             font-size: 9px;
             color: ${isDarkTheme ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.3)'};
-            margin-top: 3px;
-            padding-top: 2px;
+            margin-top: 1px;
+            padding-top: 1px;
             border-top: 1px solid ${isDarkTheme ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)'};
             letter-spacing: 0.3px;
             opacity: 0.8;
-            line-height: 1.2;
+            line-height: normal;
+            width: 100%;
+        }
+        
+        .dns-label {
+            white-space: nowrap;
+            flex-shrink: 0;
+            margin-right: 4px;
+        }
+
+        .dns-value {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            direction: rtl;
+            text-align: right;
+            flex: 1;
+            min-width: 0;
         }
         
         
@@ -1784,9 +1862,12 @@
 
         // Find watermark icon based on CDN provider
         let watermarkSvg = '';
+        console.log('[CDN Icon] Looking for icon for provider:', info.provider);
+
         if (cdnIcons[info.provider]) {
             // Exact match
             watermarkSvg = cdnIcons[info.provider];
+            console.log('[CDN Icon] Found exact match');
         } else {
             // Fuzzy match: try multiple strategies
             // Strategy 1: Check if provider name contains any icon key
@@ -1802,7 +1883,12 @@
                 });
             }
 
-            if (iconKey) watermarkSvg = cdnIcons[iconKey];
+            if (iconKey) {
+                watermarkSvg = cdnIcons[iconKey];
+                console.log('[CDN Icon] Found fuzzy match:', iconKey);
+            } else {
+                console.log('[CDN Icon] No icon found for:', info.provider);
+            }
         }
         const watermarkHtml = watermarkSvg ? `<div class="cdn-watermark">${watermarkSvg}</div>` : '';
 
