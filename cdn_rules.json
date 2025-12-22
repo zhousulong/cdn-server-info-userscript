@@ -67,7 +67,9 @@
       "cdn.dnsv1",
       "txlivecdn",
       "tlivepush",
-      "tcmpp-dev"
+      "tcmpp-dev",
+      "dnse0",
+      "qcloudzygj"
     ],
     "priority": 10
   },
@@ -176,7 +178,8 @@
     "cnames": [
       "qiniudns",
       "qbox",
-      "qiniu"
+      "qiniu",
+      "qncdn"
     ],
     "priority": 11
   },
@@ -313,7 +316,8 @@
       "wscdns",
       "lxdns",
       "chinanetcenter",
-      "wswebcdn"
+      "wswebcdn",
+      "cdn20"
     ],
     "priority": 11
   },
@@ -461,7 +465,9 @@
     "cnames": [
       "jcloud",
       "jcloudcs",
-      "jdcdn"
+      "jdcdn",
+      "jcloud-cdn",
+      "jcloudlb"
     ],
     "priority": 10
   },
@@ -611,6 +617,30 @@
       "fastcdn"
     ],
     "priority": 10
+  },
+  "VergeCloud": {
+    "headers": {
+      "x-cache-status": null,
+      "x-request-id": null,
+      "x-served-by": null
+    },
+    "server": "vergecloud",
+    "id_header": "x-request-id",
+    "priority": 15
+  },
+  "OVHcloud CDN": {
+    "headers": {
+      "x-cdn-pop": null,
+      "x-cdn-pop-ip": null,
+      "x-iplb-instance": null,
+      "x-iplb-request-id": null,
+      "x-toujours-debout-branch": null,
+      "x-toujours-debout-location": null,
+      "x-cacheable": null
+    },
+    "pop_header": "x-cdn-pop",
+    "id_header": "x-iplb-request-id",
+    "priority": 15
   },
   "Nginx": {
     "server": "nginx",
