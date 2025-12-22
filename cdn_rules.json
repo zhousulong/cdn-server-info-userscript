@@ -442,9 +442,18 @@
     ],
     "priority": 8
   },
-  "StackPath": {
+  "StackCDN": {
     "headers": {
       "x-provided-by": "StackCDN",
+      "x-cdn-cache-status": null,
+      "x-origin-cache-status": null,
+      "x-via": null
+    },
+    "pop_header": "x-via",
+    "priority": 10
+  },
+  "StackPath": {
+    "headers": {
       "x-scp-served-by": null,
       "x-scp-cache-status": null,
       "x-hw": null

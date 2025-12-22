@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.50.5
-// @description  [v7.50.5] Enhanced CDN77 detection with additional headers (x-77-cache, x-77-age); Added CDN77 detection and SVG icon; Added OVHcloud CDN SVG icon; Added OVHcloud CDN detection; Added VergeCloud CDN detection; Added Qiniu Cloud SVG icon and CNAME fingerprint (qncdn); Added Tencent Cloud CNAME fingerprint (qcloudzygj); Added CDNetworks CNAME fingerprint (cdn20); Added JD Cloud CNAME fingerprints (jcloud-cdn, jcloudlb) and SVG icon; Added Huawei Cloud CNAME fingerprint (cdnhwcgqa21).
-// @description:en [v7.50.5] Enhanced CDN77 detection with additional headers (x-77-cache, x-77-age); Added CDN77 detection and SVG icon; Added OVHcloud CDN SVG icon; Added OVHcloud CDN detection; Added VergeCloud CDN detection; Added Qiniu Cloud SVG icon and CNAME fingerprint (qncdn); Added Tencent Cloud CNAME fingerprint (qcloudzygj); Added CDNetworks CNAME fingerprint (cdn20); Added JD Cloud CNAME fingerprints (jcloud-cdn, jcloudlb) and SVG icon; Added Huawei Cloud CNAME fingerprint (cdnhwcgqa21).
+// @version      7.50.6
+// @description  [v7.50.6] Added StackCDN detection (separate from StackPath); Enhanced CDN77 detection with additional headers (x-77-cache, x-77-age); Added CDN77 detection and SVG icon; Added OVHcloud CDN SVG icon; Added OVHcloud CDN detection; Added VergeCloud CDN detection; Added Qiniu Cloud SVG icon and CNAME fingerprint (qncdn); Added Tencent Cloud CNAME fingerprint (qcloudzygj); Added CDNetworks CNAME fingerprint (cdn20); Added JD Cloud CNAME fingerprints (jcloud-cdn, jcloudlb) and SVG icon; Added Huawei Cloud CNAME fingerprint (cdnhwcgqa21).
+// @description:en [v7.50.6] Added StackCDN detection (separate from StackPath); Enhanced CDN77 detection with additional headers (x-77-cache, x-77-age); Added CDN77 detection and SVG icon; Added OVHcloud CDN SVG icon; Added OVHcloud CDN detection; Added VergeCloud CDN detection; Added Qiniu Cloud SVG icon and CNAME fingerprint (qncdn); Added Tencent Cloud CNAME fingerprint (qcloudzygj); Added CDNetworks CNAME fingerprint (cdn20); Added JD Cloud CNAME fingerprints (jcloud-cdn, jcloudlb) and SVG icon; Added Huawei Cloud CNAME fingerprint (cdnhwcgqa21).
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.50.5
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.50.6
 // @connect      dns.alidns.com
 // @connect      dns.google
 // @grant        GM_xmlhttpRequest
