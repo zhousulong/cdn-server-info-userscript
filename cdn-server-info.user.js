@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.48.0
-// @description  [v7.48.0] Enhanced CDN detection: improved Akamai cache/POP detection, added Azure fingerprints, fixed DNS display and icon rendering.
-// @description:en [v7.48.0] Enhanced CDN detection: improved Akamai cache/POP detection, added Azure fingerprints, fixed DNS display and icon rendering.
+// @version      7.49.0
+// @description  [v7.49.0] Major update: added extensive CNAME fingerprints for all major CDNs, fixed CNAME matching logic (domain-aware), added BaishanCloud icon, fixed DNS display direction issue.
+// @description:en [v7.49.0] Major update: added extensive CNAME fingerprints for all major CDNs, fixed CNAME matching logic (domain-aware), added BaishanCloud icon, fixed DNS display direction issue.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -1090,6 +1090,7 @@
         'QRATOR': `<svg viewBox="0 0 26.37 26.58"><path fill="currentColor" d="M20.99,26.58c-2.98,0-5.39-2.45-5.39-5.43s2.43-5.43,5.39-5.43,5.39,2.45,5.39,5.43-2.41,5.43-5.39,5.43ZM20.99,16.54c-2.51,0-4.58,2.06-4.58,4.61s2.04,4.61,4.58,4.61,4.58-2.06,4.58-4.61-2.06-4.61-4.58-4.61Z"/><path fill="currentColor" d="M12.98,26.18C5.83,26.18,0,20.32,0,13.09S5.81,0,12.98,0s12.98,5.86,12.98,13.09-5.83,13.09-12.98,13.09ZM12.98.84C6.28.84.83,6.33.83,13.09s5.45,12.25,12.15,12.25,12.15-5.49,12.15-12.25S19.69.84,12.98.84Z"/><path fill="currentColor" fill-opacity="0.5" d="M12.86.6C6.39.86.66,6.46.66,13.05s5.77,12.14,12.24,12.4l-.04-24.85Z"/><path fill="currentColor" fill-opacity="0.3" d="M12.86.6c-.4.02-3.3.49-3.3.49l3.3,14.1V.6Z"/></svg>`,
         'CacheFly': `<svg viewBox="0 0 181.57 186"><path fill="currentColor" d="M102.47 25.64l-1.61 16.66 17.58-10.09 18.84 12.2L180.83 0l-98.67 5.8 18.19 16.04 58.6-16.04-56.49 19.84h0ZM66.66 33.93l-20.11-2.34 1.84-15.93 20.11 2.34-1.84 15.93h0ZM85.81 54.84l-20.03-2.69 1.8-18.23 20.07 2.72-1.84 18.19ZM63.82 67.89l-19.99-2.23 1.92-16.04 20.03 2.26-1.96 16ZM67.01 91.38l-14.97-1.81 1.5-13.85 14.97 1.88-1.5 13.78h0ZM25.98 101.81l-15.04-1.57 1.46-11.47 15.01 1.65s-1.42 11.4-1.42 11.4ZM39.68 122.73l-15.01-1.61 1.38-11.47 15.04 1.65-1.42 11.44Z"/><path fill="currentColor" d="M26.25 130.56l-12.59-1.3 1.19-9.13 12.55 1.27-1.15 9.17ZM53.27 99.2l-14.93-1.84 1.53-13.82 14.89 1.88s-1.5 13.78-1.5 13.78ZM116.13 65.28l-17.46-1.92 1.65-13.74 17.5 1.92s-1.69 13.74-1.69 13.74ZM91.8 70.5l-15.08-1.65 1.34-11.4 15.08 1.69-1.34 11.36h0ZM23.49 146.22l-12.55-1.34 1.19-9.1 12.55 1.38s-1.19 9.06-1.19 9.06ZM28.97 164.48l-12.51-1.34 1.11-9.1 12.59 1.34-1.19 9.1h0ZM51 177.53l-9.9-1.15 1.07-9.29 9.86 1.19-1.04 9.25ZM67.43 180.14l-9.86-1.15 1-9.29 9.94 1.19s-1.07 9.25-1.08 9.25ZM75.91 172.31l-7.41-.84.77-6.99 7.45.92-.81 6.91h0ZM89.65 185.36l-7.49-.85.81-6.99 7.41.92-.73 6.91h0ZM108.8 180.14l-7.41-.85.81-6.99 7.41.92-.81 6.91ZM117.28 167.09l-4.95-.58.54-4.64 4.95.58s-.54 4.64-.54 4.64ZM42.87 156.65l-9.98-1.23 1-9.21 9.94 1.23-.96 9.21h0Z"/><path fill="currentColor" d="M51.08 161.87l-9.98-.88 1-6.95 9.94.96-.96 6.87h0ZM12.55 135.78l-12.55-1.34 1.11-9.1 12.55 1.38-1.11 9.06h0ZM12.55 107.03l-12.55-1.3 1.11-9.13 12.55 1.38-1.11 9.06h0ZM36.84 78.33l-14.89-1.8 1.5-13.85 14.89 1.8s-1.5 13.85-1.5 13.85Z"/></svg>`,
         'Baidu Cloud CDN': `<svg viewBox="0 0 10 11"><path fill="currentColor" fill-rule="evenodd" d="M3.4,5.4c.5-.9,2-1.5,3.1.1.8,1.1,2.1,2.2,2.1,2.2,0,0,1,.8.4,2.3-.6,1.5-2.8.8-3,.7h0s-.9-.3-1.9,0c-1,.2-1.9.1-1.9.1h0c-.2,0-1.2,0-1.5-1.5-.3-1.5,1.2-2.3,1.3-2.5.1-.1.9-.7,1.4-1.5ZM3.9,6.2v1h-.8s-.8,0-1.1,1c0,.6,0,1,.1,1.1,0,0,.3.5,1,.7h1.5v-3.8s-.7,0-.7,0ZM5.7,7.3h-.7v2s0,.5.7.7h1.8v-2.7h-.8v2h-.7s-.2,0-.3-.2v-1.8ZM3.9,7.9v1.5h-.6s-.4,0-.6-.5c0-.2,0-.5,0-.6,0-.1.2-.3.5-.4h.7ZM8.7,3.3c1,0,1.3,1,1.3,1.4s.1,1.8-1.2,1.8c-1.3,0-1.4-.9-1.4-1.5s.1-1.7,1.2-1.7ZM1.1,2.5c.8,0,1.3.8,1.4,1.3,0,.3.2,1.7-1,2C.3,6.1,0,4.7,0,4c0,0,.1-1.4,1.1-1.5ZM5.6,1.8c0-.7.8-1.7,1.5-1.5.6.1,1.2,1,1.1,1.7-.1.7-.7,1.7-1.5,1.5-.9-.1-1.1-.9-1-1.7ZM3.7,0c.7,0,1.2.8,1.2,1.7s-.5,1.7-1.2,1.7-1.2-.8-1.2-1.7.5-1.7,1.2-1.7Z"/></svg>`,
+        'BaishanCloud': `<svg viewBox="0 0 73.3 73.4" xmlns="http://www.w3.org/2000/svg"><g><polygon fill="#076fb8" points="59.6 73.4 73.3 73.4 46.6 0 26.7 0 0 73.4 13.7 73.4 32.1 22.9 41.2 22.9 59.6 73.4"/><polygon fill="#e83928" points="39.7 50.4 33.5 50.4 25.2 73.4 48.1 73.4 39.7 50.4"/></g></svg>`,
         'HiNet CDN': `<svg viewBox="0 0 117.7 60.02"><g><g><g><g><polygon fill="currentColor" fill-opacity="0.7" points="62.6 37.1 66.6 37.1 66.6 40.5 62.6 40.5 62.6 37.1 62.6 37.1 62.6 37.1 62.6 37.1"/><polygon fill="currentColor" fill-opacity="0.7" points="67.2 40.8 71.1 40.8 71.1 44.3 67.2 44.3 67.2 40.8 67.2 40.8 67.2 40.8 67.2 40.8"/><polygon fill="currentColor" fill-opacity="0.7" points="71.1 25.4 75 25.4 75 28.8 71.1 28.8 71.1 25.4 71.1 25.4 71.1 25.4 71.1 25.4"/><polygon fill="currentColor" fill-opacity="0.7" points="78.9 17.7 82.7 17.7 82.7 21.1 78.9 21.1 78.9 17.7 78.9 17.7 78.9 17.7 78.9 17.7"/><polygon fill="currentColor" fill-opacity="0.7" points="75 13.8 78.8 13.8 78.8 17.2 75 17.2 75 13.8 75 13.8 75 13.8 75 13.8"/></g><path fill="currentColor" fill-opacity="0.7" d="M88.2,4.1S86,.1,77,0c0,0-12.5.6-25,10.8,0,0-3,2.2-6.8,5.9-1.7,1.6-3.4,3.2-4.4,4.6h.1c-2.2,2.6-4.5,5.6-6.5,8.8h-.1l-.2.5h0c-1.1,1.8-1.9,3.6-2.8,5.6h0s-5.7,12.7-.2,19.9c0,0,3.7,5,13.5,3.7,0,0,12.2-1.5,21.8-9.6h0v-5.2h-4v-3.9h-3.9v-4.7h3.8v-4.2h4.1v-6.9h-4v-4.5h4.6v3.8h3.7v-3.7h4.1v-3.1h-4.1v-4.7h3.7v-3.4h4.6v3.4h4.1v4.2h7.4c-.1-.1,2.3-8.3-2.3-13.2h0Z"/></g></g><g><polygon fill="currentColor" points="19.7 21 19.7 28.2 7.7 28.2 7.7 21 0 21 0 39.8 7.7 39.8 7.7 31.8 19.7 31.8 19.7 39.8 27.4 39.8 27.4 21 19.7 21 19.7 21 19.7 21 19.7 21"/><polygon fill="currentColor" points="33.2 26 33.2 39.8 40.6 39.8 40.6 26 33.2 26 33.2 26 33.2 26 33.2 26"/><polygon fill="currentColor" points="66.2 21 66.2 32.4 53.7 21 46.3 21 46.3 39.8 53.6 39.8 53.7 28.7 66 39.8 73.6 39.8 73.6 21 66.2 21 66.2 21 66.2 21 66.2 21"/><path fill="currentColor" d="M89.6,40.1h.3c2.7,0,5.1-.4,7-1.1,1.8-.7,3.1-1.6,3.9-3h0l.2-.2-.6-.1-6.3-.6-.6-.1-.2.2h0c-.2.5-.5.9-.9,1.2-.6.3-1.4.6-2.5.6-.1,0-.2,0-.3-.1h0v3.2h0ZM89.6,34.2h11.5v-.2h0c0-2.4-.7-4.2-2.3-5.6-2-1.7-5.1-2.6-9.2-2.6h0v3.2h.1c1.3,0,2.3.2,3,.6.7.5,1.1,1.1,1.1,1.9h-4.2v2.7h0ZM89.2,25.7h.3v3.2h0c-1.2,0-2.3.2-3,.8-.7.4-1.1,1-1.2,1.8h4.2v2.7h-4.3c.1.7.5,1.4,1.2,1.8.8.6,1.8.9,3.1.9h0v3.2h0c-1.9,0-3.4-.2-4.8-.5-2.6-.6-4.4-1.5-5.6-2.9-.5-.6-1-1.2-1.2-1.9s-.2-1.3-.2-1.8c0-2,.8-3.7,2.6-5,2.2-1.5,5.2-2.3,8.9-2.3Z"/><path fill="currentColor" d="M117.7,39.2l-.5-2.7-.1-.3-.6.1h-.4c-.5.2-.8.2-1.1.2h0c-.2,0-.6.1-1,.1-1,0-1-.2-1-.3-.1-.4-.2-1-.2-2h0v-5h4.3v-3.3h-4.3v-5.1h-7.5v5.1h-2.9v3.3h2.9v5.5h0c0,1.1.1,1.9.2,2.4.1.5.4.9.8,1.4.5.5,1.3.8,2.6,1.2,1,.2,2.1.3,3.3.3.5,0,1.2-.1,2.3-.2,1.2,0,2.2-.2,2.9-.4h0l.3-.1v-.2h0Z"/><circle fill="currentColor" fill-opacity="0.5" cx="36.7" cy="20.8" r="4"/></g></g></svg>`,
     };
 
@@ -1150,12 +1151,24 @@
                         for (const [providerName, rule] of Object.entries(cdnRules)) {
                             if (rule.cnames && Array.isArray(rule.cnames)) {
                                 for (const pattern of rule.cnames) {
-                                    if (cleanCname.includes(pattern)) {
+                                    // 改进的匹配逻辑：检查域名标签或后缀，而不是简单的子字符串
+                                    const cnameLabels = cleanCname.toLowerCase().split('.');
+                                    const patternLower = pattern.toLowerCase();
+
+                                    // 方法1: 检查 pattern 是否是某个完整的域名标签
+                                    const isLabel = cnameLabels.includes(patternLower);
+
+                                    // 方法2: 检查 pattern 是否是域名后缀（支持多级域名）
+                                    const isSuffix = cleanCname.toLowerCase().endsWith('.' + patternLower) ||
+                                        cleanCname.toLowerCase() === patternLower;
+
+                                    if (isLabel || isSuffix) {
                                         candidates.push({
                                             provider: providerName,
                                             cname: cleanCname,
                                             priority: rule.priority || 0
                                         });
+                                        break; // 找到匹配后跳出当前 provider 的循环
                                     }
                                 }
                             }
@@ -1605,8 +1618,7 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            direction: rtl;
-            text-align: right;
+            text-align: left;
             flex: 1;
             min-width: 0;
         }

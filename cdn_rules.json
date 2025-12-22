@@ -29,7 +29,17 @@
       "edgesuite",
       "akamaized",
       "akamaihd",
-      "akamaiorigin"
+      "akamaiorigin",
+      "akamaitechnologies",
+      "akamaistream",
+      "srip",
+      "akamai-staging",
+      "akamaiedge-staging",
+      "akamaihd-staging",
+      "akamaiorigin-staging",
+      "akamaized-staging",
+      "edgekey-staging",
+      "edgesuite-staging"
     ],
     "priority": 10
   },
@@ -53,7 +63,11 @@
       "spcdntip",
       "dnse4",
       "dnse2",
-      "dnse5"
+      "dnse5",
+      "cdn.dnsv1",
+      "txlivecdn",
+      "tlivepush",
+      "tcmpp-dev"
     ],
     "priority": 10
   },
@@ -77,7 +91,9 @@
       "alicdn",
       "tbcache",
       "initac",
-      "cdngslb"
+      "cdngslb",
+      "aliyunddos1010",
+      "kunlunsl"
     ],
     "priority": 20
   },
@@ -126,6 +142,9 @@
     "pop_header": "x-edge-location",
     "pop_regex": "^([A-Z]{2,3})-",
     "id_header": "x-mnrequest-id",
+    "cnames": [
+      "mncdn"
+    ],
     "priority": 10
   },
   "CacheFly": {
@@ -142,6 +161,9 @@
     "pop_header": "x-cf1",
     "pop_regex": "([a-z]{3,4}\\d*)\\.",
     "id_header": "x-cf-reqid",
+    "cnames": [
+      "cachefly.net"
+    ],
     "priority": 10
   },
   "Qiniu Cloud": {
@@ -258,6 +280,10 @@
       "x-ct-request-id": null
     },
     "id_header": "x-ct-request-id",
+    "cnames": [
+      "ctcdn",
+      "cdn-ct"
+    ],
     "priority": 10
   },
   "Adobe Experience Manager": {
@@ -433,7 +459,9 @@
     "via": "\\(jcs",
     "id_header": "x-jss-request-id",
     "cnames": [
-      "jcloud"
+      "jcloud",
+      "jcloudcs",
+      "jdcdn"
     ],
     "priority": 10
   },
@@ -517,12 +545,19 @@
   },
   "HiNet CDN": {
     "server": "HiNetCDN",
+    "cnames": [
+      "cdn.hinet.net"
+    ],
     "priority": 10
   },
   "SwiftServe CDN": {
     "headers": {
       "x-cache": "swiftserve"
     },
+    "cnames": [
+      "swiftserve.com",
+      "swiftserve.net"
+    ],
     "priority": 10
   },
   "LiteSpeed": {
@@ -559,8 +594,7 @@
   },
   "UCloud": {
     "cnames": [
-      "ucloud.com.cn",
-      "cdn.ucloud.com.cn"
+      "ucloud"
     ],
     "priority": 10
   },
