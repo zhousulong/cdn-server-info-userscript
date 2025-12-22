@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.49.0
-// @description  [v7.49.0] Major update: added extensive CNAME fingerprints for all major CDNs, fixed CNAME matching logic (domain-aware), added BaishanCloud icon, fixed DNS display direction issue.
-// @description:en [v7.49.0] Major update: added extensive CNAME fingerprints for all major CDNs, fixed CNAME matching logic (domain-aware), added BaishanCloud icon, fixed DNS display direction issue.
+// @version      7.49.1
+// @description  [v7.49.1] Added Huawei Cloud CNAME fingerprint (cdnhwcgqa21).
+// @description:en [v7.49.1] Added Huawei Cloud CNAME fingerprint (cdnhwcgqa21).
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.47.13
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.49.1
 // @connect      dns.alidns.com
 // @connect      dns.google
 // @grant        GM_xmlhttpRequest
