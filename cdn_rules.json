@@ -527,18 +527,6 @@
     ],
     "priority": 12
   },
-  "CDN77": {
-    "headers": {
-      "x-cdn-geo": null,
-      "x-cdn-pop": null
-    },
-    "server": "CDN77",
-    "pop_header": "x-cdn-pop",
-    "cnames": [
-      "cdn77"
-    ],
-    "priority": 8
-  },
   "Netlify": {
     "headers": {
       "x-nf-request-id": null
@@ -640,6 +628,23 @@
     },
     "pop_header": "x-cdn-pop",
     "id_header": "x-iplb-request-id",
+    "priority": 15
+  },
+  "CDN77": {
+    "headers": {
+      "x-77-nzt": null,
+      "x-77-nzt-ray": null,
+      "x-77-pop": null,
+      "x-77-cache": null,
+      "x-77-age": null,
+      "x-node": null
+    },
+    "server": "CDN77",
+    "pop_header": "x-77-pop",
+    "id_header": "x-77-nzt-ray",
+    "cnames": [
+      "cdn77"
+    ],
     "priority": 15
   },
   "Nginx": {
