@@ -120,6 +120,19 @@
     ],
     "priority": 10
   },
+  "BelugaCDN": {
+    "headers": {
+      "x-beluga-cache-status": null,
+      "x-beluga-node": null,
+      "x-beluga-record": null,
+      "x-beluga-response-time": null,
+      "x-beluga-status": null,
+      "x-beluga-trace": null
+    },
+    "server": "NuCDN",
+    "id_header": "x-beluga-trace",
+    "priority": 10
+  },
   "EdgeNext": {
     "headers": {
       "powered-by-edgenext": null,
@@ -295,17 +308,28 @@
       "x-vhost": null
     },
     "id_header": "x-dispatcher",
-    "priority": 12
+    "priority": 5
   },
   "CDNetworks": {
     "headers": {
       "x-ws-request-id": null,
       "x-px": null,
-      "x-hello-human": "cdnetworks"
+      "x-hello-human": "cdnetworks",
+      "x-cf-reqid": null,
+      "x-cf-tsc": null,
+      "x-cf-forcetr": null,
+      "x-cf1": null,
+      "x-cf2": null,
+      "x-cf3": null,
+      "x-cff": null,
+      "cf4age": null,
+      "cf4ttl": null
     },
-    "server": "PWS|ChinaNetCenter",
+    "server": "PWS|ChinaNetCenter|CFS",
     "via": "PS-",
-    "id_header": "x-ws-request-id",
+    "id_header": "x-cf-reqid",
+    "pop_header": "x-cf1",
+    "pop_regex": ":([a-zA-Z]+\\.[a-z]+\\d*)",
     "cnames": [
       "cdnetworks",
       "cdngc",
@@ -319,7 +343,7 @@
       "wswebcdn",
       "cdn20"
     ],
-    "priority": 11
+    "priority": 15
   },
   "Cloudflare": {
     "headers": {
@@ -379,7 +403,8 @@
     "headers": {
       "x-fastly-request-id": null,
       "x-served-by": null,
-      "x-timer": null
+      "x-timer": null,
+      "x-cache": null
     },
     "pop_header": "x-served-by",
     "pop_regex": "-([^-]+)$",
@@ -388,7 +413,7 @@
       "fastly",
       "fastlylb"
     ],
-    "priority": 9
+    "priority": 15
   },
   "Edgio": {
     "headers": {
