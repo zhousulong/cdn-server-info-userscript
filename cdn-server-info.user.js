@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.51.0
-// @description  [v7.51.0] Added BelugaCDN detection and SVG icon; Added Imperva, StackPath SVG icons; Enhanced CDNetworks detection with CFS server and x-cf-* headers (priority 15); Fixed Fastly misidentified as AEM (adjusted priorities); Fixed CDNetworks misidentified as CacheFly; Improved detection accuracy with priority adjustments.
-// @description:en [v7.51.0] Added BelugaCDN detection and SVG icon; Added Imperva, StackPath SVG icons; Enhanced CDNetworks detection with CFS server and x-cf-* headers (priority 15); Fixed Fastly misidentified as AEM (adjusted priorities); Fixed CDNetworks misidentified as CacheFly; Improved detection accuracy with priority adjustments.
+// @version      7.52.0
+// @description  [v7.52.0] 智能DNS选择: 根据用户IP所在地区自动选择最优DNS服务器(中国大陆使用阿里DNS,其他地区使用Google DNS),解决国内外CDN分流和DNS污染问题,支持VPN分流场景实时切换。
+// @description:en [v7.52.0] Smart DNS Selection: Automatically choose optimal DNS server based on user's IP location (Alibaba DNS for mainland China, Google DNS for other regions), solving CDN geo-routing and DNS pollution issues, with real-time switching support for VPN split tunneling.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -17,6 +17,7 @@
 // @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.50.6
 // @connect      dns.alidns.com
 // @connect      dns.google
+// @connect      1.1.1.1
 // @grant        GM_xmlhttpRequest
 // @run-at       document-idle
 // @noframes
@@ -1101,6 +1102,55 @@
         'CDN77': `<svg viewBox="0 0 54.29 63.72"><path fill="currentColor" fill-opacity="0.95" d="M27.15,0C12.15,0,0,12.23,0,27.31s27.15,36.41,27.15,36.41c0,0,27.15-21.33,27.15-36.41,0-15.08-12.15-27.31-27.15-27.31"/><path fill="currentColor" fill-opacity="0.6" d="M27.15,9.75c-9.14,0-16.55,7.45-16.55,16.65s7.41,16.65,16.55,16.65,16.55-7.45,16.55-16.65-7.41-16.65-16.55-16.65"/><path fill="currentColor" fill-opacity="0.95" d="M27.14,18.89c-4.12,0-7.46,3.36-7.46,7.51s3.34,7.51,7.46,7.51,7.47-3.36,7.47-7.51-3.34-7.51-7.47-7.51"/></svg>`,
     };
 
+    // --- Region Detection Logic ---
+    /**
+     * 检测用户当前IP所在地区
+     * 使用Cloudflare trace API,快速且可靠
+     * 不缓存结果,支持VPN分流场景实时切换
+     * @returns {Promise<string>} 国家代码 (如 'CN', 'US', 'JP' 等)
+     */
+    async function getUserRegion() {
+        try {
+            const result = await new Promise((resolve, reject) => {
+                GM_xmlhttpRequest({
+                    method: "GET",
+                    url: "https://1.1.1.1/cdn-cgi/trace",
+                    timeout: 3000, // 3秒超时
+                    onload: function (response) {
+                        if (response.status === 200) {
+                            resolve(response.responseText);
+                        } else {
+                            reject(new Error(`Status: ${response.status}`));
+                        }
+                    },
+                    onerror: reject,
+                    ontimeout: reject
+                });
+            });
+
+            // 解析返回的文本格式: loc=CN
+            const match = result.match(/loc=([A-Z]{2})/);
+            if (match && match[1]) {
+                const region = match[1];
+                console.log(`[CDN Region] Detected user region: ${region}`);
+                return region;
+            }
+
+            console.warn('[CDN Region] Could not parse region from Cloudflare trace');
+            return 'UNKNOWN';
+        } catch (e) {
+            console.warn('[CDN Region] Failed to detect region:', e);
+            // 降级方案: 使用浏览器语言推断
+            const lang = navigator.language || navigator.userLanguage;
+            if (lang.startsWith('zh-CN')) {
+                console.log('[CDN Region] Fallback to CN based on browser language');
+                return 'CN';
+            }
+            console.log('[CDN Region] Fallback to UNKNOWN');
+            return 'UNKNOWN';
+        }
+    }
+
     // --- DNS Detection Logic ---
     const dnsCache = new Map(); // Cache results to avoid redundant requests
 
@@ -1116,11 +1166,26 @@
 
         console.log('[CDN DNS] Starting DNS lookup for', domain);
 
-        // Try Alibaba DNS first (China friendly), then Google DNS
-        const dohProviders = [
-            `https://dns.alidns.com/resolve?name=${domain}&type=CNAME`,
-            `https://dns.google/resolve?name=${domain}&type=CNAME`
-        ];
+        // 检测用户当前所在地区 (每次都检测,不缓存,支持VPN切换)
+        const userRegion = await getUserRegion();
+
+        // 根据地区选择DNS服务器
+        let dohProviders;
+        if (userRegion === 'CN') {
+            // 中国大陆: 优先使用阿里DNS,备用Google DNS
+            dohProviders = [
+                `https://dns.alidns.com/resolve?name=${domain}&type=CNAME`,
+                `https://dns.google/resolve?name=${domain}&type=CNAME`
+            ];
+            console.log('[CDN DNS] Using Alibaba DNS (primary) for CN region');
+        } else {
+            // 其他地区: 优先使用Google DNS,备用阿里DNS
+            dohProviders = [
+                `https://dns.google/resolve?name=${domain}&type=CNAME`,
+                `https://dns.alidns.com/resolve?name=${domain}&type=CNAME`
+            ];
+            console.log(`[CDN DNS] Using Google DNS (primary) for ${userRegion} region`);
+        }
 
         for (const url of dohProviders) {
             try {
