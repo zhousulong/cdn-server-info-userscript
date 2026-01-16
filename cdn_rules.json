@@ -120,6 +120,19 @@
     ],
     "priority": 10
   },
+  "KnowSec JiaSuLe": {
+    "headers": {
+      "x-bkd-cache": null,
+      "x-via-jsl": null
+    },
+    "id_header": "x-via-jsl",
+    "cnames": [
+      "jiashule",
+      "cdn.jiashule",
+      "knownsec"
+    ],
+    "priority": 15
+  },
   "BelugaCDN": {
     "headers": {
       "x-beluga-cache-status": null,
@@ -403,8 +416,7 @@
     "headers": {
       "x-fastly-request-id": null,
       "x-served-by": null,
-      "x-timer": null,
-      "x-cache": null
+      "x-timer": null
     },
     "pop_header": "x-served-by",
     "pop_regex": "-([^-]+)$",
