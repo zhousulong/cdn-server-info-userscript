@@ -528,21 +528,16 @@
                     cache = getCacheStatus(h);
                 }
 
-                let pop = 'N/A';
+
+                // x-via-jsl contains node hash (e.g., "8b19e79,-"), not geographic location
+                // So we don't extract POP from it
                 const viaJsl = h.get('x-via-jsl');
-                if (viaJsl) {
-                    // Extract node ID from format like "98b80df,-"
-                    const match = viaJsl.match(/^([a-z0-9]+)/i);
-                    if (match && match[1]) {
-                        pop = match[1].toUpperCase();
-                    }
-                }
 
                 return {
                     provider: 'KnowSec JiaSuLe',
                     cache: cache,
-                    pop: pop,
-                    extra: viaJsl ? `Node: ${viaJsl}` : 'N/A',
+                    pop: 'N/A',
+                    extra: viaJsl ? `Via-JSL: ${viaJsl}` : 'N/A',
                 };
             }
         },
