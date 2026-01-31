@@ -1578,7 +1578,7 @@
         /* --- Buttons (Hidden by default) --- */
         button.icon-btn {
             position: absolute !important;
-            top: 14px !important;
+            top: 13px !important;
             width: 18px !important;
             height: 18px !important;
             border-radius: 50% !important;
