@@ -1,6 +1,6 @@
 {
     "name": "cdn-server-info-userscript",
-    "version": "7.47.9",
+    "version": "7.54.1",
     "description": "A userscript to display CDN and server information",
     "main": "cdn-server-info.user.js",
     "scripts": {
@@ -8,7 +8,10 @@
         "lint": "eslint .",
         "lint:fix": "eslint . --fix",
         "format": "prettier --write .",
-        "format:check": "prettier --check ."
+        "format:check": "prettier --check .",
+        "version:patch": "node .agent/workflows/scripts/update-version.js patch",
+        "version:minor": "node .agent/workflows/scripts/update-version.js minor",
+        "version:major": "node .agent/workflows/scripts/update-version.js major"
     },
     "repository": {
         "type": "git",

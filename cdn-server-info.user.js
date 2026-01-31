@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.54.0
-// @description  [v7.54.0] 新增RTL语言支持(阿拉伯语、希伯来语等右到左排版语言)。智能DNS选择: 根据用户IP所在地区自动选择最优DNS服务器(中国大陆使用阿里DNS,其他地区使用Google DNS),解决国内外CDN分流和DNS污染问题,支持VPN分流场景实时切换。
-// @description:en [v7.54.0] Added RTL (Right-to-Left) language support for Arabic, Hebrew, and other RTL languages. Smart DNS Selection: Automatically choose optimal DNS server based on user's IP location (Alibaba DNS for mainland China, Google DNS for other regions), solving CDN geo-routing and DNS pollution issues, with real-time switching support for VPN split tunneling.
+// @version      7.54.1
+// @description  [v7.54.1] 新增RTL语言支持(阿拉伯语、希伯来语等右到左排版语言)。智能DNS选择: 根据用户IP所在地区自动选择最优DNS服务器(中国大陆使用阿里DNS,其他地区使用Google DNS),解决国内外CDN分流和DNS污染问题,支持VPN分流场景实时切换。
+// @description:en [v7.54.1] Added RTL (Right-to-Left) language support for Arabic, Hebrew, and other RTL languages. Smart DNS Selection: Automatically choose optimal DNS server based on user's IP location (Alibaba DNS for mainland China, Google DNS for other regions), solving CDN geo-routing and DNS pollution issues, with real-time switching support for VPN split tunneling.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.54.0
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.54.1
 // @connect      dns.alidns.com
 // @connect      dns.google
 // @connect      1.1.1.1
