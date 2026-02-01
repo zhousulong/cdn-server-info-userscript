@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.56.1
-// @description  [v7.56.1] 新增RTL语言支持(阿拉伯语、希伯来语等右到左排版语言)。智能DNS选择: 根据用户IP所在地区自动选择最优DNS服务器(中国大陆使用阿里DNS,其他地区使用Google DNS),解决国内外CDN分流和DNS污染问题,支持VPN分流场景实时切换。
-// @description:en [v7.56.1] Added RTL (Right-to-Left) language support for Arabic, Hebrew, and other RTL languages. Smart DNS Selection: Automatically choose optimal DNS server based on user's IP location (Alibaba DNS for mainland China, Google DNS for other regions), solving CDN geo-routing and DNS pollution issues, with real-time switching support for VPN split tunneling.
+// @version      7.56.2
+// @description  [v7.56.2] 新增RTL语言支持(阿拉伯语、希伯来语等右到左排版语言)。智能DNS选择: 根据用户IP所在地区自动选择最优DNS服务器(中国大陆使用阿里DNS,其他地区使用Google DNS),解决国内外CDN分流和DNS污染问题,支持VPN分流场景实时切换。
+// @description:en [v7.56.2] Added RTL (Right-to-Left) language support for Arabic, Hebrew, and other RTL languages. Smart DNS Selection: Automatically choose optimal DNS server based on user's IP location (Alibaba DNS for mainland China, Google DNS for other regions), solving CDN geo-routing and DNS pollution issues, with real-time switching support for VPN split tunneling.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.56.1
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.56.2
 // @connect      dns.alidns.com
 // @connect      dns.google
 // @connect      1.1.1.1
@@ -1635,10 +1635,15 @@
             transform: translate(-50%, -50%);
             max-width: 70%;
             max-height: 70%;
-            opacity: 0.8; /* Increased from 0.6 for better visibility */
+            opacity: 1; /* Full opacity */
             display: flex;
             align-items: center;
             justify-content: center;
+            color: ${isDarkTheme ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.25)'}; /* Increased from 0.04 for better visibility */
+        }
+
+        #cdn-info-panel-enhanced.collapsed .cdn-watermark svg {
+            fill: currentColor;
         }
 
         /* Fallback icon when no watermark */
@@ -2260,42 +2265,52 @@
         const viewportWidth = window.innerWidth;
         const viewportHeight = window.innerHeight;
 
-        // Calculate center of collapsed button
-        const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height / 2;
+        // Only adjust if panel would overflow when expanded
+        // Calculate based on current collapsed position
+        const currentLeft = rect.left;
+        const currentTop = rect.top;
 
-        // Calculate where expanded panel would be (centered on button)
-        const expandedLeft = centerX - expandedWidth / 2;
-        const expandedRight = centerX + expandedWidth / 2;
-        const expandedTop = centerY - expandedHeight / 2;
-        const expandedBottom = centerY + expandedHeight / 2;
+        // Calculate where the expanded panel's edges would be
+        // Assuming expansion happens from center of collapsed button
+        const collapsedCenterX = currentLeft + collapsedSize / 2;
+        const collapsedCenterY = currentTop + collapsedSize / 2;
 
-        let newLeft = host.style.left ? parseFloat(host.style.left) : rect.left;
-        let newTop = host.style.top ? parseFloat(host.style.top) : rect.top;
+        const expandedLeft = collapsedCenterX - expandedWidth / 2;
+        const expandedRight = collapsedCenterX + expandedWidth / 2;
+        const expandedTop = collapsedCenterY - expandedHeight / 2;
+        const expandedBottom = collapsedCenterY + expandedHeight / 2;
 
-        // Adjust horizontal position if overflow
-        if (expandedRight > viewportWidth) {
-            // Would overflow right, align to right edge
+        let needsAdjustment = false;
+        let newLeft = currentLeft;
+        let newTop = currentTop;
+
+        // Check horizontal overflow
+        if (expandedRight > viewportWidth - 10) {
+            // Would overflow right
             newLeft = viewportWidth - expandedWidth - 10;
-            host.style.left = `${newLeft}px`;
-            host.style.right = 'auto';
-        } else if (expandedLeft < 0) {
-            // Would overflow left, align to left edge
+            needsAdjustment = true;
+        } else if (expandedLeft < 10) {
+            // Would overflow left
             newLeft = 10;
-            host.style.left = `${newLeft}px`;
-            host.style.right = 'auto';
+            needsAdjustment = true;
         }
 
-        // Adjust vertical position if overflow
-        if (expandedBottom > viewportHeight) {
-            // Would overflow bottom, align to bottom edge
+        // Check vertical overflow
+        if (expandedBottom > viewportHeight - 10) {
+            // Would overflow bottom
             newTop = viewportHeight - expandedHeight - 10;
-            host.style.top = `${newTop}px`;
-            host.style.bottom = 'auto';
-        } else if (expandedTop < 0) {
-            // Would overflow top, align to top edge
+            needsAdjustment = true;
+        } else if (expandedTop < 10) {
+            // Would overflow top
             newTop = 10;
+            needsAdjustment = true;
+        }
+
+        // Only apply adjustment if needed
+        if (needsAdjustment) {
+            host.style.left = `${newLeft}px`;
             host.style.top = `${newTop}px`;
+            host.style.right = 'auto';
             host.style.bottom = 'auto';
         }
     }
