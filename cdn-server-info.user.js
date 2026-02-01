@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.54.1
-// @description  [v7.54.1] 新增RTL语言支持(阿拉伯语、希伯来语等右到左排版语言)。智能DNS选择: 根据用户IP所在地区自动选择最优DNS服务器(中国大陆使用阿里DNS,其他地区使用Google DNS),解决国内外CDN分流和DNS污染问题,支持VPN分流场景实时切换。
-// @description:en [v7.54.1] Added RTL (Right-to-Left) language support for Arabic, Hebrew, and other RTL languages. Smart DNS Selection: Automatically choose optimal DNS server based on user's IP location (Alibaba DNS for mainland China, Google DNS for other regions), solving CDN geo-routing and DNS pollution issues, with real-time switching support for VPN split tunneling.
+// @version      7.55.0
+// @description  [v7.55.0] 新增RTL语言支持(阿拉伯语、希伯来语等右到左排版语言)。智能DNS选择: 根据用户IP所在地区自动选择最优DNS服务器(中国大陆使用阿里DNS,其他地区使用Google DNS),解决国内外CDN分流和DNS污染问题,支持VPN分流场景实时切换。
+// @description:en [v7.55.0] Added RTL (Right-to-Left) language support for Arabic, Hebrew, and other RTL languages. Smart DNS Selection: Automatically choose optimal DNS server based on user's IP location (Alibaba DNS for mainland China, Google DNS for other regions), solving CDN geo-routing and DNS pollution issues, with real-time switching support for VPN split tunneling.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.54.1
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.55.0
 // @connect      dns.alidns.com
 // @connect      dns.google
 // @connect      1.1.1.1
@@ -1475,10 +1475,17 @@
         return (r * 299 + g * 587 + b * 114) / 1000;
     }
 
+    // Detect if user is on mobile device
+    function isMobileDevice() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+            || window.innerWidth <= 768;
+    }
+
     function getPanelCSS() {
         // Simple light/dark theme (no auto mode)
         const isDarkTheme = config.settings.theme === 'dark';
-        console.log('[CDN Detector] Panel theme:', config.settings.theme);
+        const isMobile = isMobileDevice();
+        console.log('[CDN Detector] Panel theme:', config.settings.theme, 'Mobile:', isMobile);
 
         // Ultra-premium aesthetic: deeper blacks, cleaner whites
         const materialBase = isDarkTheme
@@ -1510,6 +1517,18 @@
         const redColor = '#EF4444';
         const blueColor = '#3B82F6';
 
+        // Responsive sizing based on device type
+        const panelWidth = isMobile ? '180px' : '252px';
+        const panelPadding = isMobile ? '10px 12px' : '14px 16px';
+        const borderRadius = isMobile ? '12px' : '14px';
+        const headerFontSize = isMobile ? '8px' : '10px';
+        const labelFontSize = isMobile ? '9px' : '11px';
+        const valueFontSize = isMobile ? '9px' : '11px';
+        const labelWidth = isMobile ? '32px' : '42px';
+        const lineGap = isMobile ? '4px' : '6px';
+        const containerGap = isMobile ? '7px' : '10px';
+        const dnsFontSize = isMobile ? '8px' : '9px';
+
         return `
         /* Safe CSS Reset for Shadow DOM */
         :host {
@@ -1529,9 +1548,9 @@
             all: unset; /* Clear inherited styles on container */
             position: relative;
             box-sizing: border-box;
-            width: 252px; /* Optimal width for compact display */
-            padding: 14px 16px;
-            border-radius: 14px;
+            width: ${panelWidth}; /* Responsive width */
+            padding: ${panelPadding}; /* Responsive padding */
+            border-radius: ${borderRadius}; /* Responsive border radius */
             background-color: ${materialBase};
             backdrop-filter: ${backdropFilter};
             -webkit-backdrop-filter: ${backdropFilter};
@@ -1543,7 +1562,7 @@
             color: ${textColor};
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: ${containerGap}; /* Responsive gap */
             overflow: hidden;
             
             /* Explicitly define inherited properties to stop leakage */
@@ -1567,7 +1586,7 @@
             content: '';
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
-            border-radius: 14px;
+            border-radius: ${borderRadius}; /* Responsive border radius */
             background: ${surfaceGradient};
             pointer-events: none;
             z-index: 1;
@@ -1610,7 +1629,7 @@
         .panel-header {
             display: block;
             font-family: ${uiFont};
-            font-size: 10px;
+            font-size: ${headerFontSize}; /* Responsive font size */
             font-weight: 700;
             color: ${isDarkTheme ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.4)'};
             text-transform: uppercase;
@@ -1623,7 +1642,7 @@
         .info-lines-container {
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: ${lineGap}; /* Responsive gap */
             margin: 0;
             padding: 0;
         }
@@ -1641,20 +1660,20 @@
         .info-label {
             display: inline-block;
             font-family: ${uiFont};
-            font-size: 11px;
+            font-size: ${labelFontSize}; /* Responsive font size */
             font-weight: 500;
             color: ${isDarkTheme ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.5)'};
             letter-spacing: 0px;
             flex-shrink: 0; /* Protect label from squeezing */
             ${isRTLLanguage() ? 'margin-left' : 'margin-right'}: 8px;
-            width: 42px; /* Fixed width for labels */
+            width: ${labelWidth}; /* Responsive width */
             text-align: ${isRTLLanguage() ? 'right' : 'left'};
         }
 
         .info-value {
             display: inline-block;
             font-family: ${monoFont}; /* Mono for data */
-            font-size: 11px;
+            font-size: ${valueFontSize}; /* Responsive font size */
             font-weight: 500;
             color: ${textColor};
             text-align: ${isRTLLanguage() ? 'left' : 'right'};
@@ -1701,7 +1720,7 @@
             align-items: center;
             justify-content: center;
             font-family: ${monoFont};
-            font-size: 9px;
+            font-size: ${dnsFontSize}; /* Responsive font size */
             color: ${isDarkTheme ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.3)'};
             margin-top: 1px;
             padding-top: 1px;
