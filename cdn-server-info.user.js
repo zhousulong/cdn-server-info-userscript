@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.56.0
-// @description  [v7.56.0] 新增RTL语言支持(阿拉伯语、希伯来语等右到左排版语言)。智能DNS选择: 根据用户IP所在地区自动选择最优DNS服务器(中国大陆使用阿里DNS,其他地区使用Google DNS),解决国内外CDN分流和DNS污染问题,支持VPN分流场景实时切换。
-// @description:en [v7.56.0] Added RTL (Right-to-Left) language support for Arabic, Hebrew, and other RTL languages. Smart DNS Selection: Automatically choose optimal DNS server based on user's IP location (Alibaba DNS for mainland China, Google DNS for other regions), solving CDN geo-routing and DNS pollution issues, with real-time switching support for VPN split tunneling.
+// @version      7.56.1
+// @description  [v7.56.1] 新增RTL语言支持(阿拉伯语、希伯来语等右到左排版语言)。智能DNS选择: 根据用户IP所在地区自动选择最优DNS服务器(中国大陆使用阿里DNS,其他地区使用Google DNS),解决国内外CDN分流和DNS污染问题,支持VPN分流场景实时切换。
+// @description:en [v7.56.1] Added RTL (Right-to-Left) language support for Arabic, Hebrew, and other RTL languages. Smart DNS Selection: Automatically choose optimal DNS server based on user's IP location (Alibaba DNS for mainland China, Google DNS for other regions), solving CDN geo-routing and DNS pollution issues, with real-time switching support for VPN split tunneling.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.56.0
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.56.1
 // @connect      dns.alidns.com
 // @connect      dns.google
 // @connect      1.1.1.1
@@ -1611,6 +1611,7 @@
             border-radius: 50% !important;
             cursor: pointer !important;
             overflow: hidden !important;
+            transform-origin: center center !important;
         }
 
         #cdn-info-panel-enhanced.collapsed::after {
@@ -1634,7 +1635,7 @@
             transform: translate(-50%, -50%);
             max-width: 70%;
             max-height: 70%;
-            opacity: 0.6;
+            opacity: 0.8; /* Increased from 0.6 for better visibility */
             display: flex;
             align-items: center;
             justify-content: center;
@@ -2208,6 +2209,7 @@
             // Auto-expand after 2 seconds of no scrolling
             scrollTimeout = setTimeout(() => {
                 if (!isManuallyExpanded) {
+                    adjustPanelPosition(host, panelElement);
                     panelElement.classList.remove('collapsed');
                 }
             }, 2000);
@@ -2217,6 +2219,10 @@
         panelElement.addEventListener('click', (e) => {
             if (panelElement.classList.contains('collapsed')) {
                 e.stopPropagation();
+
+                // Before expanding, check if panel will overflow and adjust position
+                adjustPanelPosition(host, panelElement);
+
                 panelElement.classList.remove('collapsed');
                 isManuallyExpanded = true;
 
@@ -2242,6 +2248,56 @@
             });
         });
         observer.observe(document.body, { childList: true });
+    }
+
+    function adjustPanelPosition(host, panelElement) {
+        const isMobile = isMobileDevice();
+        const collapsedSize = isMobile ? 48 : 56;
+        const expandedWidth = isMobile ? 180 : 252;
+        const expandedHeight = 150; // Approximate expanded height
+
+        const rect = host.getBoundingClientRect();
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+
+        // Calculate center of collapsed button
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+
+        // Calculate where expanded panel would be (centered on button)
+        const expandedLeft = centerX - expandedWidth / 2;
+        const expandedRight = centerX + expandedWidth / 2;
+        const expandedTop = centerY - expandedHeight / 2;
+        const expandedBottom = centerY + expandedHeight / 2;
+
+        let newLeft = host.style.left ? parseFloat(host.style.left) : rect.left;
+        let newTop = host.style.top ? parseFloat(host.style.top) : rect.top;
+
+        // Adjust horizontal position if overflow
+        if (expandedRight > viewportWidth) {
+            // Would overflow right, align to right edge
+            newLeft = viewportWidth - expandedWidth - 10;
+            host.style.left = `${newLeft}px`;
+            host.style.right = 'auto';
+        } else if (expandedLeft < 0) {
+            // Would overflow left, align to left edge
+            newLeft = 10;
+            host.style.left = `${newLeft}px`;
+            host.style.right = 'auto';
+        }
+
+        // Adjust vertical position if overflow
+        if (expandedBottom > viewportHeight) {
+            // Would overflow bottom, align to bottom edge
+            newTop = viewportHeight - expandedHeight - 10;
+            host.style.top = `${newTop}px`;
+            host.style.bottom = 'auto';
+        } else if (expandedTop < 0) {
+            // Would overflow top, align to top edge
+            newTop = 10;
+            host.style.top = `${newTop}px`;
+            host.style.bottom = 'auto';
+        }
     }
 
     function makeDraggable(element) {
