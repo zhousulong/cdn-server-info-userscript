@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.56.9
-// @description  [v7.56.9] 新增RTL语言支持(阿拉伯语、希伯来语等右到左排版语言)。智能DNS选择: 根据用户IP所在地区自动选择最优DNS服务器(中国大陆使用阿里DNS,其他地区使用Google DNS),解决国内外CDN分流和DNS污染问题,支持VPN分流场景实时切换。
-// @description:en [v7.56.9] Added RTL (Right-to-Left) language support for Arabic, Hebrew, and other RTL languages. Smart DNS Selection: Automatically choose optimal DNS server based on user's IP location (Alibaba DNS for mainland China, Google DNS for other regions), solving CDN geo-routing and DNS pollution issues, with real-time switching support for VPN split tunneling.
+// @version      7.56.10
+// @description  [v7.56.10] 新增RTL语言支持(阿拉伯语、希伯来语等右到左排版语言)。智能DNS选择: 根据用户IP所在地区自动选择最优DNS服务器(中国大陆使用阿里DNS,其他地区使用Google DNS),解决国内外CDN分流和DNS污染问题,支持VPN分流场景实时切换。
+// @description:en [v7.56.10] Added RTL (Right-to-Left) language support for Arabic, Hebrew, and other RTL languages. Smart DNS Selection: Automatically choose optimal DNS server based on user's IP location (Alibaba DNS for mainland China, Google DNS for other regions), solving CDN geo-routing and DNS pollution issues, with real-time switching support for VPN split tunneling.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.56.9
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.56.10
 // @connect      dns.alidns.com
 // @connect      dns.google
 // @connect      1.1.1.1
@@ -2194,7 +2194,7 @@
         // Add scroll collapse functionality
         setupScrollCollapse(host, panel);
 
-        makeDraggable(host);
+        makeDraggable(host, panel);
     }
 
     function setupScrollCollapse(host, panelElement) {
@@ -2344,7 +2344,7 @@
         }
     }
 
-    function makeDraggable(element) {
+    function makeDraggable(element, panelElement) {
         let isDragging = false,
             startX = 0,
             startY = 0,
@@ -2378,6 +2378,25 @@
             isDragging = false;
             document.removeEventListener('mousemove', drag);
             document.removeEventListener('mouseup', dragEnd);
+
+            // After dragging, recalculate transform-origin based on new position
+            const rect = element.getBoundingClientRect();
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+
+            const isRight = centerX > viewportWidth / 2;
+            const isBottom = centerY > viewportHeight / 2;
+
+            let originX = isRight ? 'left' : 'right';
+            let originY = isBottom ? 'top' : 'bottom';
+
+            const origin = `${originX} ${originY}`;
+            panelElement.style.setProperty('transform-origin', origin, 'important');
+
+            console.log(`[CDN Panel] Dragged to new position. Origin updated: ${origin}`);
         }
     }
 
