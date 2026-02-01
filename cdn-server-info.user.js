@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.55.0
-// @description  [v7.55.0] 新增RTL语言支持(阿拉伯语、希伯来语等右到左排版语言)。智能DNS选择: 根据用户IP所在地区自动选择最优DNS服务器(中国大陆使用阿里DNS,其他地区使用Google DNS),解决国内外CDN分流和DNS污染问题,支持VPN分流场景实时切换。
-// @description:en [v7.55.0] Added RTL (Right-to-Left) language support for Arabic, Hebrew, and other RTL languages. Smart DNS Selection: Automatically choose optimal DNS server based on user's IP location (Alibaba DNS for mainland China, Google DNS for other regions), solving CDN geo-routing and DNS pollution issues, with real-time switching support for VPN split tunneling.
+// @version      7.55.1
+// @description  [v7.55.1] 新增RTL语言支持(阿拉伯语、希伯来语等右到左排版语言)。智能DNS选择: 根据用户IP所在地区自动选择最优DNS服务器(中国大陆使用阿里DNS,其他地区使用Google DNS),解决国内外CDN分流和DNS污染问题,支持VPN分流场景实时切换。
+// @description:en [v7.55.1] Added RTL (Right-to-Left) language support for Arabic, Hebrew, and other RTL languages. Smart DNS Selection: Automatically choose optimal DNS server based on user's IP location (Alibaba DNS for mainland China, Google DNS for other regions), solving CDN geo-routing and DNS pollution issues, with real-time switching support for VPN split tunneling.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.55.0
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.55.1
 // @connect      dns.alidns.com
 // @connect      dns.google
 // @connect      1.1.1.1
@@ -1529,6 +1529,15 @@
         const containerGap = isMobile ? '7px' : '10px';
         const dnsFontSize = isMobile ? '8px' : '9px';
 
+        // 按钮视觉居中计算
+        // 标题行高 = fontSize * lineHeight (1.4) + margin-bottom (2px)
+        // 移动端: 8px * 1.4 + 2px = 13.2px, 按钮16px, 居中位置 = (13.2 - 16) / 2 ≈ -1.4px, 加上padding 10px = 8.6px
+        // PC端: 10px * 1.4 + 2px = 16px, 按钮18px, 居中位置 = (16 - 18) / 2 = -1px, 加上padding 14px = 13px
+        const buttonTop = isMobile ? '8px' : '12px'; // 按钮顶部位置 - 视觉居中
+        const buttonSize = isMobile ? '16px' : '18px'; // 按钮大小
+        const closeButtonRight = isMobile ? '10px' : '12px'; // 关闭按钮右侧位置
+        const themeButtonRight = isMobile ? '30px' : '36px'; // 主题按钮右侧位置
+
         return `
         /* Safe CSS Reset for Shadow DOM */
         :host {
@@ -1597,9 +1606,9 @@
         /* --- Buttons (Hidden by default) --- */
         button.icon-btn {
             position: absolute !important;
-            top: 13px !important;
-            width: 18px !important;
-            height: 18px !important;
+            top: ${buttonTop} !important; /* Responsive top position */
+            width: ${buttonSize} !important; /* Responsive size */
+            height: ${buttonSize} !important; /* Responsive size */
             border-radius: 50% !important;
             background: transparent !important;
             color: ${textColor} !important;
@@ -1619,8 +1628,8 @@
             line-height: 1 !important;
         }
 
-        button.close-btn { ${isRTLLanguage() ? 'left' : 'right'}: 12px !important; font-size: 16px !important; font-weight: 300 !important; line-height: 18px !important; }
-        button.theme-btn { ${isRTLLanguage() ? 'left' : 'right'}: 36px !important; font-size: 12px !important; line-height: 18px !important; }
+        button.close-btn { ${isRTLLanguage() ? 'left' : 'right'}: ${closeButtonRight} !important; font-size: ${isMobile ? '14px' : '16px'} !important; font-weight: 300 !important; line-height: ${buttonSize} !important; }
+        button.theme-btn { ${isRTLLanguage() ? 'left' : 'right'}: ${themeButtonRight} !important; font-size: ${isMobile ? '11px' : '12px'} !important; line-height: ${buttonSize} !important; }
 
         #cdn-info-panel-enhanced:hover button.icon-btn { opacity: 0.5 !important; }
         button.icon-btn:hover { opacity: 1 !important; transform: scale(1.1); }
