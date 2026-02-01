@@ -1,6 +1,6 @@
 {
     "name": "cdn-server-info-userscript",
-    "version": "7.56.4",
+    "version": "7.56.5",
     "description": "A userscript to display CDN and server information",
     "main": "cdn-server-info.user.js",
     "scripts": {
