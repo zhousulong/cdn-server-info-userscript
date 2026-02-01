@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.55.1
-// @description  [v7.55.1] 新增RTL语言支持(阿拉伯语、希伯来语等右到左排版语言)。智能DNS选择: 根据用户IP所在地区自动选择最优DNS服务器(中国大陆使用阿里DNS,其他地区使用Google DNS),解决国内外CDN分流和DNS污染问题,支持VPN分流场景实时切换。
-// @description:en [v7.55.1] Added RTL (Right-to-Left) language support for Arabic, Hebrew, and other RTL languages. Smart DNS Selection: Automatically choose optimal DNS server based on user's IP location (Alibaba DNS for mainland China, Google DNS for other regions), solving CDN geo-routing and DNS pollution issues, with real-time switching support for VPN split tunneling.
+// @version      7.56.0
+// @description  [v7.56.0] 新增RTL语言支持(阿拉伯语、希伯来语等右到左排版语言)。智能DNS选择: 根据用户IP所在地区自动选择最优DNS服务器(中国大陆使用阿里DNS,其他地区使用Google DNS),解决国内外CDN分流和DNS污染问题,支持VPN分流场景实时切换。
+// @description:en [v7.56.0] Added RTL (Right-to-Left) language support for Arabic, Hebrew, and other RTL languages. Smart DNS Selection: Automatically choose optimal DNS server based on user's IP location (Alibaba DNS for mainland China, Google DNS for other regions), solving CDN geo-routing and DNS pollution issues, with real-time switching support for VPN split tunneling.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.55.1
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.56.0
 // @connect      dns.alidns.com
 // @connect      dns.google
 // @connect      1.1.1.1
@@ -1603,6 +1603,74 @@
 
         #cdn-info-panel-enhanced > *:not(.cdn-watermark) { position: relative; z-index: 2; }
 
+        /* --- Collapsed State --- */
+        #cdn-info-panel-enhanced.collapsed {
+            width: ${isMobile ? '48px' : '56px'} !important;
+            height: ${isMobile ? '48px' : '56px'} !important;
+            padding: 0 !important;
+            border-radius: 50% !important;
+            cursor: pointer !important;
+            overflow: hidden !important;
+        }
+
+        #cdn-info-panel-enhanced.collapsed::after {
+            border-radius: 50% !important;
+        }
+
+        /* Hide all content when collapsed except watermark */
+        #cdn-info-panel-enhanced.collapsed .panel-header,
+        #cdn-info-panel-enhanced.collapsed .info-lines-container,
+        #cdn-info-panel-enhanced.collapsed .dns-status,
+        #cdn-info-panel-enhanced.collapsed .close-btn,
+        #cdn-info-panel-enhanced.collapsed .theme-btn {
+            display: none !important;
+        }
+
+        /* Show watermark in center when collapsed */
+        #cdn-info-panel-enhanced.collapsed .cdn-watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            max-width: 70%;
+            max-height: 70%;
+            opacity: 0.6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Fallback icon when no watermark */
+        #cdn-info-panel-enhanced.collapsed .collapsed-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: ${isMobile ? '20px' : '24px'};
+            font-weight: 600;
+            opacity: 0.7;
+            color: ${textColor};
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Hide collapsed icon when watermark exists */
+        #cdn-info-panel-enhanced.collapsed .cdn-watermark ~ .collapsed-icon {
+            display: none;
+        }
+
+        /* Hide collapsed icon in normal state */
+        .collapsed-icon {
+            display: none;
+        }
+
+        /* Show collapsed icon only when collapsed and no watermark */
+        #cdn-info-panel-enhanced.collapsed .collapsed-icon {
+            display: flex;
+        }
+
+
         /* --- Buttons (Hidden by default) --- */
         button.icon-btn {
             position: absolute !important;
@@ -2038,6 +2106,7 @@
 
         let panelContent = `
             ${watermarkHtml}
+            <div class="collapsed-icon">CDN</div>
             <button class="icon-btn close-btn" title="Close">×</button>
             <button class="icon-btn theme-btn" title="Toggle Theme">${themeIcon}</button>
             <div class="panel-header">CDN & Server Info</div>
@@ -2116,8 +2185,63 @@
             }
         });
 
+        // Add scroll collapse functionality
+        setupScrollCollapse(host, panel);
 
         makeDraggable(host);
+    }
+
+    function setupScrollCollapse(host, panelElement) {
+        let scrollTimeout;
+        let isManuallyExpanded = false;
+
+        // Handle scroll events
+        function handleScroll() {
+            // Collapse panel when scrolling
+            if (!isManuallyExpanded) {
+                panelElement.classList.add('collapsed');
+            }
+
+            // Clear existing timeout
+            clearTimeout(scrollTimeout);
+
+            // Auto-expand after 2 seconds of no scrolling
+            scrollTimeout = setTimeout(() => {
+                if (!isManuallyExpanded) {
+                    panelElement.classList.remove('collapsed');
+                }
+            }, 2000);
+        }
+
+        // Toggle collapse on click when collapsed
+        panelElement.addEventListener('click', (e) => {
+            if (panelElement.classList.contains('collapsed')) {
+                e.stopPropagation();
+                panelElement.classList.remove('collapsed');
+                isManuallyExpanded = true;
+
+                // Reset manual expansion after 5 seconds
+                setTimeout(() => {
+                    isManuallyExpanded = false;
+                }, 5000);
+            }
+        });
+
+        // Listen to scroll events
+        window.addEventListener('scroll', handleScroll, { passive: true });
+
+        // Cleanup on panel removal (optional)
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                mutation.removedNodes.forEach((node) => {
+                    if (node === host) {
+                        window.removeEventListener('scroll', handleScroll);
+                        observer.disconnect();
+                    }
+                });
+            });
+        });
+        observer.observe(document.body, { childList: true });
     }
 
     function makeDraggable(element) {
