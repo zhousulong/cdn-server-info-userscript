@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.56.2
-// @description  [v7.56.2] 新增RTL语言支持(阿拉伯语、希伯来语等右到左排版语言)。智能DNS选择: 根据用户IP所在地区自动选择最优DNS服务器(中国大陆使用阿里DNS,其他地区使用Google DNS),解决国内外CDN分流和DNS污染问题,支持VPN分流场景实时切换。
-// @description:en [v7.56.2] Added RTL (Right-to-Left) language support for Arabic, Hebrew, and other RTL languages. Smart DNS Selection: Automatically choose optimal DNS server based on user's IP location (Alibaba DNS for mainland China, Google DNS for other regions), solving CDN geo-routing and DNS pollution issues, with real-time switching support for VPN split tunneling.
+// @version      7.56.3
+// @description  [v7.56.3] 新增RTL语言支持(阿拉伯语、希伯来语等右到左排版语言)。智能DNS选择: 根据用户IP所在地区自动选择最优DNS服务器(中国大陆使用阿里DNS,其他地区使用Google DNS),解决国内外CDN分流和DNS污染问题,支持VPN分流场景实时切换。
+// @description:en [v7.56.3] Added RTL (Right-to-Left) language support for Arabic, Hebrew, and other RTL languages. Smart DNS Selection: Automatically choose optimal DNS server based on user's IP location (Alibaba DNS for mainland China, Google DNS for other regions), solving CDN geo-routing and DNS pollution issues, with real-time switching support for VPN split tunneling.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.56.2
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.56.3
 // @connect      dns.alidns.com
 // @connect      dns.google
 // @connect      1.1.1.1
@@ -1611,7 +1611,7 @@
             border-radius: 50% !important;
             cursor: pointer !important;
             overflow: hidden !important;
-            transform-origin: center center !important;
+            /* transform-origin will be set dynamically via JavaScript */
         }
 
         #cdn-info-panel-enhanced.collapsed::after {
@@ -2201,8 +2201,30 @@
         let scrollTimeout;
         let isManuallyExpanded = false;
 
+        // Set transform origin based on panel position in viewport
+        function setTransformOrigin() {
+            const rect = host.getBoundingClientRect();
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+
+            // Determine position in viewport
+            const isRight = rect.left > viewportWidth / 2;
+            const isBottom = rect.top > viewportHeight / 2;
+
+            // Set transform origin to opposite corner
+            // If in bottom-right, expand from bottom-right (towards top-left)
+            // If in top-left, expand from top-left (towards bottom-right)
+            let originX = isRight ? 'right' : 'left';
+            let originY = isBottom ? 'bottom' : 'top';
+
+            panelElement.style.transformOrigin = `${originX} ${originY}`;
+        }
+
         // Handle scroll events
         function handleScroll() {
+            // Set transform origin before collapsing
+            setTransformOrigin();
+
             // Collapse panel when scrolling
             if (!isManuallyExpanded) {
                 panelElement.classList.add('collapsed');
@@ -2214,6 +2236,7 @@
             // Auto-expand after 2 seconds of no scrolling
             scrollTimeout = setTimeout(() => {
                 if (!isManuallyExpanded) {
+                    setTransformOrigin();
                     adjustPanelPosition(host, panelElement);
                     panelElement.classList.remove('collapsed');
                 }
@@ -2224,6 +2247,9 @@
         panelElement.addEventListener('click', (e) => {
             if (panelElement.classList.contains('collapsed')) {
                 e.stopPropagation();
+
+                // Set transform origin for expand animation
+                setTransformOrigin();
 
                 // Before expanding, check if panel will overflow and adjust position
                 adjustPanelPosition(host, panelElement);
