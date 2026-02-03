@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.56.12
-// @description  [v7.56.12] 新增RTL语言支持(阿拉伯语、希伯来语等右到左排版语言)。智能DNS选择: 根据用户IP所在地区自动选择最优DNS服务器(中国大陆使用阿里DNS,其他地区使用Google DNS),解决国内外CDN分流和DNS污染问题,支持VPN分流场景实时切换。
-// @description:en [v7.56.12] Added RTL (Right-to-Left) language support for Arabic, Hebrew, and other RTL languages. Smart DNS Selection: Automatically choose optimal DNS server based on user's IP location (Alibaba DNS for mainland China, Google DNS for other regions), solving CDN geo-routing and DNS pollution issues, with real-time switching support for VPN split tunneling.
+// @version      7.56.13
+// @description  [v7.56.13] 优化折叠逻辑：缩小后不再自动展开，需点击恢复。替换缩小状态下的默认CDN文字为图标。
+// @description:en [v7.56.13] Enhanced collapse logic: Panel stays collapsed after scrolling until clicked. Replaced default "CDN" text with a globe icon.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -2112,7 +2112,13 @@
 
         let panelContent = `
             ${watermarkHtml}
-            <div class="collapsed-icon">CDN</div>
+            <div class="collapsed-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 24px; height: 24px;">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="2" y1="12" x2="22" y2="12"></line>
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                </svg>
+            </div>
             <button class="icon-btn close-btn" title="Close">×</button>
             <button class="icon-btn theme-btn" title="Toggle Theme">${themeIcon}</button>
             <div class="panel-header">CDN & Server Info</div>
@@ -2236,14 +2242,7 @@
 
             // Clear existing timeout
             clearTimeout(scrollTimeout);
-
-            // Auto-expand after 2 seconds of no scrolling
-            scrollTimeout = setTimeout(() => {
-                if (!isManuallyExpanded) {
-                    // adjustPanelPosition(host, panelElement); // Disabled: conflicts with transform-origin
-                    panelElement.classList.remove('collapsed');
-                }
-            }, 2000);
+            // Auto-expand removed as per request: stay collapsed until user clicks
         }
 
         // Toggle collapse on click
@@ -2258,11 +2257,7 @@
                 e.stopPropagation();
                 panelElement.classList.remove('collapsed');
                 isManuallyExpanded = true;
-
-                // Reset manual expansion after 5 seconds
-                setTimeout(() => {
-                    isManuallyExpanded = false;
-                }, 5000);
+                // Removed 5s timeout reset - stay expanded if manually expanded
             } else {
                 // Collapse
                 e.stopPropagation();
