@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.56.13
-// @description  [v7.56.13] 优化折叠逻辑：缩小后不再自动展开，需点击恢复。替换缩小状态下的默认CDN文字为图标。
-// @description:en [v7.56.13] Enhanced collapse logic: Panel stays collapsed after scrolling until clicked. Replaced default "CDN" text with a globe icon.
+// @version      7.56.14
+// @description  [v7.56.14] 优化折叠逻辑：缩小后不再自动展开，需点击恢复。替换缩小状态下的默认CDN文字为图标。
+// @description:en [v7.56.14] Enhanced collapse logic: Panel stays collapsed after scrolling until clicked. Replaced default "CDN" text with a globe icon.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.56.12
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.56.14
 // @connect      dns.alidns.com
 // @connect      dns.google
 // @connect      1.1.1.1
@@ -1644,6 +1644,8 @@
 
         #cdn-info-panel-enhanced.collapsed .cdn-watermark svg {
             fill: currentColor;
+            width: ${isMobile ? '32px' : '38px'} !important;
+            height: ${isMobile ? '32px' : '38px'} !important;
         }
 
         /* Fallback icon when no watermark */
@@ -1652,6 +1654,8 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
+            width: ${isMobile ? '48px' : '56px'};
+            height: ${isMobile ? '48px' : '56px'};
             font-size: ${isMobile ? '20px' : '24px'};
             font-weight: 600;
             opacity: 0.7;
@@ -1659,6 +1663,12 @@
             display: flex;
             align-items: center;
             justify-content: center;
+        }
+
+        /* Size the SVG inside collapsed-icon to ~65% of the circle */
+        #cdn-info-panel-enhanced.collapsed .collapsed-icon svg {
+            width: ${isMobile ? '30px' : '36px'} !important;
+            height: ${isMobile ? '30px' : '36px'} !important;
         }
 
         /* Hide collapsed icon when watermark exists */
@@ -2113,7 +2123,7 @@
         let panelContent = `
             ${watermarkHtml}
             <div class="collapsed-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 24px; height: 24px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="10"></circle>
                     <line x1="2" y1="12" x2="22" y2="12"></line>
                     <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
