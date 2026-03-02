@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.56.14
-// @description  [v7.56.14] 优化折叠逻辑：缩小后不再自动展开，需点击恢复。替换缩小状态下的默认CDN文字为图标。
-// @description:en [v7.56.14] Enhanced collapse logic: Panel stays collapsed after scrolling until clicked. Replaced default "CDN" text with a globe icon.
+// @version      7.56.15
+// @description  [v7.56.15] 替换无匹配CDN时折叠状态的默认图标为新地球样式SVG，优化亮/暗模式下图标可见度。
+// @description:en [v7.56.15] Replace default collapsed icon with a new globe-style SVG; improve icon visibility for both light and dark themes.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.56.14
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.56.15
 // @connect      dns.alidns.com
 // @connect      dns.google
 // @connect      1.1.1.1
@@ -1669,6 +1669,7 @@
         #cdn-info-panel-enhanced.collapsed .collapsed-icon svg {
             width: ${isMobile ? '30px' : '36px'} !important;
             height: ${isMobile ? '30px' : '36px'} !important;
+            opacity: ${isDarkTheme ? '0.85' : '0.7'};
         }
 
         /* Hide collapsed icon when watermark exists */
@@ -2123,10 +2124,13 @@
         let panelContent = `
             ${watermarkHtml}
             <div class="collapsed-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="2" y1="12" x2="22" y2="12"></line>
-                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                <svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                  <g transform="rotate(0 100 100)" fill="none" stroke="currentColor" stroke-width="10">
+                    <circle cx="100" cy="100" r="70" />
+                    <path d="M100 30 V170 M30 100 H170" stroke="currentColor" stroke-opacity="0.3" stroke-width="5" />
+                    <circle cx="124" cy="76" r="20" fill="currentColor" stroke="none" />
+                    <path d="M100 30 V15" stroke-width="8" />
+                  </g>
                 </svg>
             </div>
             <button class="icon-btn close-btn" title="Close">×</button>
