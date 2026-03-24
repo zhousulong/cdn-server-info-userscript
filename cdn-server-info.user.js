@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.56.19
-// @description  [v7.56.19] 替换无匹配CDN时折叠状态的默认图标为新地球样式SVG，优化亮/暗模式下图标可见度。
-// @description:en [v7.56.19] Replace default collapsed icon with a new globe-style SVG; improve icon visibility for both light and dark themes.
+// @version      7.56.20
+// @description  [v7.56.20] 替换无匹配CDN时折叠状态的默认图标为新地球样式SVG，优化亮/暗模式下图标可见度。
+// @description:en [v7.56.20] Replace default collapsed icon with a new globe-style SVG; improve icon visibility for both light and dark themes.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.56.19
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.56.20
 // @connect      dns.alidns.com
 // @connect      dns.google
 // @connect      1.1.1.1
@@ -2364,14 +2364,16 @@
 
     function makeDraggable(element, panelElement) {
         let isDragging = false,
+            hasMoved = false,
             startX = 0,
             startY = 0,
             elementX = 0,
             elementY = 0;
         const dragTarget = element.shadowRoot.querySelector('#cdn-info-panel-enhanced');
         dragTarget.addEventListener('mousedown', (e) => {
-            if (e.target.classList.contains('close-btn')) return;
+            if (e.target.classList.contains('close-btn') || e.target.classList.contains('theme-btn')) return;
             isDragging = true;
+            hasMoved = false;
             startX = e.clientX;
             startY = e.clientY;
             const rect = element.getBoundingClientRect();
@@ -2382,6 +2384,7 @@
         });
         function drag(e) {
             if (!isDragging) return;
+            hasMoved = true;
             e.preventDefault();
             const newX = elementX + e.clientX - startX;
             const newY = elementY + e.clientY - startY;
@@ -2396,6 +2399,8 @@
             isDragging = false;
             document.removeEventListener('mousemove', drag);
             document.removeEventListener('mouseup', dragEnd);
+
+            if (!hasMoved) return;
 
             // After dragging, convert positioning to right/bottom anchor
             // This guarantees that CSS width/height expansions always grow towards the top-left
