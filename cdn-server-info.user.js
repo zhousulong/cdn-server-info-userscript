@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.56.16
-// @description  [v7.56.16] 替换无匹配CDN时折叠状态的默认图标为新地球样式SVG，优化亮/暗模式下图标可见度。
-// @description:en [v7.56.16] Replace default collapsed icon with a new globe-style SVG; improve icon visibility for both light and dark themes.
+// @version      7.56.17
+// @description  [v7.56.17] 替换无匹配CDN时折叠状态的默认图标为新地球样式SVG，优化亮/暗模式下图标可见度。
+// @description:en [v7.56.17] Replace default collapsed icon with a new globe-style SVG; improve icon visibility for both light and dark themes.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.56.16
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.56.17
 // @connect      dns.alidns.com
 // @connect      dns.google
 // @connect      1.1.1.1
@@ -2235,11 +2235,11 @@
             const isRight = centerX > viewportWidth / 2;
             const isBottom = centerY > viewportHeight / 2;
 
-            // Set transform origin to OPPOSITE corner
-            // Panel in bottom-right → origin at top-left → expands/collapses towards center
-            // Panel in top-left → origin at bottom-right → expands/collapses towards center
-            let originX = isRight ? 'left' : 'right';
-            let originY = isBottom ? 'top' : 'bottom';
+            // Set transform origin logically to the NEAREST corner
+            // Panel in bottom-right → origin at bottom-right → expands/collapses towards center (top-left)
+            // Panel in top-left → origin at top-left → expands/collapses towards center (bottom-right)
+            let originX = isRight ? 'right' : 'left';
+            let originY = isBottom ? 'bottom' : 'top';
 
             const origin = `${originX} ${originY}`;
             panelElement.style.setProperty('transform-origin', origin, 'important');
@@ -2409,8 +2409,8 @@
             const isRight = centerX > viewportWidth / 2;
             const isBottom = centerY > viewportHeight / 2;
 
-            let originX = isRight ? 'left' : 'right';
-            let originY = isBottom ? 'top' : 'bottom';
+            let originX = isRight ? 'right' : 'left';
+            let originY = isBottom ? 'bottom' : 'top';
 
             const origin = `${originX} ${originY}`;
             panelElement.style.setProperty('transform-origin', origin, 'important');
