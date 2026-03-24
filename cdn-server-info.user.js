@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.56.18
-// @description  [v7.56.18] 替换无匹配CDN时折叠状态的默认图标为新地球样式SVG，优化亮/暗模式下图标可见度。
-// @description:en [v7.56.18] Replace default collapsed icon with a new globe-style SVG; improve icon visibility for both light and dark themes.
+// @version      7.56.19
+// @description  [v7.56.19] 替换无匹配CDN时折叠状态的默认图标为新地球样式SVG，优化亮/暗模式下图标可见度。
+// @description:en [v7.56.19] Replace default collapsed icon with a new globe-style SVG; improve icon visibility for both light and dark themes.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.56.18
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.56.19
 // @connect      dns.alidns.com
 // @connect      dns.google
 // @connect      1.1.1.1
@@ -2397,16 +2397,16 @@
             document.removeEventListener('mousemove', drag);
             document.removeEventListener('mouseup', dragEnd);
 
-            // After dragging, recalculate transform-origin based on new position
+            // After dragging, convert positioning to right/bottom anchor
+            // This guarantees that CSS width/height expansions always grow towards the top-left
             const rect = element.getBoundingClientRect();
             const viewportWidth = window.innerWidth;
             const viewportHeight = window.innerHeight;
 
-            const centerX = rect.left + rect.width / 2;
-            const centerY = rect.top + rect.height / 2;
-
-            const isRight = centerX > viewportWidth / 2;
-            const isBottom = centerY > viewportHeight / 2;
+            element.style.right = `${viewportWidth - rect.right}px`;
+            element.style.bottom = `${viewportHeight - rect.bottom}px`;
+            element.style.left = 'auto';
+            element.style.top = 'auto';
 
             let originX = 'right';
             let originY = 'bottom';
@@ -2414,7 +2414,7 @@
             const origin = `${originX} ${originY}`;
             panelElement.style.setProperty('transform-origin', origin, 'important');
 
-            console.log(`[CDN Panel] Dragged to new position. Origin updated: ${origin}`);
+            console.log(`[CDN Panel] Dragged to new position. Anchored to right-bottom.`);
         }
     }
 
