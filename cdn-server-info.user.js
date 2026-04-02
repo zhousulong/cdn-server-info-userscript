@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.56.20
-// @description  [v7.56.20] 替换无匹配CDN时折叠状态的默认图标为新地球样式SVG，优化亮/暗模式下图标可见度。
-// @description:en [v7.56.20] Replace default collapsed icon with a new globe-style SVG; improve icon visibility for both light and dark themes.
+// @version      7.56.21
+// @description  [v7.56.21] 修复反复点击面板导致位移的 bug（增加5px拖拽阈值）；优化折叠/展开动画（spring曲线）；修复折叠时悬停显示按钮的问题；修复展开状态顶部留白问题。
+// @description:en [v7.56.21] Fix panel drift on repeated clicks (5px drag threshold); improve collapse/expand animation (spring curve); fix buttons appearing on hover in collapsed state; fix extra whitespace in expanded state.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.56.20
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.56.21
 // @connect      dns.alidns.com
 // @connect      dns.google
 // @connect      1.1.1.1
@@ -1567,7 +1567,13 @@
             box-shadow: ${boxShadow};
             cursor: default;
             user-select: none;
-            transition: all 0.3s ease;
+            /* 精确指定过渡属性；height:auto 无法 transition，不加 height */
+            transition:
+                width 0.38s cubic-bezier(0.34, 1.56, 0.64, 1),
+                border-radius 0.36s cubic-bezier(0.34, 1.56, 0.64, 1),
+                padding 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             color: ${textColor};
             display: flex;
             flex-direction: column;
@@ -1616,15 +1622,44 @@
 
         #cdn-info-panel-enhanced.collapsed::after {
             border-radius: 50% !important;
+            transition: border-radius 0.36s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        /* --- 展开状态内容动画基础 --- */
+        /* 内容区域：展开时淡入+上滑，折叠时快速淡出 */
+        #cdn-info-panel-enhanced .panel-header,
+        #cdn-info-panel-enhanced .info-lines-container,
+        #cdn-info-panel-enhanced .dns-status {
+            opacity: 1;
+            transform: translateY(0);
+            transition: opacity 0.22s cubic-bezier(0.4, 0, 0.2, 1) 0.12s,
+                        transform 0.28s cubic-bezier(0.34, 1.2, 0.64, 1) 0.1s;
+        }
+
+        /* 按钮独立淡入，稍晚一些 */
+        #cdn-info-panel-enhanced .close-btn,
+        #cdn-info-panel-enhanced .theme-btn {
+            transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1) 0.18s,
+                        transform 0.2s ease !important;
         }
 
         /* Hide all content when collapsed except watermark */
         #cdn-info-panel-enhanced.collapsed .panel-header,
         #cdn-info-panel-enhanced.collapsed .info-lines-container,
-        #cdn-info-panel-enhanced.collapsed .dns-status,
+        #cdn-info-panel-enhanced.collapsed .dns-status {
+            opacity: 0 !important;
+            transform: translateY(4px) !important;
+            transition: opacity 0.12s cubic-bezier(0.4, 0, 1, 1),
+                        transform 0.12s cubic-bezier(0.4, 0, 1, 1) !important;
+            pointer-events: none;
+            /* 延迟 visibility 以配合 overflow:hidden 剪裁 */
+        }
+
         #cdn-info-panel-enhanced.collapsed .close-btn,
         #cdn-info-panel-enhanced.collapsed .theme-btn {
-            display: none !important;
+            opacity: 0 !important;
+            pointer-events: none;
+            transition: opacity 0.08s cubic-bezier(0.4, 0, 1, 1) !important;
         }
 
         /* Show watermark in center when collapsed */
@@ -1635,11 +1670,17 @@
             transform: translate(-50%, -50%);
             max-width: 70%;
             max-height: 70%;
-            opacity: 1; /* Full opacity */
+            opacity: 1;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: ${isDarkTheme ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.25)'}; /* Increased from 0.04 for better visibility */
+            color: ${isDarkTheme ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.25)'};
+        }
+
+        /* Watermark 过渡动画 */
+        .cdn-watermark {
+            transition: opacity 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+                        transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         #cdn-info-panel-enhanced.collapsed .cdn-watermark svg {
@@ -1648,24 +1689,30 @@
             height: ${isMobile ? '32px' : '38px'} !important;
         }
 
-        /* Fallback icon when no watermark */
+        /* collapsed-icon: 展开时完全不占位 */
+        .collapsed-icon {
+            display: none;
+        }
+
+        /* 折叠时显示，带 scale 进场动画 */
         #cdn-info-panel-enhanced.collapsed .collapsed-icon {
-            position: absolute;
+            display: flex;
+            position: absolute !important;
             top: 50%;
             left: 50%;
-            transform: translate(-50%, -50%);
+            transform: translate(-50%, -50%) scale(1);
             width: ${isMobile ? '48px' : '56px'};
             height: ${isMobile ? '48px' : '56px'};
             font-size: ${isMobile ? '20px' : '24px'};
             font-weight: 600;
             opacity: 0.7;
             color: ${textColor};
-            display: flex;
             align-items: center;
             justify-content: center;
+            pointer-events: none;
         }
 
-        /* Size the SVG inside collapsed-icon to ~65% of the circle */
+        /* Size the SVG inside collapsed-icon */
         #cdn-info-panel-enhanced.collapsed .collapsed-icon svg {
             width: ${isMobile ? '30px' : '36px'} !important;
             height: ${isMobile ? '30px' : '36px'} !important;
@@ -1674,17 +1721,7 @@
 
         /* Hide collapsed icon when watermark exists */
         #cdn-info-panel-enhanced.collapsed .cdn-watermark ~ .collapsed-icon {
-            display: none;
-        }
-
-        /* Hide collapsed icon in normal state */
-        .collapsed-icon {
-            display: none;
-        }
-
-        /* Show collapsed icon only when collapsed and no watermark */
-        #cdn-info-panel-enhanced.collapsed .collapsed-icon {
-            display: flex;
+            display: none !important;
         }
 
 
@@ -1718,6 +1755,10 @@
 
         #cdn-info-panel-enhanced:hover button.icon-btn { opacity: 0.5 !important; }
         button.icon-btn:hover { opacity: 1 !important; transform: scale(1.1); }
+
+        /* \u6298\u53e0\u72b6\u6001\u6076\u6197\u60ac\u505c\uff1a\u6309\u94ae\u5fc5\u987b\u59cb\u7ec8\u4e0d\u53ef\u89c1\uff08\u8986\u76d6 hover \u89c4\u5219\uff09 */
+        #cdn-info-panel-enhanced.collapsed button.icon-btn,
+        #cdn-info-panel-enhanced.collapsed:hover button.icon-btn { opacity: 0 !important; pointer-events: none !important; }
 
         /* --- Content Typography --- */
         .panel-header {
@@ -2369,6 +2410,7 @@
             startY = 0,
             elementX = 0,
             elementY = 0;
+        const DRAG_THRESHOLD = 5; // 最小拖拽距离（px），防止点击时的抖动触发位置重计算
         const dragTarget = element.shadowRoot.querySelector('#cdn-info-panel-enhanced');
         dragTarget.addEventListener('mousedown', (e) => {
             if (e.target.classList.contains('close-btn') || e.target.classList.contains('theme-btn')) return;
@@ -2384,10 +2426,14 @@
         });
         function drag(e) {
             if (!isDragging) return;
+            const deltaX = e.clientX - startX;
+            const deltaY = e.clientY - startY;
+            // 必须超过阈值才认定为真正的拖拽，防止点击时的抖动
+            if (!hasMoved && Math.sqrt(deltaX * deltaX + deltaY * deltaY) < DRAG_THRESHOLD) return;
             hasMoved = true;
             e.preventDefault();
-            const newX = elementX + e.clientX - startX;
-            const newY = elementY + e.clientY - startY;
+            const newX = elementX + deltaX;
+            const newY = elementY + deltaY;
             const maxX = window.innerWidth - element.offsetWidth;
             const maxY = window.innerHeight - element.offsetHeight;
             element.style.left = `${Math.max(0, Math.min(newX, maxX))}px`;
