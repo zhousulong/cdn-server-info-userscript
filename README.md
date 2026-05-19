@@ -24,32 +24,32 @@
 <summary>点击查看完整列表</summary>
 
 - **国际 CDN**
-  - Cloudflare
-  - AWS CloudFront
-  - Fastly
-  - Akamai
-  - Vercel
-  - BunnyCDN
-  - KeyCDN
-  - CDN77
-  - StackPath
-  - QUIC.cloud
-  - Medianova
-  - CacheFly
-  - BytePlus CDN (TikTok)
+    - Cloudflare
+    - AWS CloudFront
+    - Fastly
+    - Akamai
+    - Vercel
+    - BunnyCDN
+    - KeyCDN
+    - CDN77
+    - StackPath
+    - QUIC.cloud
+    - Medianova
+    - CacheFly
+    - BytePlus CDN (TikTok)
 
 - **国内 CDN**
-  - 腾讯云 EdgeOne
-  - 阿里云 CDN
-  - 字节跳动 CDN
-  - 京东云 CDN
-  - EdgeNext
+    - 腾讯云 EdgeOne
+    - 阿里云 CDN
+    - 字节跳动 CDN
+    - 京东云 CDN
+    - EdgeNext
 
 - **Web 服务器**
-  - LiteSpeed
-  - OpenResty
-  - Apache
-  - Nginx
+    - LiteSpeed
+    - OpenResty
+    - Apache
+    - Nginx
 
 </details>
 
@@ -59,9 +59,9 @@
 - **POP 位置**：显示边缘节点地理位置
 - **服务器信息**：识别 Web 服务器类型和版本
 - **颜色编码**：
-  - 🟢 **绿色** - 缓存命中 (HIT)
-  - 🔴 **红色** - 缓存未命中 (MISS)
-  - 🔵 **蓝色** - 缓存绕过 (BYPASS/DYNAMIC)
+    - 🟢 **绿色** - 缓存命中 (HIT)
+    - 🔴 **红色** - 缓存未命中 (MISS)
+    - 🔵 **蓝色** - 缓存绕过 (BYPASS/DYNAMIC)
 
 ### 🎨 用户界面
 
@@ -149,45 +149,54 @@
 ### v7.5.0 (2025-12-17) - 缓存检测和样式隔离增强
 
 #### 🆕 新增功能
+
 - **增强 LiteSpeed 缓存检测**：添加了对 `x-litespeed-cache` 和 `x-lsadc-cache` 响应头的支持
 - **新增服务器检测**：支持 LiteSpeed、OpenResty、Apache、Nginx 的检测和图标显示
 
 #### 🔧 改进优化
+
 - **CSS 样式隔离**：优化 Shadow DOM 样式隔离机制，确保面板在不同网站上的渲染一致性
 - **图标匹配算法**：改进模糊匹配逻辑，修复 QUIC.cloud、LiteSpeed 等提供商的图标显示问题
 - **面板宽度调整**：优化为 252px，在使用 border-box 布局模型后保持原有视觉宽度
 
 #### 🗑️ 移除功能
+
 - 移除了无实际作用的右键菜单功能，简化用户交互
 
 <details>
 <summary>查看历史版本</summary>
 
 ### v7.4.0 - 服务器检测和图标优化
+
 - 添加 LiteSpeed/OpenResty/Apache/Nginx 检测
 - 改进图标匹配算法
 - 修复水印显示问题
 
 ### v6.1.1 - 显示优化
+
 - 优化字体大小和面板宽度
 - 更好地显示长 CDN 名称
 
 ### v6.1.0 - UI 重新设计
+
 - 采用 iOS 风格玻璃效果
 - 简化信息显示
 - 优化移动端体验
 
 ### v6.0.0 - 重大更新
+
 - 新增 5 个 CDN 提供商
 - 扩展信息显示
 - 增加自定义选项
 
 ### v5.8.5 - 功能增强
+
 - 添加 Wovn.io 检测
 - 改进 Akamai 检测规则
 - 增强 POP 位置解析
 
 ### v5.8.0 - 模块化重构
+
 - 模块化 CDN 检测规则
 - 添加设置面板
 - 支持主题切换
@@ -218,12 +227,12 @@ CDN 检测规则存储在 [`cdn_rules.json`](./cdn_rules.json) 中，支持：
 
 ```json
 {
-  "Cloudflare": {
-    "headers": ["cf-ray", "cf-cache-status"],
-    "pop_header": "cf-ray",
-    "pop_regex": "^[0-9a-f]+-([A-Z]{3})",
-    "priority": 10
-  }
+    "Cloudflare": {
+        "headers": ["cf-ray", "cf-cache-status"],
+        "pop_header": "cf-ray",
+        "pop_regex": "^[0-9a-f]+-([A-Z]{3})",
+        "priority": 10
+    }
 }
 ```
 
