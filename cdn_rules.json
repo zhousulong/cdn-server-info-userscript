@@ -174,7 +174,7 @@
         "pop_header": "x-cf1",
         "pop_regex": "([a-z]{3,4}\\d*)\\.",
         "id_header": "x-cf-reqid",
-        "cnames": ["cachefly.net"],
+        "cnames": ["cachefly.net", "instantcdn.net"],
         "priority": 10
     },
     "Qiniu Cloud": {
@@ -277,22 +277,13 @@
         "headers": {
             "x-ws-request-id": null,
             "x-px": null,
-            "x-hello-human": "cdnetworks",
-            "x-cf-reqid": null,
-            "x-cf-tsc": null,
-            "x-cf-forcetr": null,
-            "x-cf1": null,
-            "x-cf2": null,
-            "x-cf3": null,
-            "x-cff": null,
-            "cf4age": null,
-            "cf4ttl": null
+            "x-hello-human": "cdnetworks"
         },
-        "server": "PWS|ChinaNetCenter|CFS",
+        "server": "PWS|ChinaNetCenter",
         "via": "PS-",
-        "id_header": "x-cf-reqid",
-        "pop_header": "x-cf1",
-        "pop_regex": ":([a-zA-Z]+\\.[a-z]+\\d*)",
+        "id_header": "x-ws-request-id",
+        "pop_header": "x-px",
+        "pop_regex": "([A-Z]{3})",
         "cnames": [
             "cdnetworks",
             "cdngc",
@@ -303,6 +294,9 @@
             "wscdns",
             "lxdns",
             "chinanetcenter",
+            "pwcdn",
+            "pwnet",
+            "ourwebpic",
             "wswebcdn",
             "cdn20"
         ],
@@ -602,6 +596,14 @@
     "Quantil": {
         "cnames": ["qtlcdn"],
         "priority": 10
+    },
+    "Melbicom": {
+        "headers": {
+            "x-swifty-cache-status": null,
+            "x-swifty-node": null
+        },
+        "cnames": ["swiftycdn"],
+        "priority": 15
     },
     "Nginx": {
         "server": "nginx",

@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.56.24
-// @description  [v7.56.24] 修复反复点击面板导致位移的 bug（增加5px拖拽阈值）；优化折叠/展开动画（spring曲线）；修复折叠时悬停显示按钮的问题；修复展开状态顶部留白问题。
-// @description:en [v7.56.24] Fix panel drift on repeated clicks (5px drag threshold); improve collapse/expand animation (spring curve); fix buttons appearing on hover in collapsed state; fix extra whitespace in expanded state.
+// @version      7.56.26
+// @description  [v7.56.26] 修复反复点击面板导致位移的 bug（增加5px拖拽阈值）；优化折叠/展开动画（spring曲线）；修复折叠时悬停显示按钮的问题；修复展开状态顶部留白问题。
+// @description:en [v7.56.26] Fix panel drift on repeated clicks (5px drag threshold); improve collapse/expand animation (spring curve); fix buttons appearing on hover in collapsed state; fix extra whitespace in expanded state.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.56.24
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.56.26
 // @connect      dns.alidns.com
 // @connect      dns.google
 // @connect      1.1.1.1
@@ -63,6 +63,7 @@
         const headersToCheck = [
             h.get('mpulse_cdn_cache'), // Akamai mPulse (reliable with fetch)
             h.get('eo-cache-status'), // Prioritize specific headers
+            h.get('x-swifty-cache-status'),
             h.get('hittype'),
             h.get('hascache'), // Kestrel-based CDN
             h.get('x-cache'),
@@ -892,6 +893,23 @@
                 };
             },
         },
+        Melbicom: {
+            getInfo: (h) => {
+                let cache = h.get('x-swifty-cache-status') || getCacheStatus(h);
+                let pop = h.get('x-swifty-node') || 'N/A';
+                if (pop !== 'N/A') {
+                    pop = pop.toUpperCase();
+                }
+                let requestId = h.get('x-tiggee') || 'N/A';
+
+                return {
+                    provider: 'Melbicom',
+                    cache: cache,
+                    pop: pop,
+                    extra: requestId !== 'N/A' ? `Tiggee: ${requestId}` : 'N/A',
+                };
+            },
+        },
     };
 
     function loadRules() {
@@ -1219,6 +1237,8 @@
             '<svg viewBox="0 0 33.9 31.9"><path fill="currentColor" fill-opacity="0.75" d="M19.3 3.9c-1-.4-2.1-.7-3.3-.7H15.4C9.8 3.2 5.2 7.8 5.2 13.4c0 1.2.2 2.5.7 3.6v-.5c0-5.2 4.2-9.4 9.4-9.4s9.4 4.2 9.4 9.4c0 .5 0 1.1-.1 1.6 0 .3-.1.6-.2.9-.3 1-.7 2-1.3 2.9-3.6 5.8-11.3 7.6-17.1 4-3.7-2.2-5.9-6.1-6-10.4v.4c0 8.8 7.2 16 16 16 2 0 3.9-.4 5.8-1.1 7.1-4 9.6-13 5.6-20.1-1.8-3.2-4.7-5.6-8.1-6.8z"/><path fill="currentColor" fill-opacity="0.55" d="M15.3 25.9c-5 0-9.1-3.9-9.4-8.9-.4-1.1-.7-2.4-.7-3.6 0-5.6 4.6-10.2 10.2-10.2H16h-1.7C7.9 3.2 2.7 6.8.4 12.4c0 0-.1.2-.1.4-.2.8-.3 1.6-.3 2.4v.3c.1 6.9 5.8 12.4 12.7 12.3 4.3-.1 8.2-2.3 10.4-5.9-1.7 2.5-4.8 4-7.8 4z"/><path fill="currentColor" fill-opacity="0.95" d="M16 0C9.3 0 3.3 4.1 1 10.4c-.3.8-.6 1.6-.7 2.4 0-.1.1-.4.1-.4 2.3-5.6 7.8-9.3 13.9-9.2H16c1.1.1 2.2.3 3.2.7 7.7 2.6 11.9 11 9.3 18.7-1.2 3.4-3.6 6.3-6.7 8.1C30 27.5 33.9 18.2 30.6 10 28.2 4 22.4.1 16 0z"/></svg>',
         Quantil:
             '<svg viewBox="0 0 45.14 48.96"><path fill="currentColor" d="M45.14,43.68l-7.14-7.14c3.53-3.88,5.69-9.04,5.69-14.7C43.69,9.78,33.91,0,21.84,0S0,9.78,0,21.84s9.78,21.84,21.84,21.84c3.69,0,7.16-.92,10.21-2.53l7.81,7.81,5.28-5.28ZM7.84,21.84c0-7.73,6.27-14,14-14s14,6.27,14,14-6.27,14-14,14-14-6.27-14-14Z"/></svg>',
+        Melbicom:
+            '<svg viewBox="0 0 29 34"><path fill="currentColor" d="M14.4,33.9l14.6-8.3V0l-14.6,8.3L0,0v25.6l4.5,2.6V7.8l9.9,5.7,10.1-5.8v5.2l-10.1,5.7v5.1l10.1-5.7v5l-10.1,5.7v5.1Z"/></svg>',
     };
 
     // --- Region Detection Logic ---
