@@ -52,14 +52,14 @@ function incrementVersion(currentVersion, type) {
     const { major, minor, patch } = parseVersion(currentVersion);
 
     switch (type) {
-    case 'major':
-        return `${major + 1}.0.0`;
-    case 'minor':
-        return `${major}.${minor + 1}.0`;
-    case 'patch':
-        return `${major}.${minor}.${patch + 1}`;
-    default:
-        throw new Error(`未知的版本类型: ${type}`);
+        case 'major':
+            return `${major + 1}.0.0`;
+        case 'minor':
+            return `${major}.${minor + 1}.0`;
+        case 'patch':
+            return `${major}.${minor}.${patch + 1}`;
+        default:
+            throw new Error(`未知的版本类型: ${type}`);
     }
 }
 
@@ -87,11 +87,7 @@ function updatePackageJson(newVersion) {
     const oldVersion = packageJson.version;
     packageJson.version = newVersion;
 
-    fs.writeFileSync(
-        PACKAGE_JSON_PATH,
-        JSON.stringify(packageJson, null, 4) + '\n',
-        'utf8'
-    );
+    fs.writeFileSync(PACKAGE_JSON_PATH, JSON.stringify(packageJson, null, 4) + '\n', 'utf8');
 
     log(`✓ package.json: ${oldVersion} → ${newVersion}`, 'green');
 }

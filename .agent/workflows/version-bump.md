@@ -27,6 +27,7 @@ grep '@version' cdn-server-info.user.js
 ### 2. 确定新版本号
 
 根据语义化版本规范 (Semantic Versioning) 确定新版本号:
+
 - **主版本号 (Major)**: 不兼容的 API 修改
 - **次版本号 (Minor)**: 向下兼容的功能性新增
 - **修订号 (Patch)**: 向下兼容的问题修正
@@ -36,11 +37,13 @@ grep '@version' cdn-server-info.user.js
 ### 3. 运行版本更新脚本
 
 // turbo
+
 ```bash
 node .agent/workflows/scripts/update-version.js <新版本号>
 ```
 
 例如:
+
 ```bash
 node .agent/workflows/scripts/update-version.js 7.55.0
 ```
@@ -48,6 +51,7 @@ node .agent/workflows/scripts/update-version.js 7.55.0
 ### 4. 验证更新结果
 
 // turbo
+
 ```bash
 # 验证两个文件的版本号已更新
 grep '"version"' package.json
@@ -67,10 +71,10 @@ git push
 
 1. **版本号格式**: 必须遵循 `x.y.z` 格式 (例如: `7.55.0`)
 2. **同步更新**: 脚本会自动更新以下位置的版本号:
-   - `package.json` 中的 `version` 字段
-   - `cdn-server-info.user.js` 中的 `@version` 标签
-   - `cdn-server-info.user.js` 中的 `@description` 和 `@description:en` (版本号引用)
-   - `cdn-server-info.user.js` 中的 `@resource` URL 参数
+    - `package.json` 中的 `version` 字段
+    - `cdn-server-info.user.js` 中的 `@version` 标签
+    - `cdn-server-info.user.js` 中的 `@description` 和 `@description:en` (版本号引用)
+    - `cdn-server-info.user.js` 中的 `@resource` URL 参数
 3. **提交前检查**: 建议在提交前运行 `npm run lint` 确保代码质量
 
 ## 快速命令

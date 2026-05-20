@@ -11,82 +11,86 @@
 ### ✅ DO - 正确做法
 
 1. **使用 CDN 专有头**
-   ```json
-   {
-     "Cloudflare": {
-       "headers": {
-         "cf-ray": null,           // ✅ Cloudflare 专有
-         "cf-cache-status": null   // ✅ Cloudflare 专有
-       }
-     }
-   }
-   ```
+
+    ```json
+    {
+        "Cloudflare": {
+            "headers": {
+                "cf-ray": null, // ✅ Cloudflare 专有
+                "cf-cache-status": null // ✅ Cloudflare 专有
+            }
+        }
+    }
+    ```
 
 2. **使用带值匹配的通用头**
-   ```json
-   {
-     "SwiftServe CDN": {
-       "headers": {
-         "x-cache": "swiftserve"   // ✅ 匹配特定值
-       }
-     },
-     "Kingsoft Cloud": {
-       "headers": {
-         "x-cache-status": "KS-CLOUD-"  // ✅ 匹配特定前缀
-       }
-     }
-   }
-   ```
+
+    ```json
+    {
+        "SwiftServe CDN": {
+            "headers": {
+                "x-cache": "swiftserve" // ✅ 匹配特定值
+            }
+        },
+        "Kingsoft Cloud": {
+            "headers": {
+                "x-cache-status": "KS-CLOUD-" // ✅ 匹配特定前缀
+            }
+        }
+    }
+    ```
 
 3. **使用正则模式匹配**
-   ```json
-   {
-     "AWS CloudFront": {
-       "via": "cloudfront\\.net"   // ✅ 特定域名模式
-     }
-   }
-   ```
+
+    ```json
+    {
+        "AWS CloudFront": {
+            "via": "cloudfront\\.net" // ✅ 特定域名模式
+        }
+    }
+    ```
 
 4. **组合多个独特头**
-   ```json
-   {
-     "Akamai": {
-       "headers": {
-         "x-akamai-transformed": null,
-         "x-akamai-request-id": null,
-         "server-timing": "ak_p"
-       }
-     }
-   }
-   ```
+    ```json
+    {
+        "Akamai": {
+            "headers": {
+                "x-akamai-transformed": null,
+                "x-akamai-request-id": null,
+                "server-timing": "ak_p"
+            }
+        }
+    }
+    ```
 
 ### ❌ DON'T - 错误做法
 
 1. **禁止使用超级通用头**
-   ```json
-   // ❌ 错误示例
-   {
-     "HiNet CDN": {
-       "headers": {
-         "x-request-id": null,  // ❌ 几乎所有服务器都有
-         "x-cache": null        // ❌ 太通用，很多 CDN 都用
-       }
-     }
-   }
-   ```
+
+    ```json
+    // ❌ 错误示例
+    {
+        "HiNet CDN": {
+            "headers": {
+                "x-request-id": null, // ❌ 几乎所有服务器都有
+                "x-cache": null // ❌ 太通用，很多 CDN 都用
+            }
+        }
+    }
+    ```
 
 2. **禁止使用无特征的通用头**
-   ```json
-   // ❌ 错误示例
-   {
-     "Gcore": {
-       "headers": {
-         "cache": null,         // ❌ 太通用
-         "x-id": null           // ❌ 太通用
-       }
-     }
-   }
-   ```
+    ```json
+    // ❌ 错误示例
+    {
+        "Gcore": {
+            "headers": {
+                "cache": null, // ❌ 太通用
+                "x-id": null // ❌ 太通用
+            }
+        }
+    }
+    ```
 
 ### 🚨 高风险通用头列表（避免使用）
 
@@ -114,51 +118,55 @@
 ### ✅ DO - 正确做法
 
 1. **使用 `fill="currentColor"`**
-   ```svg
-   <svg viewBox="0 0 100 100">
-     <path fill="currentColor" d="..."/>
-     <circle fill="currentColor" fill-opacity="0.7" cx="50" cy="50" r="20"/>
-   </svg>
-   ```
+
+    ```svg
+    <svg viewBox="0 0 100 100">
+      <path fill="currentColor" d="..."/>
+      <circle fill="currentColor" fill-opacity="0.7" cx="50" cy="50" r="20"/>
+    </svg>
+    ```
 
 2. **使用 `fill-opacity` 保持层次**
-   ```svg
-   <path fill="currentColor" fill-opacity="1.0" d="..."/>    <!-- 主要元素 -->
-   <path fill="currentColor" fill-opacity="0.7" d="..."/>    <!-- 次要元素 -->
-   <path fill="currentColor" fill-opacity="0.5" d="..."/>    <!-- 装饰元素 -->
-   ```
+
+    ```svg
+    <path fill="currentColor" fill-opacity="1.0" d="..."/>    <!-- 主要元素 -->
+    <path fill="currentColor" fill-opacity="0.7" d="..."/>    <!-- 次要元素 -->
+    <path fill="currentColor" fill-opacity="0.5" d="..."/>    <!-- 装饰元素 -->
+    ```
 
 3. **移除内联样式和 `<defs>`**
-   ```svg
-   <!-- ❌ 错误 -->
-   <svg>
-     <defs>
-       <style>.cls-1{fill:#004097}</style>
-     </defs>
-     <path class="cls-1" d="..."/>
-   </svg>
 
-   <!-- ✅ 正确 -->
-   <svg>
-     <path fill="currentColor" d="..."/>
-   </svg>
-   ```
+    ```svg
+    <!-- ❌ 错误 -->
+    <svg>
+      <defs>
+        <style>.cls-1{fill:#004097}</style>
+      </defs>
+      <path class="cls-1" d="..."/>
+    </svg>
+
+    <!-- ✅ 正确 -->
+    <svg>
+      <path fill="currentColor" d="..."/>
+    </svg>
+    ```
 
 ### ❌ DON'T - 错误做法
 
 1. **不要使用固定颜色**
-   ```svg
-   <!-- ❌ 错误 -->
-   <path fill="#004097" d="..."/>
-   <circle fill="rgb(236, 28, 36)" cx="50" cy="50" r="20"/>
-   ```
+
+    ```svg
+    <!-- ❌ 错误 -->
+    <path fill="#004097" d="..."/>
+    <circle fill="rgb(236, 28, 36)" cx="50" cy="50" r="20"/>
+    ```
 
 2. **不要使用 CSS 类名**
-   ```svg
-   <!-- ❌ 错误 -->
-   <style>.cls-1{fill:#004097}</style>
-   <path class="cls-1" d="..."/>
-   ```
+    ```svg
+    <!-- ❌ 错误 -->
+    <style>.cls-1{fill:#004097}</style>
+    <path class="cls-1" d="..."/>
+    ```
 
 ### 🎯 Logo 添加位置
 
@@ -166,9 +174,9 @@
 
 ```javascript
 const cdnIcons = {
-    'Cloudflare': `<svg>...</svg>`,
-    'Akamai': `<svg>...</svg>`,
-    'Your CDN': `<svg>...</svg>`,  // 添加在这里
+    Cloudflare: `<svg>...</svg>`,
+    Akamai: `<svg>...</svg>`,
+    'Your CDN': `<svg>...</svg>`, // 添加在这里
 };
 ```
 
@@ -182,14 +190,15 @@ const cdnIcons = {
 
 ```javascript
 const headersToCheck = [
-    h.get('eo-cache-status'),     // 优先检查特定头
-    h.get('hascache'),             // Kestrel
-    h.get('x-cache'),              // 通用头放后面
+    h.get('eo-cache-status'), // 优先检查特定头
+    h.get('hascache'), // Kestrel
+    h.get('x-cache'), // 通用头放后面
     // ... 其他头
 ];
 ```
 
 **原则**:
+
 - ✅ 特定的、独特的头放在**前面**
 - ✅ 通用的头放在**后面**
 - ✅ 检测逻辑会自动提取 HIT/MISS/BYPASS/DYNAMIC
@@ -205,6 +214,7 @@ const headersToCheck = [
 **原因**: 使用了通用头
 
 **修复**:
+
 1. 检查两个 CDN 的 `headers` 配置
 2. 移除通用头，只保留专有头
 3. 如果必须用通用头，添加值匹配
@@ -216,6 +226,7 @@ const headersToCheck = [
 **原因**: 使用了固定颜色而不是 `currentColor`
 
 **修复**:
+
 1. 将所有 `fill="#xxx"` 改为 `fill="currentColor"`
 2. 移除 `<defs><style>` 部分
 3. 使用 `fill-opacity` 保持层次
@@ -227,6 +238,7 @@ const headersToCheck = [
 **原因**: 优先级不能解决头冲突
 
 **修复**:
+
 1. **不要**通过调整优先级解决冲突
 2. 修改规则，使用更精确的头
 3. 添加值匹配或正则模式
@@ -246,15 +258,17 @@ const headersToCheck = [
 需要同时更新 3 个地方:
 
 1. **`cdn-server-info.user.js`** (第 5-7 行):
-   ```javascript
-   // @version      7.27.0
-   // @description  [v7.27.0] 更新说明
-   ```
+
+    ```javascript
+    // @version      7.27.0
+    // @description  [v7.27.0] 更新说明
+    ```
 
 2. **`cdn-server-info.user.js`** (第 17 行):
-   ```javascript
-   // @resource     cdn_rules https://...?v=7.27.0
-   ```
+
+    ```javascript
+    // @resource     cdn_rules https://...?v=7.27.0
+    ```
 
 3. **版本说明**: 简洁描述主要变更
 
@@ -274,15 +288,15 @@ const customHandlers = {
             const xCache = h.get('x-cache');
             const match = xCache.match(/from\s+([a-z0-9]+)\.([a-z0-9]+)\.swiftserve\.com/i);
             const pop = match ? match[2].toUpperCase() : 'N/A';
-            
+
             return {
                 provider: 'SwiftServe CDN',
                 cache: getCacheStatus(h),
                 pop: pop,
-                extra: 'Detected via x-cache header'
+                extra: 'Detected via x-cache header',
             };
-        }
-    }
+        },
+    },
 };
 ```
 
@@ -292,13 +306,13 @@ const customHandlers = {
 
 ```json
 {
-  "Simple CDN": {
-    "headers": {
-      "x-simple-cdn": null
-    },
-    "pop_header": "x-cdn-pop",
-    "id_header": "x-request-id"
-  }
+    "Simple CDN": {
+        "headers": {
+            "x-simple-cdn": null
+        },
+        "pop_header": "x-cdn-pop",
+        "id_header": "x-request-id"
+    }
 }
 ```
 
@@ -346,5 +360,5 @@ const customHandlers = {
 
 ---
 
-*最后更新: 2025-12-19*
-*版本: v7.27.0*
+_最后更新: 2025-12-19_
+_版本: v7.27.0_

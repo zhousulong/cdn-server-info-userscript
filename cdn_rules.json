@@ -590,6 +590,19 @@
         "cnames": ["cdn77"],
         "priority": 15
     },
+    "Zenlayer": {
+        "headers": {
+            "hittype": null,
+            "x-tiggee": null
+        },
+        "server": "^Zen(?:/|$)",
+        "cnames": ["zenlayer", "fastecn"],
+        "priority": 15
+    },
+    "Quantil": {
+        "cnames": ["qtlcdn"],
+        "priority": 10
+    },
     "Nginx": {
         "server": "nginx",
         "priority": 5
