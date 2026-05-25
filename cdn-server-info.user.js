@@ -1018,7 +1018,7 @@
             let score = 0;
             // 1. Header Checks
             // - Exact Key Match: +20
-            // - Regex Value Match: +30
+            // - Regex Value Match: +60
             if (rule.headers) {
                 for (const [header, val] of Object.entries(rule.headers)) {
                     if (lowerCaseHeaders.has(header)) {
@@ -1026,7 +1026,7 @@
                             score += 20;
                         } else {
                             if (new RegExp(val, 'i').test(lowerCaseHeaders.get(header))) {
-                                score += 30;
+                                score += 60;
                             }
                         }
                     }

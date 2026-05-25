@@ -200,7 +200,8 @@
         "headers": {
             "x-kss-request-id": null,
             "x-cache-status": "KS-CLOUD-",
-            "x-link-via": null
+            "x-link-via": null,
+            "x-cdn-request-id": null
         },
         "cnames": ["ksyuncdn", "ks-cdn"],
         "id_header": "x-kss-request-id",
@@ -233,7 +234,7 @@
             "x-tt-trace-tag": null
         },
         "server": "TLB",
-        "id_header": "x-cdn-request-id",
+        "id_header": "x-tt-logid",
         "cnames": ["byteplus", "volcco"],
         "priority": 25
     },
