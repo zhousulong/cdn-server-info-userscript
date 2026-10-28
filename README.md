@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-7.5.0-blue.svg)
+![Version](https://img.shields.io/badge/version-7.57.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Tampermonkey](https://img.shields.io/badge/Tampermonkey-Compatible-orange.svg)
 
@@ -18,7 +18,7 @@
 
 ### 🌐 CDN 检测
 
-自动识别 **30+ 主流 CDN 提供商**，包括：
+自动识别 **120+ CDN / WAF / GSLB 厂商**（其中 70+ 家通过 CNAME 识别），包括：
 
 <details>
 <summary>点击查看完整列表</summary>
@@ -146,6 +146,21 @@
 
 ## 📋 版本更新
 
+### v7.57.0 (2026-10-28) - CDN 规则库同步 ip438 CNAME 对照表
+
+#### 🆕 新增功能
+
+- **CNAME 规则支持通配符**：`"kunlun*.com"`、`"tdnsv*.com"` 这类带 `*` 的后缀可直接写进 `cdn_rules.json`，`*` 只在单个标签内展开
+- **73 个仅靠 CNAME 识别的厂商**：网宿 CDN、蓝汛 ChinaCache、360 云 CDN、天翼云 CTYun、世纪互联、帝联/快网/新浪云/网易云/美团云、Bilibili、Azure App Service / Traffic Manager、GitHub & GitLab Pages、Heroku、Sangfor、奇安信/绿盟/安恒 WAF 等
+- **CNAME 规则从 137 条增至 387 条**，来源为 ip438 对照表 + 线上 DoH 抽样校验
+
+#### 🔧 改进优化
+
+- 网宿系后缀（`lxdns` / `wscdns` / `wsdvs` / `chinanetcenter` / `cdn20` / `wswebcdn` / `wsglb0`）从 CDNetworks 迁出，独立成 `Wangsu CDN`
+- 修正错误归属：`hwcdn.net` 归还 StackPath(Highwinds)、`azurewebsites.net` 归还 Azure App Service、`ccgslb` / `chinacache` 归还蓝汛
+- DNS 匹配逻辑抽出 `cnameMatchesPattern()`，不再在 provider/pattern 双层循环里重复 split
+- 新增规则库维护与回归工具：`tools/sync_ip438_cnames.py`、`tools/test_cname_matching.mjs`
+
 ### v7.5.0 (2025-12-17) - 缓存检测和样式隔离增强
 
 #### 🆕 新增功能
@@ -221,6 +236,7 @@ CDN 检测规则存储在 [`cdn_rules.json`](./cdn_rules.json) 中，支持：
 - 响应头匹配
 - 服务器名称匹配
 - Via 头解析
+- CNAME 后缀 / 标签 / 通配符匹配（DNS 兜底识别）
 - 优先级系统
 
 示例规则：
@@ -235,6 +251,26 @@ CDN 检测规则存储在 [`cdn_rules.json`](./cdn_rules.json) 中，支持：
     }
 }
 ```
+
+#### CNAME 规则的三种写法
+
+| 写法            | 含义                               | 命中示例                        |
+| --------------- | ---------------------------------- | ------------------------------- |
+| `"akadns"`      | 完整标签匹配                       | `a.akadns.net` / `a.akadns.com` |
+| `"dnsv1.com"`   | 域名后缀匹配                       | `shop.cdn.dnsv1.com`            |
+| `"kunlun*.com"` | 通配符匹配，`*` 只在单个标签内展开 | `shop.kunlunaq.com`             |
+
+只有 `cnames` + `priority` 的规则不会进入响应头打分，只在 DNS 检测阶段生效，因此新增厂商不会引入误识别。
+
+#### 规则库维护工具
+
+```bash
+python3 tools/sync_ip438_cnames.py --dry-run   # 预览 ip438 CNAME 对照表的合并结果
+python3 tools/sync_ip438_cnames.py             # 合并进 cdn_rules.json（可重复执行）
+node tools/test_cname_matching.mjs             # 用脚本内真实的匹配函数做冲突 + 样例回归
+```
+
+数据来源快照：[`tools/ip438_cdnfinder_cnames.json`](./tools/ip438_cdnfinder_cnames.json)（[ip438 CDN 厂商查询](https://www.ip438.com/tool/cdnfinder/)）。
 
 ---
 

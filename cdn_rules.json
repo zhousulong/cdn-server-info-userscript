@@ -39,7 +39,10 @@
             "akamaiorigin-staging",
             "akamaized-staging",
             "edgekey-staging",
-            "edgesuite-staging"
+            "edgesuite-staging",
+            "akamaitech.net",
+            "ytcdn.net",
+            "tl88.net"
         ],
         "priority": 10
     },
@@ -69,7 +72,21 @@
             "tlivepush",
             "tcmpp-dev",
             "dnse0",
-            "qcloudzygj"
+            "qcloudzygj",
+            "tencentcs.com",
+            "cdn-go.cn",
+            "dnse*.com",
+            "tdnsstic*.cn.com",
+            "tdnsv*.com",
+            "tencdns.net",
+            "gsadds.com",
+            "gaapqcloud.com",
+            "gaapqcloud.com.cn",
+            "dayugslb.com",
+            "tcdnlive.com",
+            "tcdnvod.com",
+            "tencent-cloud.net",
+            "tdnsstic*.cn"
         ],
         "priority": 10
     },
@@ -95,7 +112,16 @@
             "initac",
             "cdngslb",
             "aliyunddos1010",
-            "kunlunsl"
+            "kunlunsl",
+            "alikunlun.com",
+            "alikunlun.net",
+            "aliyun-inc.com",
+            "aliyuncs.com",
+            "kunlun*.com",
+            "yundunwaf*.com",
+            "gtm-a*b*.com",
+            "aligaofang.com",
+            "yundunddos.com"
         ],
         "priority": 20
     },
@@ -112,7 +138,7 @@
         },
         "server": "yunjiasu-nginx|JSP3",
         "id_header": "x-bce-request-id",
-        "cnames": ["bdydns", "yunjiasu", "jomax", "jomodns"],
+        "cnames": ["bdydns", "yunjiasu", "jomax", "jomodns", "yunjiasu-cdn.net", "shifen.com"],
         "priority": 10
     },
     "KnowSec JiaSuLe": {
@@ -121,7 +147,7 @@
             "x-via-jsl": null
         },
         "id_header": "x-via-jsl",
-        "cnames": ["jiashule", "cdn.jiashule", "knownsec"],
+        "cnames": ["jiashule", "cdn.jiashule", "knownsec", "aqyun.com", "365cyd.cn", "jiasule.org"],
         "priority": 15
     },
     "BelugaCDN": {
@@ -135,7 +161,8 @@
         },
         "server": "NuCDN",
         "id_header": "x-beluga-trace",
-        "priority": 10
+        "priority": 10,
+        "cnames": ["belugacdn.com"]
     },
     "EdgeNext": {
         "headers": {
@@ -143,7 +170,7 @@
             "powered-by-chinacache": null
         },
         "server": "EdgeNext|ChinaCache",
-        "cnames": ["edgenext", "chinacache", "ccgslb"],
+        "cnames": ["edgenext", "edgenextcname.com", "bcdnx.com"],
         "priority": 10
     },
     "Medianova": {
@@ -184,7 +211,17 @@
             "x-reqid": null,
             "x-m-reqid": null
         },
-        "cnames": ["qiniudns", "qbox", "qiniu", "qncdn"],
+        "cnames": [
+            "qiniudns",
+            "qbox",
+            "qiniu",
+            "qncdn",
+            "clouddn.com",
+            "qiniucdn.com",
+            "qiniudn.com",
+            "qnssl.com",
+            "qnydns.com"
+        ],
         "priority": 11
     },
     "UpYun": {
@@ -203,7 +240,7 @@
             "x-link-via": null,
             "x-cdn-request-id": null
         },
-        "cnames": ["ksyuncdn", "ks-cdn"],
+        "cnames": ["ksyuncdn", "ks-cdn", "ksyuncdn-k1.com"],
         "id_header": "x-kss-request-id",
         "priority": 15
     },
@@ -211,7 +248,7 @@
         "headers": {
             "x-bs-request-id": null
         },
-        "cnames": ["qingcdn", "trpcdn", "bsclink", "bsgslb"],
+        "cnames": ["qingcdn", "trpcdn", "bsclink", "bsgslb", "bsccdn.net"],
         "custom_check_logic": "check_aws_compat",
         "priority": 10
     },
@@ -254,7 +291,17 @@
         "server": "Byte-nginx",
         "via": "live\\d+\\.cn\\d+|ens-live\\d+\\.cn\\d+|cache\\d+\\.",
         "id_header": "x-tt-trace-tag",
-        "cnames": ["bytedns", "toutiaocloud", "volc", "volcgslb", "bytefcdn"],
+        "cnames": [
+            "bytedns",
+            "toutiaocloud",
+            "volc",
+            "volcgslb",
+            "bytefcdn",
+            "cdnbuild.net",
+            "vedcdnlb.com",
+            "volcgtm.com",
+            "volcmcdn*.com"
+        ],
         "priority": 26
     },
     "State Cloud CDN": {
@@ -290,16 +337,13 @@
             "cdngc",
             "panthercdn",
             "gccdn",
-            "wsdvs",
-            "wsglb0",
-            "wscdns",
-            "lxdns",
-            "chinanetcenter",
             "pwcdn",
             "pwnet",
             "ourwebpic",
-            "wswebcdn",
-            "cdn20"
+            "cdnga.net",
+            "cdnnetworks.com",
+            "txcdn.cn",
+            "txnetworks.cn"
         ],
         "priority": 15
     },
@@ -332,7 +376,8 @@
         },
         "via": "1\\.1 google",
         "id_header": "x-guploader-uploadid",
-        "priority": 10
+        "priority": 10,
+        "cnames": ["1e100.net", "google.com"]
     },
     "Microsoft Azure CDN": {
         "headers": {
@@ -346,8 +391,11 @@
             "msecnd",
             "chinacloudsites",
             "cloudapp.azure",
-            "azurewebsites",
-            "blob.core.windows"
+            "blob.core.windows",
+            "mschcdn.com",
+            "t-msedge.net",
+            "v0cdn.net",
+            "tm-azurefd.net"
         ],
         "priority": 10
     },
@@ -368,7 +416,21 @@
             "x-limelight-edge-traffic": null
         },
         "server": "ECS|ECAcc",
-        "cnames": ["llnwd", "edgecast"],
+        "cnames": [
+            "llnwd",
+            "edgecast",
+            "lldns.net",
+            "llnwi.net",
+            "unud.net",
+            "rncdn1.com",
+            "simplecdn.net",
+            "alphacdn.net",
+            "edgecastcdn.net",
+            "mucdn.net",
+            "nucdn.net",
+            "systemcdn.net",
+            "zetacdn.net"
+        ],
         "priority": 10
     },
     "Imperva": {
@@ -423,7 +485,14 @@
         },
         "server": "stackpath",
         "id_header": "x-proxy-cache-info",
-        "cnames": ["stackpathdns"],
+        "cnames": [
+            "stackpathdns",
+            "hwcdn.net",
+            "netdna-cdn.com",
+            "netdna-ssl.com",
+            "netdna.com",
+            "stackpathcdn.com"
+        ],
         "priority": 9
     },
     "JD Cloud CDN": {
@@ -432,7 +501,7 @@
         },
         "via": "\\(jcs",
         "id_header": "x-jss-request-id",
-        "cnames": ["jcloud", "jcloudcs", "jdcdn", "jcloud-cdn", "jcloudlb"],
+        "cnames": ["jcloud", "jcloudcs", "jdcdn", "jcloud-cdn", "jcloudlb", "qianxun.com"],
         "priority": 10
     },
     "QUIC.cloud": {
@@ -442,7 +511,7 @@
         },
         "pop_header": "x-qc-pop",
         "pop_regex": "^[A-Z]{2}-[A-Z]{2}-([A-Z]{3,4})-",
-        "cnames": ["quicns"],
+        "cnames": ["quicns", "quic.cloud"],
         "priority": 9
     },
     "Vercel": {
@@ -452,7 +521,7 @@
         "pop_header": "x-vercel-id",
         "pop_regex": "^([a-zA-Z]+)",
         "id_header": "x-vercel-id",
-        "cnames": ["vercel"],
+        "cnames": ["vercel", "zeit-cdn.net", "zeit.co", "vercel-dns.com"],
         "priority": 10
     },
     "Wovn.io": {
@@ -477,7 +546,18 @@
         },
         "server": "HuaweiCloud",
         "id_header": "x-obs-request-id",
-        "cnames": ["huaweicloud", "hwcdn", "cdnhwc", "cdnhwc2", "cdnhwcgqa21", "hcdn"],
+        "cnames": [
+            "huaweicloud",
+            "cdnhwc",
+            "cdnhwc2",
+            "cdnhwcgqa21",
+            "hcdn",
+            "cdnhwc1.com",
+            "cdnhwc3.com",
+            "cdnhwcajk17.com",
+            "cdnhwcaoc115.cn",
+            "huaweisafedns.cn"
+        ],
         "priority": 12
     },
     "Netlify": {
@@ -534,15 +614,23 @@
         "priority": 10
     },
     "UCloud": {
-        "cnames": ["ucloud"],
+        "cnames": ["ucloud", "cdndo.com", "ucloudgda.com"],
         "priority": 10
     },
     "QingCloud": {
-        "cnames": ["qingcache"],
+        "cnames": ["qingcache", "frontwize.com", "qingcloud.com"],
         "priority": 10
     },
     "Diliun": {
-        "cnames": ["dnion", "fastcdn"],
+        "cnames": [
+            "dnion",
+            "fastcdn",
+            "dlgslb.cn",
+            "ewcache.com",
+            "flxdns.com",
+            "globalcdn.cn",
+            "tlgslb.com"
+        ],
         "priority": 10
     },
     "VergeCloud": {
@@ -591,11 +679,11 @@
             "x-tiggee": null
         },
         "server": "^Zen(?:/|$)",
-        "cnames": ["zenlayer", "fastecn"],
+        "cnames": ["zenlayer", "fastecn", "ogslb.com", "uxengine.net", "zenlogic.net"],
         "priority": 15
     },
     "Quantil": {
-        "cnames": ["qtlcdn"],
+        "cnames": ["qtlcdn", "mwcloudcdn.com", "mwcname.com"],
         "priority": 10
     },
     "Melbicom": {
@@ -609,5 +697,364 @@
     "Nginx": {
         "server": "nginx",
         "priority": 5
+    },
+    "360 Cloud CDN": {
+        "cnames": ["qhcdn.com", "360cdn.com", "qh-cdn.com", "qihucdn.com"],
+        "priority": 8
+    },
+    "AT&T CDN": {
+        "cnames": ["att-dsa.net"],
+        "priority": 6
+    },
+    "Amazon Web Services": {
+        "cnames": ["amazonaws.com"],
+        "priority": 5
+    },
+    "Azion": {
+        "cnames": ["azioncdn.net"],
+        "priority": 6
+    },
+    "Bilibili CDN": {
+        "cnames": ["biliapi.com", "hdslb.com", "hdslb.net", "bilicdn1.com"],
+        "priority": 7
+    },
+    "CDN.NET / CDNSUN": {
+        "cnames": ["worldcdn.net", "worldssl.net", "cdnsun.net"],
+        "priority": 8
+    },
+    "CDNIFY": {
+        "cnames": ["cdnify.io"],
+        "priority": 6
+    },
+    "Cedexis GSLB": {
+        "cnames": ["cedexis.net", "cdxcn.cn"],
+        "priority": 6
+    },
+    "CenturyLink CDN (Level 3)": {
+        "cnames": ["footprint.net"],
+        "priority": 8
+    },
+    "CloudXNS": {
+        "cnames": ["ffdns.net"],
+        "priority": 5
+    },
+    "Coding Pages": {
+        "cnames": ["coding.io", "coding.me"],
+        "priority": 5
+    },
+    "FlexBalancer": {
+        "cnames": ["flexbalancer.net"],
+        "priority": 5
+    },
+    "GitHub Pages": {
+        "cnames": ["github.io"],
+        "priority": 5
+    },
+    "GitLab Pages": {
+        "cnames": ["gitlab.io"],
+        "priority": 5
+    },
+    "Google Cloud Storage": {
+        "cnames": ["googleapis.com"],
+        "priority": 5
+    },
+    "Heroku": {
+        "cnames": ["herokuapp.com"],
+        "priority": 5
+    },
+    "Instart Logic": {
+        "cnames": ["inscname.net", "insnw.net"],
+        "priority": 6
+    },
+    "Internap CDN": {
+        "cnames": ["internapcdn.net"],
+        "priority": 6
+    },
+    "LeaseWeb CDN": {
+        "cnames": ["lswcdn.net"],
+        "priority": 6
+    },
+    "Microsoft Azure App Service": {
+        "cnames": ["cloudapp.net", "azurewebsites.net", "azurewebsites.windows.net"],
+        "priority": 6
+    },
+    "Microsoft Azure Traffic Manager": {
+        "cnames": ["trafficmanager.net"],
+        "priority": 5
+    },
+    "NodeCache": {
+        "cnames": ["ncname.com"],
+        "priority": 6
+    },
+    "Oracle Dyn (Zenedge)": {
+        "cnames": ["zenedge.net"],
+        "priority": 6
+    },
+    "SpeedyCloud CDN": {
+        "cnames": ["speedycloud.cc", "xundayun.cn", "xundayun.com"],
+        "priority": 6
+    },
+    "Atlassian Statuspage": {
+        "cnames": ["stspg-customer.com"],
+        "priority": 5
+    },
+    "TAN14 CDN": {
+        "cnames": ["tan14.net"],
+        "priority": 6
+    },
+    "Tata Communications CDN": {
+        "cnames": ["bitgravity.com"],
+        "priority": 6
+    },
+    "TurboBytes": {
+        "cnames": ["turbobytes-cdn.com", "turbobytes.net"],
+        "priority": 6
+    },
+    "VeryCloud": {
+        "cnames": ["verycdn.net", "verycloud.cn", "verygslb.com"],
+        "priority": 6
+    },
+    "ChinaCache CDN": {
+        "cnames": [
+            "xgslb.net",
+            "c3cache.net",
+            "c3dns.net",
+            "ccgslb.cn",
+            "ccgslb.com",
+            "ccgslb.com.cn",
+            "ccgslb.net",
+            "chinacache.net"
+        ],
+        "priority": 10
+    },
+    "MmTrix": {
+        "cnames": ["mmtrixopt.com"],
+        "priority": 6
+    },
+    "Shanghai Yundun CDN": {
+        "cnames": ["hwwsdns.cn", "yunduncdn.com", "yunduns.com", "hcnamedns.com", "jsd.cc"],
+        "priority": 8
+    },
+    "21Vianet CDN": {
+        "cnames": [
+            "21cvcdn.com",
+            "21okglb.cn",
+            "21speedcdn.com",
+            "21vianet.com.cn",
+            "21vokglb.cn",
+            "okcdn.com",
+            "okglb.com"
+        ],
+        "priority": 7
+    },
+    "CTYun CDN": {
+        "cnames": ["ctyunapi.cn", "ctdns.cn", "ctxcdn.cn"],
+        "priority": 8
+    },
+    "ChinaMaincloud CDN": {
+        "cnames": ["cnispgroup.com", "chinamaincloud.com", "mmycdn.cn"],
+        "priority": 6
+    },
+    "Yunfan CDN": {
+        "cnames": ["yfcdn.net"],
+        "priority": 6
+    },
+    "Yunduan Zhidu CDN": {
+        "cnames": ["spdydns.com"],
+        "priority": 6
+    },
+    "Yisuyun CDN": {
+        "cnames": ["yisuddoscdn.com"],
+        "priority": 5
+    },
+    "Wangsu CDN": {
+        "cnames": [
+            "wscloudcdn.com",
+            "51cdn.com",
+            "cdn20.com",
+            "cdngtm.cn",
+            "cdngtm.com",
+            "chinanetcenter.com",
+            "customcdn.cn",
+            "customcdn.com.cn",
+            "lxdns.com",
+            "speedcdns.com",
+            "wscdns.com",
+            "wsdvs.com",
+            "wsglb0.com",
+            "wswebcdn.com",
+            "wswebpic.com",
+            "wtxcdn.com",
+            "wcdnga.com",
+            "wsssec.com"
+        ],
+        "priority": 14
+    },
+    "Chuangshi CDN": {
+        "cnames": ["aocde.com", "chuangcdn.com"],
+        "priority": 6
+    },
+    "PowerCDN": {
+        "cnames": ["powercdn.cn"],
+        "priority": 6
+    },
+    "Reliable Cloud CDN": {
+        "cnames": ["aocdn.com"],
+        "priority": 6
+    },
+    "360/QAX WAF": {
+        "cnames": [
+            "qaxcloudwaf.com",
+            "360anyu.com",
+            "360cloudwaf.com",
+            "360safedns.com",
+            "360wzws.com",
+            "qaxwzws.com"
+        ],
+        "priority": 6
+    },
+    "Anheng Cloud WAF": {
+        "cnames": ["saaswaf.com"],
+        "priority": 5
+    },
+    "CDN Union": {
+        "cnames": ["cdnunion.com", "cdnunion.net"],
+        "priority": 6
+    },
+    "YaoCDN": {
+        "cnames": ["cdnudns.com", "mygslb.com", "sprycdn.com"],
+        "priority": 6
+    },
+    "Fastweb CDN": {
+        "cnames": [
+            "cachecn.com",
+            "cloudcdn.net",
+            "cloudglb.com",
+            "fastweb.com",
+            "fastwebcdn.com",
+            "fwcdn.com",
+            "fwdns.net",
+            "hacdn.net",
+            "hadns.net"
+        ],
+        "priority": 7
+    },
+    "LeCloud CDN": {
+        "cnames": ["cdnle.com"],
+        "priority": 6
+    },
+    "Xinliu CDN": {
+        "cnames": ["ngaagslb.cn"],
+        "priority": 5
+    },
+    "Sina Cloud CDN": {
+        "cnames": [
+            "sinacdn.com",
+            "sinasws.com",
+            "saebbs.com",
+            "sina.com.cn",
+            "sinaedge.com",
+            "sinajs.cn"
+        ],
+        "priority": 7
+    },
+    "Fangneng CDN": {
+        "cnames": [
+            "fn0*.vip",
+            "fnvip100.com",
+            "funnull.org",
+            "funnull0*.vip",
+            "funnull3*.com",
+            "funnullv*.com"
+        ],
+        "priority": 5
+    },
+    "Xingyu CDN": {
+        "cnames": ["00cdn.com", "p2cdn.com"],
+        "priority": 6
+    },
+    "Jiyu Cloud WAF": {
+        "cnames": ["xwaf.cn"],
+        "priority": 5
+    },
+    "Jisudun WAF": {
+        "cnames": ["jsdun.info"],
+        "priority": 5
+    },
+    "Sangfor": {
+        "cnames": ["sangfordns.com"],
+        "priority": 7
+    },
+    "NewDefend WAF": {
+        "cnames": ["anquan.io", "newdefend.cn"],
+        "priority": 5
+    },
+    "Maoyun CDN": {
+        "cnames": ["maoyun.tv", "maoyundns.com"],
+        "priority": 6
+    },
+    "NSFocus Cloud WAF": {
+        "cnames": ["nscloudwaf.com"],
+        "priority": 5
+    },
+    "Wangdi WAF": {
+        "cnames": ["2cname.com"],
+        "priority": 5
+    },
+    "NetEase Cloud CDN": {
+        "cnames": ["126.net", "163jiasu.com"],
+        "priority": 7
+    },
+    "Meituan Cloud CDN": {
+        "cnames": ["msscdn.com", "sankuai.com"],
+        "priority": 7
+    },
+    "Meicheng CDN": {
+        "cnames": ["cdncenter.cn", "websitecname.cn"],
+        "priority": 5
+    },
+    "Tengzheng CDN": {
+        "cnames": ["15cdn.com", "tzcdn.cn"],
+        "priority": 6
+    },
+    "Landun Cloud WAF": {
+        "cnames": ["cloudfence.cn"],
+        "priority": 5
+    },
+    "Lanshiyun CDN": {
+        "cnames": ["lsycdn.com"],
+        "priority": 6
+    },
+    "Alipay GSLB": {
+        "cnames": ["alipaydns.com"],
+        "priority": 5
+    },
+    "West CN": {
+        "cnames": ["800cdn.com", "gotoip55.com", "vhostgo.com"],
+        "priority": 5
+    },
+    "Yiyun CDN": {
+        "cnames": ["scsdns.com"],
+        "priority": 6
+    },
+    "Ruisuyun WAF": {
+        "cnames": ["nbwaf.com", "pcwaf.com"],
+        "priority": 5
+    },
+    "Lingzhiyun CDN": {
+        "cnames": ["lccdn.org"],
+        "priority": 5
+    },
+    "Ele.me GSLB": {
+        "cnames": ["elemecdn.com"],
+        "priority": 5
+    },
+    "Gosun CDN": {
+        "cnames": ["gosuncdn.com"],
+        "priority": 6
+    },
+    "MomentCDN": {
+        "cnames": ["momentcdn.com"],
+        "priority": 6
     }
 }

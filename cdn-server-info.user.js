@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.56.27
-// @description  [v7.56.27] 修复反复点击面板导致位移的 bug（增加5px拖拽阈值）；优化折叠/展开动画（spring曲线）；修复折叠时悬停显示按钮的问题；修复展开状态顶部留白问题。
-// @description:en [v7.56.27] Fix panel drift on repeated clicks (5px drag threshold); improve collapse/expand animation (spring curve); fix buttons appearing on hover in collapsed state; fix extra whitespace in expanded state.
+// @version      7.57.0
+// @description  [v7.57.0] CDN 规则库大更新：同步 ip438 CNAME 对照表，新增 73 个仅靠 DNS 识别的厂商（网宿/蓝汛/360/天翼云等），CNAME 规则支持通配符（kunlun*.com），并修正 hwcdn/azurewebsites/ccgslb 的归属。
+// @description:en [v7.57.0] CDN rule database refresh: merged the ip438 CNAME table (73 new DNS-only vendors, 380+ CNAME rules), added glob support for CNAME rules (kunlun*.com), and fixed hwcdn/azurewebsites/ccgslb ownership.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.56.27
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.57.0
 // @connect      dns.alidns.com
 // @connect      dns.google
 // @connect      1.1.1.1
@@ -1293,6 +1293,35 @@
     // --- DNS Detection Logic ---
     const dnsCache = new Map(); // Cache results to avoid redundant requests
 
+    // CNAME 规则匹配（cdn_rules.json 的 cnames 数组）支持三种写法:
+    //   "akadns"       -> 完整标签匹配, 命中 xxx.akadns.net / xxx.akadns.com
+    //   "dnsv1.com"    -> 域名后缀匹配
+    //   "kunlun*.com"  -> 通配符匹配, "*" 只在单个标签内展开 (来自 ip438 CNAME 列表)
+    const globPatternCache = new Map();
+
+    function cnameMatchesPattern(cnameLower, labels, pattern) {
+        const patternLower = String(pattern).toLowerCase();
+
+        if (!patternLower.includes('*')) {
+            return (
+                labels.includes(patternLower) ||
+                cnameLower === patternLower ||
+                cnameLower.endsWith('.' + patternLower)
+            );
+        }
+
+        let regex = globPatternCache.get(patternLower);
+        if (!regex) {
+            const body = patternLower
+                .split('*')
+                .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+                .join('[a-z0-9_-]*');
+            regex = new RegExp(`^(?:.*\\.)?${body}$`);
+            globPatternCache.set(patternLower, regex);
+        }
+        return regex.test(cnameLower);
+    }
+
     async function checkDNS(domain) {
         if (!domain) {
             console.log('[CDN DNS] Skipped: no domain');
@@ -1361,22 +1390,13 @@
                         const cleanCname = cname.endsWith('.') ? cname.slice(0, -1) : cname;
                         foundCnames.push(cleanCname);
 
+                        const cnameLower = cleanCname.toLowerCase();
+                        const cnameLabels = cnameLower.split('.');
+
                         for (const [providerName, rule] of Object.entries(cdnRules)) {
                             if (rule.cnames && Array.isArray(rule.cnames)) {
                                 for (const pattern of rule.cnames) {
-                                    // 改进的匹配逻辑：检查域名标签或后缀，而不是简单的子字符串
-                                    const cnameLabels = cleanCname.toLowerCase().split('.');
-                                    const patternLower = pattern.toLowerCase();
-
-                                    // 方法1: 检查 pattern 是否是某个完整的域名标签
-                                    const isLabel = cnameLabels.includes(patternLower);
-
-                                    // 方法2: 检查 pattern 是否是域名后缀（支持多级域名）
-                                    const isSuffix =
-                                        cleanCname.toLowerCase().endsWith('.' + patternLower) ||
-                                        cleanCname.toLowerCase() === patternLower;
-
-                                    if (isLabel || isSuffix) {
+                                    if (cnameMatchesPattern(cnameLower, cnameLabels, pattern)) {
                                         candidates.push({
                                             provider: providerName,
                                             cname: cleanCname,
