@@ -303,7 +303,9 @@ def normalize(pattern):
 
 
 def glob_to_regex(pattern):
-    body = ".*".join(re.escape(part) for part in pattern.split("*"))
+    # Keep this in sync with cnameMatchesPattern() in cdn-server-info.user.js:
+    # "*" expands only within a single DNS label, never across dots.
+    body = "[a-z0-9_-]*".join(re.escape(part) for part in pattern.split("*"))
     return re.compile(r"^(?:.*\.)?" + body + r"$")
 
 

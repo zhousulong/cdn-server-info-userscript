@@ -260,14 +260,14 @@ const headersToCheck = [
 1. **`cdn-server-info.user.js`** (第 5-7 行):
 
     ```javascript
-    // @version      7.27.0
-    // @description  [v7.27.0] 更新说明
+    // @version      7.57.0
+    // @description  [v7.57.0] 更新说明
     ```
 
 2. **`cdn-server-info.user.js`** (第 17 行):
 
     ```javascript
-    // @resource     cdn_rules https://...?v=7.27.0
+    // @resource     cdn_rules https://...?v=7.57.0
     ```
 
 3. **版本说明**: 简洁描述主要变更
@@ -360,5 +360,5 @@ const customHandlers = {
 
 ---
 
-_最后更新: 2025-12-19_
-_版本: v7.27.0_
+_最后更新: 2026-11-10_
+_版本: v7.57.0_

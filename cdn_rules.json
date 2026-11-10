@@ -53,8 +53,7 @@
             "eo-cache-status": null,
             "dl-from": "qcloud",
             "edgeone-pages": null,
-            "x-daa-tunnel": null,
-            "x-cache-lookup": null
+            "x-daa-tunnel": null
         },
         "server": "Lego Server|edgeone-pages|CloudWAF|SLT-MID",
         "id_header": "x-nws-log-uuid",
@@ -236,9 +235,7 @@
     "Kingsoft Cloud CDN": {
         "headers": {
             "x-kss-request-id": null,
-            "x-cache-status": "KS-CLOUD-",
-            "x-link-via": null,
-            "x-cdn-request-id": null
+            "x-cache-status": "KS-CLOUD-"
         },
         "cnames": ["ksyuncdn", "ks-cdn", "ksyuncdn-k1.com"],
         "id_header": "x-kss-request-id",
@@ -254,18 +251,14 @@
     },
     "Gcore": {
         "headers": {
-            "x-id": null,
             "x-id-fe": null
         },
-        "report-to": "gcore-nel",
         "cnames": ["gcdn", "gcore", "gcorelabs"],
         "priority": 10
     },
     "BytePlus CDN": {
         "headers": {
-            "x-cdn-request-id": null,
             "x-dynamic-status": null,
-            "x-link-via": null,
             "x-tt-trace-id": null,
             "x-tt-logid": null,
             "x-tt-trace-tag": null
@@ -273,7 +266,7 @@
         "server": "TLB",
         "id_header": "x-tt-logid",
         "cnames": ["byteplus", "volcco"],
-        "priority": 25
+        "priority": 17
     },
     "ByteDance CDN": {
         "headers": {
@@ -281,9 +274,7 @@
             "x-bdcdn-cache-status": null,
             "x-tt-trace-id": null,
             "x-tt-logid": null,
-            "x-tos-request-id": null,
             "x-tos-storage-class": null,
-            "x-response-cache": null,
             "x-bytefaas-request-id": null,
             "x-goofy-custom-server": null,
             "x-ggw-config-version": null
@@ -302,7 +293,7 @@
             "volcgtm.com",
             "volcmcdn*.com"
         ],
-        "priority": 26
+        "priority": 18
     },
     "State Cloud CDN": {
         "headers": {
@@ -402,7 +393,6 @@
     "Fastly": {
         "headers": {
             "x-fastly-request-id": null,
-            "x-served-by": null,
             "x-timer": null
         },
         "pop_header": "x-served-by",
@@ -471,11 +461,11 @@
         "headers": {
             "x-provided-by": "StackCDN",
             "x-cdn-cache-status": null,
-            "x-origin-cache-status": null,
-            "x-via": null
+            "x-origin-cache-status": null
         },
         "pop_header": "x-via",
-        "priority": 10
+        "priority": 10,
+        "pop_regex": "([A-Za-z]{2,4}?)$"
     },
     "StackPath": {
         "headers": {
@@ -634,15 +624,10 @@
         "priority": 10
     },
     "VergeCloud": {
-        "headers": {
-            "x-cache-status": null,
-            "x-request-id": null,
-            "x-served-by": null
-        },
         "server": "vergecloud",
         "pop_header": "x-served-by",
-        "id_header": "x-request-id",
-        "priority": 15
+        "priority": 15,
+        "pop_regex": "([A-Za-z]{2,4}?)$"
     },
     "OVHcloud CDN": {
         "headers": {
@@ -656,7 +641,8 @@
         },
         "pop_header": "x-cdn-pop",
         "id_header": "x-iplb-request-id",
-        "priority": 15
+        "priority": 15,
+        "pop_regex": "([A-Za-z]{2,4}?)$"
     },
     "CDN77": {
         "headers": {
@@ -671,7 +657,8 @@
         "pop_header": "x-77-pop",
         "id_header": "x-77-nzt-ray",
         "cnames": ["cdn77"],
-        "priority": 15
+        "priority": 15,
+        "pop_regex": "([A-Za-z]{2,4}?)$"
     },
     "Zenlayer": {
         "headers": {

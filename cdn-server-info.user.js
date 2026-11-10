@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.57.0
-// @description  [v7.57.0] CDN 规则库大更新：同步 ip438 CNAME 对照表，新增 73 个仅靠 DNS 识别的厂商（网宿/蓝汛/360/天翼云等），CNAME 规则支持通配符（kunlun*.com），并修正 hwcdn/azurewebsites/ccgslb 的归属。
-// @description:en [v7.57.0] CDN rule database refresh: merged the ip438 CNAME table (73 new DNS-only vendors, 380+ CNAME rules), added glob support for CNAME rules (kunlun*.com), and fixed hwcdn/azurewebsites/ccgslb ownership.
+// @version      7.57.1
+// @description  [v7.57.1] 安全与稳定性修复：修复响应头/ CNAME 值注入 innerHTML 的 XSS；移除通用头无值匹配（VergeCloud/Gcore/BytePlus 等）与通用 id_header 加分降级；修复 SPA 导航 DNS 竞态、Akamai POP 正则贪婪、缓存状态子串误判及 Cookie 匹配；DNS 增加超时、不再缓存负结果、地区缓存；清理死代码并为面板补充 reduced-motion / 焦点无障碍；ESLint/npm test 转绿。
+// @description:en [v7.57.1] Security & stability fixes: fixed XSS from header/CNAME values injected into innerHTML; removed generic null-valued headers and downgraded generic id_header scoring; fixed SPA DNS race, greedy Akamai POP regex, cache-status substring misclassification and cookie matching; added DNS timeout, stopped caching negative results, cached region; removed dead code; added reduced-motion/focus a11y; ESLint & npm test now green.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.57.0
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.57.1
 // @connect      dns.alidns.com
 // @connect      dns.google
 // @connect      1.1.1.1
@@ -87,11 +87,18 @@
             if (!value) continue;
             const firstValue = value.split(',')[0].trim();
             const upperVal = firstValue.toUpperCase();
-            if (upperVal.includes('HIT')) return 'HIT';
-            if (upperVal.includes('MISS')) return 'MISS';
-            if (upperVal.includes('BYPASS')) return 'BYPASS';
-            if (upperVal.includes('DYNAMIC')) return 'DYNAMIC';
+            // Token match with word boundaries to avoid matching substrings like "NOHIT".
+            if (/\bHIT\b/.test(upperVal)) return 'HIT';
+            if (/\bMISS\b/.test(upperVal)) return 'MISS';
+            if (/\bBYPASS\b/.test(upperVal)) return 'BYPASS';
+            if (/\bDYNAMIC\b/.test(upperVal)) return 'DYNAMIC';
+            if (/\bREVALIDATED\b/.test(upperVal)) return 'MISS';
+            if (/\bSTALE\b/.test(upperVal)) return 'HIT';
         }
+        // Kestrel-based CDN: "hascache: 1" means hit, "0" miss.
+        const hasCache = h.get('hascache');
+        if (hasCache === '1') return 'HIT';
+        if (hasCache === '0') return 'MISS';
         if (parseInt(h.get('age'), 10) > 0) return 'HIT (inferred)';
         return 'N/A';
     }
@@ -170,10 +177,11 @@
                 }
 
                 // Strategy 2: x-served-by (standard Akamai)
+                // e.g. "cache-lga1234-..."; capture the 3-letter POP code, not the digits.
                 if (pop === 'N/A') {
                     const servedBy = h.get('x-served-by');
                     if (servedBy) {
-                        const match = servedBy.match(/cache-([a-z0-9]+)-/i);
+                        const match = servedBy.match(/cache-([a-z]{3})\d*/i);
                         if (match && match[1]) pop = match[1].toUpperCase();
                     }
                 }
@@ -937,26 +945,39 @@
                     if (match && match[1]) pop = match[1].toUpperCase();
                 } else {
                     // Default heuristic - extract airport code from value
-                    // First try to match letters at the start
-                    const letterMatch = val.trim().match(/^([A-Z]+)/i);
-                    if (letterMatch && letterMatch[1].length >= 3) {
-                        // If we have 3+ letters at start, use first 3-4
-                        pop = letterMatch[1]
-                            .substring(0, Math.min(4, letterMatch[1].length))
-                            .toUpperCase();
+                    // Skip cache-status-like tokens ("HIT", "MISS", "BYPASS", ...)
+                    // so a pop_header that actually carries a cache status doesn't
+                    // produce a bogus POP value.
+                    const cacheLikeTokens =
+                        /^(HIT|MISS|BYPASS|DYNAMIC|STALE|REVALIDATED|N\/A|UNKNOWN)$/i;
+                    if (cacheLikeTokens.test(val.trim())) {
+                        // leave pop as N/A
                     } else {
-                        // For hyphenated formats like "AS-JP-HND-HYBRID", find the 3-4 letter part
-                        const parts = val.trim().split(/[-_]/);
-                        for (const part of parts) {
-                            const partMatch = part.match(/^([A-Z]+)$/i);
-                            if (partMatch && partMatch[1].length >= 3 && partMatch[1].length <= 4) {
-                                pop = partMatch[1].toUpperCase();
-                                break;
+                        // First try to match letters at the start
+                        const letterMatch = val.trim().match(/^([A-Z]+)/i);
+                        if (letterMatch && letterMatch[1].length >= 3) {
+                            // If we have 3+ letters at start, use first 3-4
+                            pop = letterMatch[1]
+                                .substring(0, Math.min(4, letterMatch[1].length))
+                                .toUpperCase();
+                        } else {
+                            // For hyphenated formats like "AS-JP-HND-HYBRID", find the 3-4 letter part
+                            const parts = val.trim().split(/[-_]/);
+                            for (const part of parts) {
+                                const partMatch = part.match(/^([A-Z]+)$/i);
+                                if (
+                                    partMatch &&
+                                    partMatch[1].length >= 3 &&
+                                    partMatch[1].length <= 4
+                                ) {
+                                    pop = partMatch[1].toUpperCase();
+                                    break;
+                                }
                             }
-                        }
-                        // If still not found, use first part
-                        if (pop === 'N/A' && parts.length > 0) {
-                            pop = parts[0].toUpperCase();
+                            // If still not found, use first part
+                            if (pop === 'N/A' && parts.length > 0) {
+                                pop = parts[0].toUpperCase();
+                            }
                         }
                     }
                 }
@@ -1002,6 +1023,18 @@
         return `Type: ${mimeType}`;
     }
 
+    // Escape a string for safe interpolation into HTML text/attribute context.
+    // Header and DNS values are attacker/network controlled, so they must never
+    // reach innerHTML unescaped.
+    function escapeHtml(value) {
+        return String(value == null ? '' : value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
     // Enhanced parseInfo function with Scoring System
     function parseInfo(response) {
         if (Object.keys(cdnRules).length === 0) loadRules();
@@ -1033,9 +1066,24 @@
                 }
             }
 
-            // 2. ID Header Check (Strong Signal) -> +50
+            // 2. ID Header Check (Strong Signal) -> +50 for CDN-unique headers,
+            //    only +10 for generic headers that many servers also emit.
+            const genericIdHeaders = [
+                'x-request-id',
+                'x-served-by',
+                'x-cache',
+                'cache',
+                'x-id',
+                'x-cache-status',
+                'x-link-via',
+                'x-via',
+                'x-cache-lookup',
+                'x-cdn-request-id',
+                'x-tos-request-id',
+                'x-response-cache',
+            ];
             if (rule.id_header && lowerCaseHeaders.has(rule.id_header)) {
-                score += 50;
+                score += genericIdHeaders.includes(rule.id_header.toLowerCase()) ? 10 : 50;
             }
 
             // 3. Server Header Check -> +10 (or +50 for unique signatures)
@@ -1090,12 +1138,25 @@
             }
 
             // 5. Cookie Check -> +20
+            // Match against individual Set-Cookie name=value pairs rather than a
+            // loose substring of the joined header, to avoid false positives.
             if (rule.cookies) {
-                const cookie = lowerCaseHeaders.get('set-cookie') || '';
+                const cookieHeader = lowerCaseHeaders.get('set-cookie') || '';
+                const cookiePairs = cookieHeader
+                    .split(/,(?=[^;]+=[^;]*)/)
+                    .map((c) => c.trim())
+                    .flatMap((c) => c.split(';').slice(0, 1))
+                    .map((c) => c.trim())
+                    .filter(Boolean);
                 for (const [cName, cVal] of Object.entries(rule.cookies)) {
-                    if (cookie.includes(cName)) {
-                        if (cVal === null || cookie.includes(cVal)) {
+                    for (const pair of cookiePairs) {
+                        const eq = pair.indexOf('=');
+                        const name = eq === -1 ? pair : pair.slice(0, eq);
+                        const value = eq === -1 ? '' : pair.slice(eq + 1);
+                        if (name !== cName) continue;
+                        if (cVal === null || value.includes(cVal)) {
                             score += 20;
+                            break;
                         }
                     }
                 }
@@ -1242,6 +1303,8 @@
     };
 
     // --- Region Detection Logic ---
+    // Session cache for the detected user region (TTL handled in getUserRegion).
+    const userRegionCache = { value: null, time: 0 };
     /**
      * 检测用户当前IP所在地区
      * 使用Cloudflare trace API,快速且可靠
@@ -1249,6 +1312,12 @@
      * @returns {Promise<string>} 国家代码 (如 'CN', 'US', 'JP' 等)
      */
     async function getUserRegion() {
+        // Cache the detected region for a short TTL to avoid one round-trip per
+        // domain lookup, while still honouring VPN switching.
+        const now = Date.now();
+        if (userRegionCache.value && now - userRegionCache.time < 10 * 60 * 1000) {
+            return userRegionCache.value;
+        }
         try {
             const result = await new Promise((resolve, reject) => {
                 GM_xmlhttpRequest({
@@ -1272,6 +1341,8 @@
             if (match && match[1]) {
                 const region = match[1];
                 console.log(`[CDN Region] Detected user region: ${region}`);
+                userRegionCache.value = region;
+                userRegionCache.time = Date.now();
                 return region;
             }
 
@@ -1283,6 +1354,8 @@
             const lang = navigator.language || navigator.userLanguage;
             if (lang.startsWith('zh-CN')) {
                 console.log('[CDN Region] Fallback to CN based on browser language');
+                userRegionCache.value = 'CN';
+                userRegionCache.time = Date.now();
                 return 'CN';
             }
             console.log('[CDN Region] Fallback to UNKNOWN');
@@ -1361,6 +1434,7 @@
                     GM_xmlhttpRequest({
                         method: 'GET',
                         url: url,
+                        timeout: 4000,
                         onload: function (response) {
                             if (response.status === 200) {
                                 try {
@@ -1441,16 +1515,23 @@
         }
 
         console.log('[CDN DNS] No CNAME found for', domain);
-        dnsCache.set(domain, null);
+        // Do NOT cache a negative result: a transient DoH failure must not
+        // permanently suppress CNAME detection for this host.
         return null;
     }
 
     // Update the panel if DNS detection finds a better result
-    function updatePanelWithDNS(dnsResult, currentInfo) {
+    function updatePanelWithDNS(dnsResult, currentInfo, expectedHost, expectedDomain) {
         if (!dnsResult) return;
+
+        // Guard against SPA races: an in-flight DNS lookup from a previous URL
+        // must not mutate the panel that now belongs to a different page.
+        if (expectedDomain && window.location.hostname !== expectedDomain) return;
+        if (expectedHost && !expectedHost.isConnected) return;
 
         const panel = document.getElementById('cdn-info-host-enhanced');
         if (!panel || !panel.shadowRoot) return;
+        if (expectedHost && panel !== expectedHost) return;
 
         // Find the provider value element (first info-line's info-value)
         const firstInfoLine = panel.shadowRoot.querySelector('.info-line');
@@ -1540,7 +1621,7 @@
             value = statusText.substring(prefix.length);
         }
 
-        statusLine.innerHTML = `<span class="dns-label">DNS:</span><span class="dns-value" title="${value}">${value}</span>`;
+        statusLine.innerHTML = `<span class="dns-label">DNS:</span><span class="dns-value" title="${escapeHtml(value)}">${escapeHtml(value)}</span>`;
     }
 
     // --- UI & Execution Functions ---
@@ -2150,6 +2231,17 @@
                 background: ${isDarkTheme ? 'rgba(120, 120, 128, 0.3)' : 'rgba(120, 120, 128, 0.2)'};
                 color: ${textColor};
             }
+            .icon-btn:focus-visible {
+                outline: 2px solid ${blueColor};
+                outline-offset: 2px;
+            }
+            @media (prefers-reduced-motion: reduce) {
+                *, *::before, *::after {
+                    animation-duration: 0.001ms !important;
+                    animation-iteration-count: 1 !important;
+                    transition-duration: 0.001ms !important;
+                }
+            }
         `;
     }
 
@@ -2165,83 +2257,6 @@
             default:
                 return `bottom: ${config.initialPosition.bottom}; right: ${config.initialPosition.right};`;
         }
-    }
-
-    function createSettingsPanel() {
-        // Remove existing settings panel if present
-        const existingPanel = document.getElementById('cdn-settings-panel');
-        if (existingPanel) existingPanel.remove();
-
-        const panel = document.createElement('div');
-        panel.id = 'cdn-settings-panel';
-        document.body.appendChild(panel);
-
-        const shadowRoot = panel.attachShadow({ mode: 'open' });
-        const styleEl = document.createElement('style');
-        styleEl.textContent = getPanelCSS();
-        shadowRoot.appendChild(styleEl);
-
-        const settingsPanel = document.createElement('div');
-        settingsPanel.id = 'settings-panel';
-        settingsPanel.innerHTML = `
-            <h3>CDN Info Display Settings</h3>
-            <div class="setting-item">
-                <label for="theme">Theme</label>
-                <select id="theme">
-                    <option value="auto" ${config.settings.theme === 'auto' || !config.settings.theme ? 'selected' : ''}>Auto (System)</option>
-                    <option value="dark" ${config.settings.theme === 'dark' ? 'selected' : ''}>Dark</option>
-                    <option value="light" ${config.settings.theme === 'light' ? 'selected' : ''}>Light</option>
-                </select>
-            </div>
-            <div class="setting-item">
-                <label for="panelPosition">Panel Position</label>
-                <select id="panelPosition">
-                    <option value="top-left" ${config.settings.panelPosition === 'top-left' ? 'selected' : ''}>Top Left</option>
-                    <option value="top-right" ${config.settings.panelPosition === 'top-right' ? 'selected' : ''}>Top Right</option>
-                    <option value="bottom-left" ${config.settings.panelPosition === 'bottom-left' ? 'selected' : ''}>Bottom Left</option>
-                    <option value="bottom-right" ${config.settings.panelPosition === 'bottom-right' ? 'selected' : ''}>Bottom Right</option>
-                </select>
-            </div>
-            <div class="setting-item">
-                <label for="showExtraInfo">
-                    <input type="checkbox" id="showExtraInfo" ${config.settings.showExtraInfo ? 'checked' : ''}>
-                    Show Extra Information
-                </label>
-            </div>
-            <div class="setting-buttons">
-                <button class="setting-btn cancel-btn">Cancel</button>
-                <button class="setting-btn save-btn">Save</button>
-            </div>
-        `;
-        shadowRoot.appendChild(settingsPanel);
-
-        // Add event listeners
-        shadowRoot.querySelector('.cancel-btn').addEventListener('click', () => {
-            panel.remove();
-        });
-
-        shadowRoot.querySelector('.save-btn').addEventListener('click', () => {
-            // Save settings
-            config.settings.theme = shadowRoot.querySelector('#theme').value;
-            config.settings.panelPosition = shadowRoot.querySelector('#panelPosition').value;
-            config.settings.showExtraInfo = shadowRoot.querySelector('#showExtraInfo').checked;
-
-            // Save to GM storage if available
-            if (typeof GM_setValue !== 'undefined') {
-                GM_setValue('cdnInfoSettings', JSON.stringify(config.settings));
-            }
-
-            // Close panel
-            panel.remove();
-
-            // Re-render info panel with new settings
-            const infoPanel = document.getElementById('cdn-info-host-enhanced');
-            if (infoPanel) {
-                infoPanel.remove();
-                // Re-run execution to show updated panel
-                runExecution(config.max_retries);
-            }
-        });
     }
 
     function createDisplayPanel(info) {
@@ -2342,38 +2357,39 @@
                   </g>
                 </svg>
             </div>
-            <button class="icon-btn close-btn" title="Close">×</button>
-            <button class="icon-btn theme-btn" title="Toggle Theme">${themeIcon}</button>
+            <button class="icon-btn close-btn" title="Close" aria-label="Close">×</button>
+            <button class="icon-btn theme-btn" title="Toggle Theme" aria-label="Toggle theme">${themeIcon}</button>
             <div class="panel-header">CDN & Server Info</div>
             
             <div class="info-lines-container">
                 <div class="info-line">
                     <span class="info-label">${providerLabel}</span>
-                    <span class="info-value" title="${info.provider}">${displayProvider}</span>
+                    <span class="info-value" title="${escapeHtml(info.provider)}">${escapeHtml(displayProvider)}</span>
                 </div>
                 <div class="info-line">
                     <span class="info-label">Cache</span>
-                    <span class="info-value ${cacheClass}">${cacheStatus}</span>
+                    <span class="info-value ${cacheClass}">${escapeHtml(cacheStatus)}</span>
                 </div>
         `;
 
         // Add POP location if available and not N/A
         if (info.pop && info.pop !== 'N/A') {
-            let displayPop = info.pop;
+            let displayPop = String(info.pop);
             if (displayPop.length > 18) {
                 displayPop = displayPop.substring(0, 15) + '...';
             }
             panelContent += `
                 <div class="info-line">
                     <span class="info-label">POP</span>
-                    <span class="info-value" title="${info.pop}">${displayPop}</span>
+                    <span class="info-value" title="${escapeHtml(info.pop)}">${escapeHtml(displayPop)}</span>
                 </div>
             `;
         }
 
         // Trigger generic DNS check for current domain
-        checkDNS(window.location.hostname).then((dnsResult) => {
-            updatePanelWithDNS(dnsResult, info);
+        const dnsDomain = window.location.hostname;
+        checkDNS(dnsDomain).then((dnsResult) => {
+            updatePanelWithDNS(dnsResult, info, host, dnsDomain);
         });
 
         // Auto-hide logic (if enabled)
@@ -2428,7 +2444,6 @@
     }
 
     function setupScrollCollapse(host, panelElement) {
-        let scrollTimeout;
         let isManuallyExpanded = false;
 
         // Set transform origin based on panel position in viewport
@@ -2464,14 +2479,13 @@
             if (!isManuallyExpanded) {
                 panelElement.classList.add('collapsed');
             }
-
-            // Clear existing timeout
-            clearTimeout(scrollTimeout);
-            // Auto-expand removed as per request: stay collapsed until user clicks
         }
 
         // Toggle collapse on click
         panelElement.addEventListener('click', (e) => {
+            // Ignore the synthetic click fired immediately after a real drag.
+            if (host.dataset.justDragged) return;
+
             // Don't toggle if clicking on buttons
             if (
                 e.target.classList.contains('close-btn') ||
@@ -2485,7 +2499,8 @@
                 e.stopPropagation();
                 panelElement.classList.remove('collapsed');
                 isManuallyExpanded = true;
-                // Removed 5s timeout reset - stay expanded if manually expanded
+                // Keep the expanded panel inside the viewport.
+                adjustPanelPosition(host, panelElement);
             } else {
                 // Collapse
                 e.stopPropagation();
@@ -2500,15 +2515,20 @@
         // Default to collapsed state
         panelElement.classList.add('collapsed');
 
-        // Listen to scroll events
-        window.addEventListener('scroll', handleScroll, { passive: true });
+        // Listen to scroll events. Use an AbortController so the listener is
+        // always torn down when the panel is removed (SPA navigation etc.).
+        const controller = new AbortController();
+        window.addEventListener('scroll', handleScroll, {
+            passive: true,
+            signal: controller.signal,
+        });
 
-        // Cleanup on panel removal (optional)
+        // Cleanup on panel removal
         const observer = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {
                 mutation.removedNodes.forEach((node) => {
                     if (node === host) {
-                        window.removeEventListener('scroll', handleScroll);
+                        controller.abort();
                         observer.disconnect();
                     }
                 });
@@ -2612,8 +2632,12 @@
             e.preventDefault();
             const newX = elementX + deltaX;
             const newY = elementY + deltaY;
-            const maxX = window.innerWidth - element.offsetWidth;
-            const maxY = window.innerHeight - element.offsetHeight;
+            // Clamp against the EXPANDED size so the panel can't be dragged to a
+            // spot where it overflows the viewport once it expands.
+            const clampWidth = Math.max(element.offsetWidth, 252);
+            const clampHeight = Math.max(element.offsetHeight, 160);
+            const maxX = window.innerWidth - clampWidth;
+            const maxY = window.innerHeight - clampHeight;
             element.style.left = `${Math.max(0, Math.min(newX, maxX))}px`;
             element.style.top = `${Math.max(0, Math.min(newY, maxY))}px`;
             element.style.right = 'auto';
@@ -2625,6 +2649,13 @@
             document.removeEventListener('mouseup', dragEnd);
 
             if (!hasMoved) return;
+
+            // Suppress the synthetic click that follows a real drag so the panel
+            // doesn't collapse/expand right after being moved.
+            element.dataset.justDragged = '1';
+            setTimeout(() => {
+                delete element.dataset.justDragged;
+            }, 0);
 
             // After dragging, convert positioning to right/bottom anchor
             // This guarantees that CSS width/height expansions always grow towards the top-left
@@ -2643,7 +2674,7 @@
             const origin = `${originX} ${originY}`;
             panelElement.style.setProperty('transform-origin', origin, 'important');
 
-            console.log(`[CDN Panel] Dragged to new position. Anchored to right-bottom.`);
+            console.log('[CDN Panel] Dragged to new position. Anchored to right-bottom.');
         }
     }
 
@@ -2786,7 +2817,7 @@
 
         // Listen for system theme changes
         const themeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-        themeMediaQuery.addEventListener('change', (e) => {
+        themeMediaQuery.addEventListener('change', () => {
             // Only update if using auto theme
             if (config.settings.theme === 'auto' || !config.settings.theme) {
                 console.log('[CDN Detector] System theme changed, updating panel...');
@@ -2803,7 +2834,7 @@
         console.log('[CDN Detector] Initial page theme detected:', lastPageTheme);
         let themeCheckTimeout;
 
-        const pageThemeObserver = new MutationObserver((mutations) => {
+        const pageThemeObserver = new MutationObserver(() => {
             // Debounce: only check after 300ms of no changes
             clearTimeout(themeCheckTimeout);
             themeCheckTimeout = setTimeout(() => {
