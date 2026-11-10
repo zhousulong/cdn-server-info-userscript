@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-7.57.1-blue.svg)
+![Version](https://img.shields.io/badge/version-7.57.2-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Tampermonkey](https://img.shields.io/badge/Tampermonkey-Compatible-orange.svg)
 
@@ -146,12 +146,21 @@
 
 ## 📋 版本更新
 
+### v7.57.2 (2026-11-10) - 面板折叠位置修复
+
+#### 🐛 修复
+
+- **右下角折叠漂移**：移除展开时冲突的位置校正，保持 `right` / `bottom` 锚点，折叠圆钮返回原位置。
+- **拖动后定位**：验证拖动后的展开方向及折叠位置，面板不再落在展开内容的左上角。
+
 ### v7.57.1 (2026-11-10) - 安全与稳定性修复
 
 #### 🔒 安全
+
 - **修复 XSS**：响应头 `Server` 值、POP、缓存状态及 DNS CNAME 值此前未经转义直接写入 `innerHTML`，可被恶意/被篡改的响应头或 DNS 应答注入执行脚本；现统一 `escapeHtml()` / `textContent` 处理。
 
 #### 🔧 检测准确性
+
 - **移除通用头无值匹配**：`VergeCloud`、`Gcore`、`BytePlus`、`Fastly`、`StackCDN` 等 9 处 `x-request-id` / `x-cache-status` / `x-served-by` / `x-id` 通用头改为专有信号，避免误识别（符合 PROJECT_RULES 禁用通用头原则）。
 - **通用 `id_header` 降级**：`x-request-id` / `x-served-by` 等通用头不再加 +50 分，仅 +10。
 - **修复 Akamai POP 正则**：`/cache-([a-z0-9]+)-/` 会把 `lga1234` 整段捕获，改为只取 3 字母机场码。
@@ -160,6 +169,7 @@
 - **优先级收敛**：`ByteDance CDN` 26→18、`BytePlus CDN` 25→17，避免头部分被异常抬高。
 
 #### 🐛 稳定性
+
 - **SPA DNS 竞态**：DNS 异步结果回调增加 token 校验，过期请求不再覆盖新页面面板。
 - **DNS 请求超时**：DoH 增加 4s 超时；不再永久缓存负结果；用户地区增加 10 分钟缓存。
 - **滚动监听生命周期**：改用 `AbortController`，面板移除时自动解绑；修复拖动后误触发折叠。
@@ -167,6 +177,7 @@
 - **存储弹窗越界**：拖动 clamp 使用展开尺寸。
 
 #### 🧹 工程与体验
+
 - 删除死代码 `createSettingsPanel`；移除失效的 `.eslintrc.json`。
 - `npm test` 接入真实回归套件；ESLint 配置补全 globals，`npm run lint` 转绿。
 - 面板补充 `prefers-reduced-motion` 与 `:focus-visible` 焦点样式、按钮 `aria-label`。

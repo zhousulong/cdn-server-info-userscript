@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.57.1
-// @description  [v7.57.1] 安全与稳定性修复：修复响应头/ CNAME 值注入 innerHTML 的 XSS；移除通用头无值匹配（VergeCloud/Gcore/BytePlus 等）与通用 id_header 加分降级；修复 SPA 导航 DNS 竞态、Akamai POP 正则贪婪、缓存状态子串误判及 Cookie 匹配；DNS 增加超时、不再缓存负结果、地区缓存；清理死代码并为面板补充 reduced-motion / 焦点无障碍；ESLint/npm test 转绿。
-// @description:en [v7.57.1] Security & stability fixes: fixed XSS from header/CNAME values injected into innerHTML; removed generic null-valued headers and downgraded generic id_header scoring; fixed SPA DNS race, greedy Akamai POP regex, cache-status substring misclassification and cookie matching; added DNS timeout, stopped caching negative results, cached region; removed dead code; added reduced-motion/focus a11y; ESLint & npm test now green.
+// @version      7.57.2
+// @description  [v7.57.2] 修复右下角及拖动后面板的折叠位置回归：移除展开时冲突的位置校正，保持右下锚点，使折叠圆钮返回原位置，不再向展开面板左上角漂移。
+// @description:en [v7.57.2] Fixed panel collapse positioning at the bottom-right and after dragging: removed the conflicting expansion repositioning so the collapsed button returns to its original bottom-right anchor instead of drifting toward the expanded panel's top-left corner.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.57.1
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.57.2
 // @connect      dns.alidns.com
 // @connect      dns.google
 // @connect      1.1.1.1
@@ -2499,8 +2499,6 @@
                 e.stopPropagation();
                 panelElement.classList.remove('collapsed');
                 isManuallyExpanded = true;
-                // Keep the expanded panel inside the viewport.
-                adjustPanelPosition(host, panelElement);
             } else {
                 // Collapse
                 e.stopPropagation();
@@ -2535,66 +2533,6 @@
             });
         });
         observer.observe(document.body, { childList: true });
-    }
-
-    function adjustPanelPosition(host, panelElement) {
-        const isMobile = isMobileDevice();
-        const collapsedSize = isMobile ? 48 : 56;
-        const expandedWidth = isMobile ? 180 : 252;
-        const expandedHeight = 150; // Approximate expanded height
-
-        const rect = host.getBoundingClientRect();
-        const viewportWidth = window.innerWidth;
-        const viewportHeight = window.innerHeight;
-
-        // Only adjust if panel would overflow when expanded
-        // Calculate based on current collapsed position
-        const currentLeft = rect.left;
-        const currentTop = rect.top;
-
-        // Calculate where the expanded panel's edges would be
-        // Assuming expansion happens from center of collapsed button
-        const collapsedCenterX = currentLeft + collapsedSize / 2;
-        const collapsedCenterY = currentTop + collapsedSize / 2;
-
-        const expandedLeft = collapsedCenterX - expandedWidth / 2;
-        const expandedRight = collapsedCenterX + expandedWidth / 2;
-        const expandedTop = collapsedCenterY - expandedHeight / 2;
-        const expandedBottom = collapsedCenterY + expandedHeight / 2;
-
-        let needsAdjustment = false;
-        let newLeft = currentLeft;
-        let newTop = currentTop;
-
-        // Check horizontal overflow
-        if (expandedRight > viewportWidth - 10) {
-            // Would overflow right
-            newLeft = viewportWidth - expandedWidth - 10;
-            needsAdjustment = true;
-        } else if (expandedLeft < 10) {
-            // Would overflow left
-            newLeft = 10;
-            needsAdjustment = true;
-        }
-
-        // Check vertical overflow
-        if (expandedBottom > viewportHeight - 10) {
-            // Would overflow bottom
-            newTop = viewportHeight - expandedHeight - 10;
-            needsAdjustment = true;
-        } else if (expandedTop < 10) {
-            // Would overflow top
-            newTop = 10;
-            needsAdjustment = true;
-        }
-
-        // Only apply adjustment if needed
-        if (needsAdjustment) {
-            host.style.left = `${newLeft}px`;
-            host.style.top = `${newTop}px`;
-            host.style.right = 'auto';
-            host.style.bottom = 'auto';
-        }
     }
 
     function makeDraggable(element, panelElement) {
