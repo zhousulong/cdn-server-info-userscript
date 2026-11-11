@@ -20,6 +20,7 @@ module.exports = [
                 clearInterval: 'readonly',
                 MutationObserver: 'readonly',
                 AbortController: 'readonly',
+                requestAnimationFrame: 'readonly',
                 getComputedStyle: 'readonly',
                 RegExp: 'readonly',
                 Map: 'readonly',

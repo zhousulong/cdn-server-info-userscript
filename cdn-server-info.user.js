@@ -1533,11 +1533,7 @@
         if (!panel || !panel.shadowRoot) return;
         if (expectedHost && panel !== expectedHost) return;
 
-        // Find the provider value element (first info-line's info-value)
-        const firstInfoLine = panel.shadowRoot.querySelector('.info-line');
-        if (!firstInfoLine) return;
-
-        const providerValue = firstInfoLine.querySelector('.info-value');
+        const providerValue = panel.shadowRoot.querySelector('.provider-name');
         if (!providerValue) return;
 
         if (dnsResult.provider && dnsResult.provider !== currentInfo.provider) {
@@ -1550,43 +1546,8 @@
             providerValue.textContent = dnsResult.provider;
             providerValue.title = `Detected via DNS: ${dnsResult.cname}`;
 
-            // Update watermark to match new provider
-            let watermark = panel.shadowRoot.querySelector('.cdn-watermark');
-
-            // Find the icon for the new provider
-            let iconKey = Object.keys(cdnIcons).find((key) => key === dnsResult.provider);
-            if (!iconKey) {
-                iconKey = Object.keys(cdnIcons).find((key) => {
-                    const providerLower = dnsResult.provider.toLowerCase();
-                    const keyLower = key.toLowerCase();
-                    return providerLower.includes(keyLower) || keyLower.includes(providerLower);
-                });
-            }
-
-            if (iconKey) {
-                const iconSvg = cdnIcons[iconKey];
-                if (watermark) {
-                    // Update existing watermark
-                    watermark.innerHTML = iconSvg;
-                    console.log('[CDN DNS] Updated existing watermark icon');
-                } else {
-                    // Create new watermark element
-                    watermark = document.createElement('div');
-                    watermark.className = 'cdn-watermark';
-                    watermark.innerHTML = iconSvg;
-                    const panelElement = panel.shadowRoot.querySelector('#cdn-info-panel-enhanced');
-                    if (panelElement) {
-                        panelElement.insertBefore(watermark, panelElement.firstChild);
-                        console.log('[CDN DNS] Created new watermark icon');
-                    }
-                }
-            } else {
-                // No matching icon found
-                if (watermark) {
-                    watermark.innerHTML = '';
-                }
-                console.log('[CDN DNS] No icon found for:', dnsResult.provider);
-            }
+            updateProviderBadge(panel, dnsResult.provider);
+            updateProviderCaption(panel, dnsResult.provider, currentInfo.server);
 
             // Add DNS status at bottom
             addDNSStatus(panel, `DNS: ${dnsResult.cname}`);
@@ -1612,7 +1573,8 @@
         if (!statusLine) {
             statusLine = document.createElement('div');
             statusLine.className = 'dns-status';
-            panel.shadowRoot.querySelector('#cdn-info-panel-enhanced').appendChild(statusLine);
+            const panelFooter = panel.shadowRoot.querySelector('.panel-footer');
+            panel.shadowRoot.querySelector('.panel-surface').insertBefore(statusLine, panelFooter);
         }
 
         const prefix = 'DNS: ';
@@ -1725,108 +1687,59 @@
     }
 
     function getPanelCSS() {
-        // Simple light/dark theme (no auto mode)
         const isDarkTheme = config.settings.theme === 'dark';
         const isMobile = isMobileDevice();
-        console.log('[CDN Detector] Panel theme:', config.settings.theme, 'Mobile:', isMobile);
-
-        // Ultra-premium aesthetic: deeper blacks, cleaner whites
-        const materialBase = isDarkTheme
-            ? 'rgba(15, 15, 15, 0.65)' // Dark mode: darker, slightly less transparent for legibility
-            : 'rgba(255, 255, 255, 0.65)'; // Light mode: milky white
-
-        const surfaceGradient = isDarkTheme
-            ? 'linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0) 100%)'
-            : 'linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0) 100%)';
-
-        const borderColor = isDarkTheme
-            ? 'rgba(255, 255, 255, 0.12)' // Crisp border in dark
-            : 'rgba(0, 0, 0, 0.08)';
-
-        const textColor = isDarkTheme ? '#FFFFFF' : '#000000';
-        const labelColor = isDarkTheme ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.5)';
-
-        // Specific font stacks
         const uiFont =
-            '"SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-        const monoFont =
-            '"SF Mono", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", monospace';
-
-        // Colors & Shadows
-        const backdropFilter = 'blur(24px) saturate(180%)'; // Balanced blur
-        const boxShadow = isDarkTheme
-            ? '0 12px 32px rgba(0, 0, 0, 0.4), 0 4px 8px rgba(0, 0, 0, 0.2)'
-            : '0 12px 32px rgba(0, 0, 0, 0.1), 0 4px 8px rgba(0, 0, 0, 0.05)';
-
-        const greenColor = isDarkTheme ? '#4ADE80' : '#16A34A'; // Slightly muted green
-        const redColor = '#EF4444';
-        const blueColor = '#3B82F6';
-
-        // Responsive sizing based on device type
-        const panelWidth = isMobile ? '180px' : '252px';
-        const panelPadding = isMobile ? '10px 12px' : '14px 16px';
-        const borderRadius = isMobile ? '12px' : '14px';
-        const headerFontSize = isMobile ? '8px' : '10px';
-        const labelFontSize = isMobile ? '9px' : '11px';
-        const valueFontSize = isMobile ? '9px' : '11px';
-        const labelWidth = isMobile ? '32px' : '42px';
-        const lineGap = isMobile ? '4px' : '6px';
-        const containerGap = isMobile ? '7px' : '10px';
-        const dnsFontSize = isMobile ? '8px' : '9px';
-
-        // 按钮视觉居中计算
-        // 标题行高 = fontSize * lineHeight (1.4) + margin-bottom (2px)
-        // 移动端: 8px * 1.4 + 2px = 13.2px, 按钮16px, 居中位置 = (13.2 - 16) / 2 ≈ -1.4px, 加上padding 10px = 8.6px
-        // PC端: 10px * 1.4 + 2px = 16px, 按钮18px, 居中位置 = (16 - 18) / 2 = -1px, 加上padding 14px = 13px
-        const buttonTop = isMobile ? '8px' : '12px'; // 按钮顶部位置 - 视觉居中
-        const buttonSize = isMobile ? '16px' : '18px'; // 按钮大小
-        const closeButtonRight = isMobile ? '10px' : '12px'; // 关闭按钮右侧位置
-        const themeButtonRight = isMobile ? '30px' : '36px'; // 主题按钮右侧位置
+            '"Avenir Next", Avenir, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+        const monoFont = '"SFMono-Regular", "SF Mono", Menlo, Consolas, monospace';
+        const orbSize = isMobile ? 64 : 76;
+        const panelWidth = isMobile ? 258 : 286;
+        const controlSize = isMobile ? 44 : 32;
+        const greenColor = isDarkTheme ? '#c0e899' : '#3e663b';
+        const redColor = isDarkTheme ? '#f2a39b' : '#ae463d';
+        const blueColor = isDarkTheme ? '#a4c8e6' : '#466e90';
 
         return `
-        /* Safe CSS Reset for Shadow DOM */
         :host {
             all: initial;
             position: fixed;
+            display: block;
+            width: ${panelWidth}px;
+            --panel-surface: ${isDarkTheme ? '#262a24' : '#f5f6f1'};
+            --panel-shell: ${isDarkTheme ? '#343930' : '#d7dcd3'};
+            --panel-edge: ${isDarkTheme ? '#4b5047' : '#b8c0b4'};
+            --panel-line: ${isDarkTheme ? '#3b4036' : '#d5dbd0'};
+            --panel-text: ${isDarkTheme ? '#edf0e6' : '#2b332b'};
+            --panel-muted: ${isDarkTheme ? '#a5ad9a' : '#727b6d'};
+            --panel-accent: ${isDarkTheme ? '#c3de9b' : '#6e8151'};
+            --panel-accent-soft: ${isDarkTheme ? '#c3de9b12' : '#e2ead8'};
+            --panel-brand: ${isDarkTheme ? '#ffab60' : '#e98b3e'};
+            --panel-orb: ${isDarkTheme ? 'radial-gradient(circle at 35% 25%, #454941, #242724 65%)' : 'radial-gradient(circle at 35% 25%, #ffffff, #e9ede3 70%)'};
+            --panel-shadow: ${isDarkTheme ? '0 20px 50px #0005, inset 0 1px #777c6840' : '0 20px 50px #27302224, inset 0 1px #ffffff90'};
+            --panel-orb-shadow: ${isDarkTheme ? '0 15px 35px #0007, inset 0 1px #72776a80' : '0 15px 35px #27302220, inset 0 1px #ffffff80'};
             z-index: 2147483647;
             ${getPositionCSS()}
             font-family: ${uiFont};
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
-            /* Prevent font scaling issues */
             text-size-adjust: 100%;
         }
-
-        /* Reset inherited properties specifically for our container */
+        :host(.cdn-panel-collapsed) { width: ${orbSize + 16}px; height: ${orbSize + 16}px; }
         #cdn-info-panel-enhanced {
-            all: unset; /* Clear inherited styles on container */
+            all: unset;
             position: relative;
             box-sizing: border-box;
-            width: ${panelWidth}; /* Responsive width */
-            padding: ${panelPadding}; /* Responsive padding */
-            border-radius: ${borderRadius}; /* Responsive border radius */
-            background-color: ${materialBase};
-            backdrop-filter: ${backdropFilter};
-            -webkit-backdrop-filter: ${backdropFilter};
-            border: 1px solid ${borderColor};
-            box-shadow: ${boxShadow};
-            cursor: default;
+            width: ${panelWidth}px;
+            padding: 5px;
+            border: 1px solid var(--panel-edge);
+            border-radius: 29px;
+            background: linear-gradient(135deg, ${isDarkTheme ? '#555b5050' : '#ffffff70'}, var(--panel-shell));
+            box-shadow: var(--panel-shadow);
+            color: var(--panel-text);
             user-select: none;
-            /* 精确指定过渡属性；height:auto 无法 transition，不加 height */
-            transition:
-                width 0.38s cubic-bezier(0.34, 1.56, 0.64, 1),
-                border-radius 0.36s cubic-bezier(0.34, 1.56, 0.64, 1),
-                padding 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            color: ${textColor};
             display: flex;
             flex-direction: column;
-            gap: ${containerGap}; /* Responsive gap */
-            overflow: hidden;
-            
-            /* Explicitly define inherited properties to stop leakage */
-            line-height: 1.5;
+            line-height: 1.4;
             font-size: 14px;
             font-style: normal;
             font-weight: normal;
@@ -1835,417 +1748,251 @@
             text-transform: none;
             direction: ${isRTLLanguage() ? 'rtl' : 'ltr'};
         }
-
-        /* Ensure all children use border-box */
-        #cdn-info-panel-enhanced * {
-            box-sizing: border-box;
+        #cdn-info-panel-enhanced * { box-sizing: border-box; letter-spacing: normal; }
+        .panel-surface {
+            border: 1px solid var(--panel-line);
+            border-radius: 24px;
+            background: var(--panel-surface);
+            overflow: hidden;
         }
-
-        /* Subtle top highlight */
-        #cdn-info-panel-enhanced::after {
+        .collapsed-orb {
+            display: none;
+            position: relative;
+            align-items: center;
+            justify-content: center;
+            width: ${orbSize}px;
+            height: ${orbSize}px;
+            margin: 8px;
+            padding: 20px 15px;
+            border: 1px solid var(--panel-edge);
+            border-radius: 50%;
+            background: var(--panel-orb);
+            color: var(--panel-brand);
+            box-shadow: var(--panel-orb-shadow);
+            cursor: grab;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: none;
+        }
+        .collapsed-orb::before {
             content: '';
             position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            border-radius: ${borderRadius}; /* Responsive border radius */
-            background: ${surfaceGradient};
+            inset: 8px;
+            border: 1px solid var(--panel-edge);
+            border-radius: 50%;
             pointer-events: none;
-            z-index: 1;
         }
-
-        #cdn-info-panel-enhanced > *:not(.cdn-watermark) { position: relative; z-index: 2; }
-
-        /* --- Collapsed State --- */
-        #cdn-info-panel-enhanced.collapsed {
-            width: ${isMobile ? '48px' : '56px'} !important;
-            height: ${isMobile ? '48px' : '56px'} !important;
-            padding: 0 !important;
-            border-radius: 50% !important;
-            cursor: pointer !important;
-            overflow: hidden !important;
-            /* transform-origin will be set dynamically via JavaScript */
-        }
-
-        #cdn-info-panel-enhanced.collapsed::after {
-            border-radius: 50% !important;
-            transition: border-radius 0.36s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-
-        /* --- 展开状态内容动画基础 --- */
-        /* 内容区域：展开时淡入+上滑，折叠时快速淡出 */
-        #cdn-info-panel-enhanced .panel-header,
-        #cdn-info-panel-enhanced .info-lines-container,
-        #cdn-info-panel-enhanced .dns-status {
-            opacity: 1;
-            transform: translateY(0);
-            transition: opacity 0.22s cubic-bezier(0.4, 0, 0.2, 1) 0.12s,
-                        transform 0.28s cubic-bezier(0.34, 1.2, 0.64, 1) 0.1s;
-        }
-
-        /* 按钮独立淡入，稍晚一些 */
-        #cdn-info-panel-enhanced .close-btn,
-        #cdn-info-panel-enhanced .theme-btn {
-            transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1) 0.18s,
-                        transform 0.2s ease !important;
-        }
-
-        /* Hide all content when collapsed except watermark */
-        #cdn-info-panel-enhanced.collapsed .panel-header,
-        #cdn-info-panel-enhanced.collapsed .info-lines-container,
-        #cdn-info-panel-enhanced.collapsed .dns-status {
-            opacity: 0 !important;
-            transform: translateY(4px) !important;
-            transition: opacity 0.12s cubic-bezier(0.4, 0, 1, 1),
-                        transform 0.12s cubic-bezier(0.4, 0, 1, 1) !important;
-            pointer-events: none;
-            /* 延迟 visibility 以配合 overflow:hidden 剪裁 */
-        }
-
-        #cdn-info-panel-enhanced.collapsed .close-btn,
-        #cdn-info-panel-enhanced.collapsed .theme-btn {
-            opacity: 0 !important;
-            pointer-events: none;
-            transition: opacity 0.08s cubic-bezier(0.4, 0, 1, 1) !important;
-        }
-
-        /* Show watermark in center when collapsed */
-        #cdn-info-panel-enhanced.collapsed .cdn-watermark {
+        .collapsed-orb::after {
+            content: '';
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            max-width: 70%;
-            max-height: 70%;
-            opacity: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: ${isDarkTheme ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.25)'};
+            right: 3px;
+            bottom: 4px;
+            width: 11px;
+            height: 11px;
+            border: 3px solid var(--panel-surface);
+            border-radius: 50%;
+            background: ${greenColor};
+            box-shadow: 0 0 12px ${isDarkTheme ? '#b4da8140' : '#8cad6240'};
         }
-
-        /* Watermark 过渡动画 */
-        .cdn-watermark {
-            transition: opacity 0.22s cubic-bezier(0.4, 0, 0.2, 1),
-                        transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+        .collapsed-orb:active { cursor: grabbing; }
+        .collapsed-orb[data-cache="MISS"]::after { background: ${redColor}; }
+        .collapsed-orb[data-cache="BYPASS"]::after,
+        .collapsed-orb[data-cache="DYNAMIC"]::after { background: ${blueColor}; }
+        .collapsed-orb[data-cache="N/A"]::after { background: var(--panel-muted); box-shadow: none; }
+        #cdn-info-panel-enhanced.collapsed {
+            width: ${orbSize + 16}px;
+            height: ${orbSize + 16}px;
+            padding: 0;
+            border: 0;
+            border-radius: 50%;
+            background: transparent;
+            box-shadow: none;
+            overflow: visible;
         }
-
-        #cdn-info-panel-enhanced.collapsed .cdn-watermark svg {
-            fill: currentColor;
-            width: ${isMobile ? '32px' : '38px'} !important;
-            height: ${isMobile ? '32px' : '38px'} !important;
-        }
-
-        /* collapsed-icon: 展开时完全不占位 */
-        .collapsed-icon {
-            display: none;
-        }
-
-        /* 折叠时显示，带 scale 进场动画 */
-        #cdn-info-panel-enhanced.collapsed .collapsed-icon {
-            display: flex;
-            position: absolute !important;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) scale(1);
-            width: ${isMobile ? '48px' : '56px'};
-            height: ${isMobile ? '48px' : '56px'};
-            font-size: ${isMobile ? '20px' : '24px'};
-            font-weight: 600;
-            opacity: 0.7;
-            color: ${textColor};
-            align-items: center;
-            justify-content: center;
-            pointer-events: none;
-        }
-
-        /* Size the SVG inside collapsed-icon */
-        #cdn-info-panel-enhanced.collapsed .collapsed-icon svg {
-            width: ${isMobile ? '30px' : '36px'} !important;
-            height: ${isMobile ? '30px' : '36px'} !important;
-            opacity: ${isDarkTheme ? '0.85' : '0.7'};
-        }
-
-        /* Hide collapsed icon when watermark exists */
-        #cdn-info-panel-enhanced.collapsed .cdn-watermark ~ .collapsed-icon {
-            display: none !important;
-        }
-
-
-        /* --- Buttons (Hidden by default) --- */
-        button.icon-btn {
-            position: absolute !important;
-            top: ${buttonTop} !important; /* Responsive top position */
-            width: ${buttonSize} !important; /* Responsive size */
-            height: ${buttonSize} !important; /* Responsive size */
-            border-radius: 50% !important;
-            background: transparent !important;
-            color: ${textColor} !important;
-            border: none !important;
-            outline: none !important;
-            cursor: pointer !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            opacity: 0 !important;
-            transition: opacity 0.2s ease, transform 0.2s ease !important;
-            z-index: 100 !important;
-            padding: 0 !important;
-            margin: 0 !important;
-            -webkit-appearance: none !important;
-            appearance: none !important;
-            line-height: 1 !important;
-        }
-
-        button.close-btn { ${isRTLLanguage() ? 'left' : 'right'}: ${closeButtonRight} !important; font-size: ${isMobile ? '14px' : '16px'} !important; font-weight: 300 !important; line-height: ${buttonSize} !important; }
-        button.theme-btn { ${isRTLLanguage() ? 'left' : 'right'}: ${themeButtonRight} !important; font-size: ${isMobile ? '11px' : '12px'} !important; line-height: ${buttonSize} !important; }
-
-        #cdn-info-panel-enhanced:hover button.icon-btn { opacity: 0.5 !important; }
-        button.icon-btn:hover { opacity: 1 !important; transform: scale(1.1); }
-
-        /* \u6298\u53e0\u72b6\u6001\u6076\u6197\u60ac\u505c\uff1a\u6309\u94ae\u5fc5\u987b\u59cb\u7ec8\u4e0d\u53ef\u89c1\uff08\u8986\u76d6 hover \u89c4\u5219\uff09 */
-        #cdn-info-panel-enhanced.collapsed button.icon-btn,
-        #cdn-info-panel-enhanced.collapsed:hover button.icon-btn { opacity: 0 !important; pointer-events: none !important; }
-
-        /* --- Content Typography --- */
-        .panel-header {
-            display: block;
-            font-family: ${uiFont};
-            font-size: ${headerFontSize}; /* Responsive font size */
-            font-weight: 700;
-            color: ${isDarkTheme ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.4)'};
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            margin: 0 0 2px 0;
-            padding-left: 2px;
-            line-height: 1.4;
-        }
-
-        .info-lines-container {
+        #cdn-info-panel-enhanced.collapsed .collapsed-orb { display: flex; }
+        #cdn-info-panel-enhanced.collapsed .panel-surface { display: none; }
+        .panel-hero {
+            position: relative;
             display: flex;
             flex-direction: column;
-            gap: ${lineGap}; /* Responsive gap */
-            margin: 0;
-            padding: 0;
+            align-items: center;
+            justify-content: center;
+            min-height: ${isMobile ? 112 : 130}px;
+            padding: 20px 24px 16px;
+            background: radial-gradient(ellipse at 50% 100%, ${isDarkTheme ? '#c3de9b17' : '#adc78625'}, transparent 70%);
         }
-
-        .info-line {
+        .provider-brand {
             display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            margin: 0;
-            padding: 0;
-            border: none;
-            line-height: normal;
+            align-items: center;
+            justify-content: center;
+            width: 142px;
+            height: ${isMobile ? 50 : 61}px;
+            margin-bottom: 10px;
+            color: var(--panel-brand);
         }
-
-        .info-label {
-            display: inline-block;
+        .provider-brand svg { display: block; width: 100%; height: 100%; overflow: visible; }
+        .provider-monogram {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: ${isMobile ? 56 : 68}px;
+            height: ${isMobile ? 56 : 68}px;
+            border: 1px solid var(--panel-edge);
+            border-radius: 50%;
+            color: var(--panel-accent);
             font-family: ${uiFont};
-            font-size: ${labelFontSize}; /* Responsive font size */
-            font-weight: 500;
-            color: ${isDarkTheme ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.5)'};
-            letter-spacing: 0px;
-            flex-shrink: 0; /* Protect label from squeezing */
-            ${isRTLLanguage() ? 'margin-left' : 'margin-right'}: 8px;
-            width: ${labelWidth}; /* Responsive width */
-            text-align: ${isRTLLanguage() ? 'right' : 'left'};
+            font-size: ${isMobile ? 25 : 30}px;
+            font-weight: 400;
+            letter-spacing: -2px !important;
+            line-height: 1;
+            padding-right: 3px;
+            box-shadow: 0 0 0 5px var(--panel-accent-soft), inset 0 0 20px var(--panel-accent-soft);
+            white-space: nowrap;
         }
-
-        .info-value {
-            display: inline-block;
-            font-family: ${monoFont}; /* Mono for data */
-            font-size: ${valueFontSize}; /* Responsive font size */
+        .collapsed-orb .provider-monogram {
+            width: auto;
+            height: auto;
+            border: 0;
+            background: transparent;
+            box-shadow: none;
+            font-size: ${isMobile ? 25 : 29}px;
+            letter-spacing: -2px !important;
+        }
+        .provider-name {
+            display: block;
+            max-width: 100%;
+            color: var(--panel-text);
+            font-family: ${uiFont};
+            font-size: 16px;
             font-weight: 500;
-            color: ${textColor};
-            text-align: ${isRTLLanguage() ? 'left' : 'right'};
-            opacity: 0.95;
-            flex: 1; /* Occupy all remaining space */
-            min-width: 0; /* Enable truncation in flex item */
+            line-height: 1.35;
+            text-align: center;
+            overflow-wrap: anywhere;
+        }
+        .provider-caption {
+            margin-top: 5px;
+            color: var(--panel-muted);
+            font-size: 10px;
+            letter-spacing: 0.8px !important;
+            line-height: 1.4;
+        }
+        .icon-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 ${controlSize}px;
+            width: ${controlSize}px;
+            height: ${controlSize}px;
+            padding: 0;
+            border: 0;
+            border-radius: 8px;
+            background: transparent;
+            color: var(--panel-muted);
+            font: inherit;
+            cursor: pointer;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        .icon-btn:hover { background: var(--panel-accent-soft); color: var(--panel-text); }
+        .icon-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+        .hero-actions {
+            position: absolute;
+            top: 8px;
+            ${isRTLLanguage() ? 'left' : 'right'}: 8px;
+            display: flex;
+            gap: 1px;
+        }
+        .info-lines-container {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            border-top: 1px solid var(--panel-line);
+            border-bottom: 1px solid var(--panel-line);
+        }
+        .info-line { min-width: 0; padding: 12px 15px; }
+        .info-line + .info-line { ${isRTLLanguage() ? 'border-right' : 'border-left'}: 1px solid var(--panel-line); }
+        .info-label {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--panel-muted);
+            font-size: 10px;
+            font-weight: 400;
+            text-transform: uppercase;
+            letter-spacing: 1px !important;
+        }
+        .info-value {
+            display: block;
+            font-family: ${monoFont};
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--panel-text);
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            letter-spacing: -0.2px;
         }
-
+        .info-value.provider-name {
+            font-family: ${uiFont};
+            font-size: 16px;
+            text-align: center;
+            white-space: normal;
+            overflow: visible;
+            overflow-wrap: anywhere;
+        }
         .cache-HIT { color: ${greenColor} !important; }
         .cache-MISS { color: ${redColor} !important; }
         .cache-BYPASS, .cache-DYNAMIC { color: ${blueColor} !important; }
-        
-        /* Watermark Styles */
-        .cdn-watermark {
-            position: absolute;
-            top: 8px;
-            left: 75%;
-            bottom: 8px;
-            max-width: 45%;
-            opacity: 1;
-            pointer-events: none;
-            z-index: 0;
+        .server-line {
             display: flex;
-            align-items: flex-end;
-            justify-content: center;
-            transform: translateX(-50%);
-            color: ${isDarkTheme ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.04)'};
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            min-height: 38px;
+            padding: 8px 16px;
+            color: var(--panel-muted);
+            font-size: 11px;
         }
-        .cdn-watermark svg {
-            height: 100%;
-            width: auto;
-            fill: currentColor;
-            display: block;
+        .server-line .info-value { max-width: 70%; font-size: 11px; text-align: ${isRTLLanguage() ? 'left' : 'right'}; }
+        .panel-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+            min-height: 42px;
+            padding: 4px 9px 6px 16px;
         }
-
-        /* DNS Status Line */
-        /* DNS Status Line */
+        .footer-caption { color: var(--panel-muted); font-size: 9px; letter-spacing: 0.7px !important; white-space: nowrap; }
+        .footer-actions { display: flex; align-items: center; gap: 1px; }
+        .expand-btn { gap: 5px; width: auto; padding: 0 6px; font-size: 11px; font-family: ${uiFont}; }
+        .expand-btn svg { width: 14px; height: 14px; transition: transform 180ms ease; }
+        #cdn-info-panel-enhanced.details-hidden .expand-btn svg { transform: rotate(180deg); }
+        #cdn-info-panel-enhanced.details-hidden .server-line,
+        #cdn-info-panel-enhanced.details-hidden .dns-status { display: none; }
         .dns-status {
             display: flex;
             align-items: center;
-            justify-content: center;
-            font-family: ${monoFont};
-            font-size: ${dnsFontSize}; /* Responsive font size */
-            color: ${isDarkTheme ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.3)'};
-            margin-top: 1px;
-            padding-top: 1px;
-            border-top: 1px solid ${isDarkTheme ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)'};
-            letter-spacing: 0.3px;
-            opacity: 0.8;
-            line-height: normal;
-            width: 100%;
-        }
-        
-        .dns-label {
-            white-space: nowrap;
-            flex-shrink: 0;
-            margin-right: 4px;
-        }
-
-        .dns-value {
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            text-align: left;
-            flex: 1;
+            gap: 10px;
             min-width: 0;
+            margin: 0 16px;
+            padding: 9px 0;
+            border-top: 1px solid var(--panel-line);
+            font-family: ${monoFont};
+            font-size: 10px;
+            color: var(--panel-muted);
         }
-        
-        
-        /* Settings panel styles */
-        #settings-panel {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 320px;
-            padding: 24px;
-            border-radius: 24px;
-            background-color: ${materialBase};
-            backdrop-filter: ${backdropFilter};
-            -webkit-backdrop-filter: ${backdropFilter};
-            box-shadow: ${boxShadow};
-            z-index: 2147483648;
-            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
-            color: ${textColor};
-            overflow: hidden;
-            /* Simple sleek border for settings panel too */
-            border: 1px solid ${borderColor};
+        .dns-label { white-space: nowrap; flex-shrink: 0; font-family: ${uiFont}; font-size: 10px; letter-spacing: 0.5px !important; }
+        .dns-value { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--panel-text); }
+        .collapsed-orb:focus-visible, .icon-btn:focus-visible { outline: 2px solid var(--panel-accent); outline-offset: 2px; }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
         }
-        #settings-panel::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            border-radius: 24px;
-            background: ${surfaceGradient};
-            pointer-events: none;
-            z-index: 1;
-        }
-        #settings-panel > * {
-            position: relative;
-            z-index: 2;
-        }
-            #settings-panel h3 {
-                margin-top: 0;
-                color: ${textColor};
-                text-align: center;
-                font-size: 14px;
-                font-weight: 600;
-            }
-            .setting-item {
-                margin-bottom: 12px;
-            }
-            .setting-item label {
-                display: block;
-                margin-bottom: 4px;
-                color: ${labelColor};
-                font-weight: 500;
-                font-size: 12px;
-            }
-            .setting-item select, .setting-item input {
-                width: 100%;
-                padding: 8px 12px;
-                border-radius: 12px;
-                border: 1px solid ${isDarkTheme ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.1)'};
-                background: ${isDarkTheme ? 'rgba(0, 0, 0, 0.3)' : 'rgba(255, 255, 255, 0.6)'};
-                color: ${textColor};
-                font-size: 13px;
-                box-sizing: border-box;
-                transition: all 0.2s;
-                backdrop-filter: blur(10px);
-                -webkit-backdrop-filter: blur(10px);
-            }
-            .setting-item select:focus, .setting-item input:focus {
-                outline: none;
-                border-color: ${blueColor};
-                background: ${isDarkTheme ? 'rgba(0, 0, 0, 0.4)' : 'rgba(255, 255, 255, 0.8)'};
-            }
-            .setting-buttons {
-                display: flex;
-                justify-content: space-between;
-                margin-top: 16px;
-            }
-            .setting-btn {
-                padding: 10px 16px;
-                border-radius: 12px;
-                border: none;
-                cursor: pointer;
-                font-weight: 600;
-                font-size: 13px;
-                flex: 1;
-                margin: 0 6px;
-                transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-                backdrop-filter: blur(10px);
-                -webkit-backdrop-filter: blur(10px);
-            }
-            .setting-btn:hover {
-                transform: translateY(-1px);
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            }
-            .setting-btn:active {
-                transform: translateY(0);
-            }
-            .save-btn {
-                background: ${blueColor};
-                color: white;
-            }
-            .cancel-btn {
-                background: ${isDarkTheme ? 'rgba(120, 120, 128, 0.3)' : 'rgba(120, 120, 128, 0.2)'};
-                color: ${textColor};
-            }
-            .icon-btn:focus-visible {
-                outline: 2px solid ${blueColor};
-                outline-offset: 2px;
-            }
-            @media (prefers-reduced-motion: reduce) {
-                *, *::before, *::after {
-                    animation-duration: 0.001ms !important;
-                    animation-iteration-count: 1 !important;
-                    transition-duration: 0.001ms !important;
-                }
-            }
         `;
     }
 
     function getPositionCSS() {
+        if (config.settings.customPosition) {
+            const { left, top } = config.settings.customPosition;
+            if (Number.isFinite(left) && Number.isFinite(top)) {
+                return `left: ${left}px; top: ${top}px;`;
+            }
+        }
         switch (config.settings.panelPosition) {
             case 'top-left':
                 return 'top: 20px; left: 20px;';
@@ -2264,356 +2011,360 @@
         const host = document.createElement('div');
         host.id = 'cdn-info-host-enhanced';
         document.body.appendChild(host);
-
         const shadowRoot = host.attachShadow({ mode: 'open' });
         const styleEl = document.createElement('style');
-
-        try {
-            styleEl.textContent = getPanelCSS();
-        } catch (e) {
-            console.error('Final CSS generation failed:', e);
-            styleEl.textContent = '';
-        }
-
+        styleEl.textContent = getPanelCSS();
         shadowRoot.appendChild(styleEl);
-
         const panel = document.createElement('div');
         panel.id = 'cdn-info-panel-enhanced';
 
-        const cacheStatus = info.cache.toUpperCase();
+        const cacheStatus = String(info.cache || 'N/A').toUpperCase();
         const cacheClass = 'cache-' + cacheStatus.split(' ')[0];
+        const pop = info.pop && info.pop !== 'N/A' ? String(info.pop) : '—';
+        const server = info.server && info.server !== 'N/A' ? String(info.server) : '—';
 
-        const providerLabel =
-            info.provider.includes('CDN') ||
-            info.provider.includes('Cloud') ||
-            info.provider.includes('Edge') ||
-            info.provider === 'Imperva' ||
-            info.provider === 'Fastly' ||
-            info.provider === 'Vercel' ||
-            info.provider === 'Netlify' ||
-            info.provider === 'Akamai' ||
-            info.provider === 'SiteGround'
-                ? 'CDN'
-                : 'Server';
-
-        // Use full provider name - let CSS handle truncation
-        const displayProvider = info.provider;
-
-        // Build panel content with new structure
-        // Determine current theme for icon display
-        const currentTheme = config.settings.theme === 'light' ? 'light' : 'dark';
-
-        // SVG icons (Lucide style)
-        const sunIcon =
-            '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg>';
-        const moonIcon =
-            '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>';
-
-        const themeIcon = currentTheme === 'light' ? sunIcon : moonIcon;
-
-        // Find watermark icon based on CDN provider
-        let watermarkSvg = '';
-        console.log('[CDN Icon] Looking for icon for provider:', info.provider);
-
-        if (cdnIcons[info.provider]) {
-            // Exact match
-            watermarkSvg = cdnIcons[info.provider];
-            console.log('[CDN Icon] Found exact match');
-        } else {
-            // Fuzzy match: try multiple strategies
-            // Strategy 1: Check if provider name contains any icon key
-            let iconKey = Object.keys(cdnIcons).find((key) => info.provider.includes(key));
-
-            // Strategy 2: Check if any icon key is contained in provider name (reverse check)
-            if (!iconKey) {
-                iconKey = Object.keys(cdnIcons).find((key) => {
-                    // Case-insensitive partial match
-                    const providerLower = info.provider.toLowerCase();
-                    const keyLower = key.toLowerCase();
-                    return providerLower.includes(keyLower) || keyLower.includes(providerLower);
-                });
-            }
-
-            if (iconKey) {
-                watermarkSvg = cdnIcons[iconKey];
-                console.log('[CDN Icon] Found fuzzy match:', iconKey);
-            } else {
-                console.log('[CDN Icon] No icon found for:', info.provider);
-            }
-        }
-        const watermarkHtml = watermarkSvg
-            ? `<div class="cdn-watermark">${watermarkSvg}</div>`
-            : '';
-
-        let panelContent = `
-            ${watermarkHtml}
-            <div class="collapsed-icon">
-                <svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-                  <g transform="rotate(0 100 100)" fill="none" stroke="currentColor" stroke-width="10">
-                    <circle cx="100" cy="100" r="70" />
-                    <path d="M100 30 V170 M30 100 H170" stroke="currentColor" stroke-opacity="0.3" stroke-width="5" />
-                    <circle cx="124" cy="76" r="20" fill="currentColor" stroke="none" />
-                    <path d="M100 30 V15" stroke-width="8" />
-                  </g>
-                </svg>
+        panel.innerHTML = `
+            <button class="collapsed-orb" data-cache="${escapeHtml(cacheStatus)}" title="Expand network details" aria-label="Expand network details" aria-expanded="false"></button>
+            <div class="panel-surface">
+                <div class="panel-hero">
+                    <div class="hero-actions">
+                        <button class="icon-btn theme-btn" title="Toggle light / dark theme" aria-label="Toggle light / dark theme"></button>
+                        <button class="icon-btn close-btn" title="Close" aria-label="Close"></button>
+                    </div>
+                    <div class="provider-brand"></div>
+                    <span class="info-value provider-name" title="${escapeHtml(info.provider)}">${escapeHtml(info.provider)}</span>
+                    <span class="provider-caption">${escapeHtml(getProviderRole(info.provider, info.server))}</span>
+                </div>
+                <div class="info-lines-container">
+                    <div class="info-line">
+                        <span class="info-label">Cache</span>
+                        <span class="info-value ${cacheClass}" title="${escapeHtml(cacheStatus)}">${cacheStatus === 'N/A' ? '—' : '● ' + escapeHtml(cacheStatus)}</span>
+                    </div>
+                    <div class="info-line">
+                        <span class="info-label">POP</span>
+                        <span class="info-value" title="${escapeHtml(pop)}">${escapeHtml(pop)}</span>
+                    </div>
+                </div>
+                <div class="server-line">
+                    <span class="info-label">Server</span>
+                    <span class="info-value" title="${escapeHtml(server)}">${escapeHtml(server)}</span>
+                </div>
+                <div class="panel-footer">
+                    <span class="footer-caption">NETWORK MONITOR</span>
+                    <div class="footer-actions">
+                        <button class="icon-btn drag-btn" title="Drag to move" aria-label="Drag to move"></button>
+                        <button class="icon-btn expand-btn" title="Hide details" aria-label="Hide details" aria-expanded="true"></button>
+                    </div>
+                </div>
             </div>
-            <button class="icon-btn close-btn" title="Close" aria-label="Close">×</button>
-            <button class="icon-btn theme-btn" title="Toggle Theme" aria-label="Toggle theme">${themeIcon}</button>
-            <div class="panel-header">CDN & Server Info</div>
-            
-            <div class="info-lines-container">
-                <div class="info-line">
-                    <span class="info-label">${providerLabel}</span>
-                    <span class="info-value" title="${escapeHtml(info.provider)}">${escapeHtml(displayProvider)}</span>
-                </div>
-                <div class="info-line">
-                    <span class="info-label">Cache</span>
-                    <span class="info-value ${cacheClass}">${escapeHtml(cacheStatus)}</span>
-                </div>
         `;
+        shadowRoot.appendChild(panel);
+        updateProviderBadge(host, info.provider);
 
-        // Add POP location if available and not N/A
-        if (info.pop && info.pop !== 'N/A') {
-            let displayPop = String(info.pop);
-            if (displayPop.length > 18) {
-                displayPop = displayPop.substring(0, 15) + '...';
-            }
-            panelContent += `
-                <div class="info-line">
-                    <span class="info-label">POP</span>
-                    <span class="info-value" title="${escapeHtml(info.pop)}">${escapeHtml(displayPop)}</span>
-                </div>
-            `;
+        shadowRoot.querySelector('.close-btn').innerHTML =
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>';
+        shadowRoot.querySelector('.drag-btn').innerHTML =
+            '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="8" cy="6" r="1.3"/><circle cx="16" cy="6" r="1.3"/><circle cx="8" cy="12" r="1.3"/><circle cx="16" cy="12" r="1.3"/><circle cx="8" cy="18" r="1.3"/><circle cx="16" cy="18" r="1.3"/></svg>';
+
+        function updateThemeButton() {
+            const isDark = config.settings.theme === 'dark';
+            const themeButton = shadowRoot.querySelector('.theme-btn');
+            themeButton.innerHTML = isDark
+                ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>'
+                : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>';
+        }
+        updateThemeButton();
+        updateExpandButton(false);
+
+        function updateExpandButton(detailsHidden) {
+            const expandButton = shadowRoot.querySelector('.expand-btn');
+            expandButton.setAttribute('aria-expanded', String(!detailsHidden));
+            expandButton.setAttribute(
+                'aria-label',
+                detailsHidden ? 'Show details' : 'Hide details'
+            );
+            expandButton.title = detailsHidden ? 'Show details' : 'Hide details';
+            expandButton.innerHTML = `<span>${detailsHidden ? 'Expand' : 'Less'}</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>`;
         }
 
-        // Trigger generic DNS check for current domain
+        shadowRoot.querySelector('.close-btn').addEventListener('click', (event) => {
+            event.stopPropagation();
+            host.remove();
+        });
+        shadowRoot.querySelector('.theme-btn').addEventListener('click', (event) => {
+            event.stopPropagation();
+            config.settings.theme = config.settings.theme === 'dark' ? 'light' : 'dark';
+            saveUserSettings();
+            styleEl.textContent = getPanelCSS();
+            updateThemeButton();
+            requestAnimationFrame(() => constrainPanelPosition(host));
+        });
+
+        setupPanelCollapse(host, panel);
+        makeDraggable(host, panel);
+        if (config.settings.panelCollapsed === false) {
+            setPanelCollapsed(host, panel, false);
+        } else if (config.settings.panelCollapsed === undefined && window.innerWidth >= 900) {
+            setPanelCollapsed(host, panel, false, false);
+        }
+
         const dnsDomain = window.location.hostname;
         checkDNS(dnsDomain).then((dnsResult) => {
             updatePanelWithDNS(dnsResult, info, host, dnsDomain);
         });
-
-        // Auto-hide logic (if enabled)
-        // Removed as per request to keep it minimal
-
-        panelContent += '</div>'; // Close info-lines-container
-
-        panel.innerHTML = panelContent;
-        shadowRoot.appendChild(panel);
-
-        shadowRoot.querySelector('.close-btn').addEventListener('click', (e) => {
-            e.stopPropagation();
-            host.remove();
-        });
-
-        shadowRoot.querySelector('.theme-btn').addEventListener('click', (e) => {
-            e.stopPropagation();
-
-            // Toggle between light and dark only
-            config.settings.theme = config.settings.theme === 'light' ? 'dark' : 'light';
-
-            // Save settings
-            if (typeof GM_setValue !== 'undefined') {
-                GM_setValue('cdnInfoSettings', JSON.stringify(config.settings));
-            }
-
-            // Update icon immediately with SVG
-            const sunIcon =
-                '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg>';
-            const moonIcon =
-                '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>';
-            const newIcon = config.settings.theme === 'light' ? sunIcon : moonIcon;
-            shadowRoot.querySelector('.theme-btn').innerHTML = newIcon;
-
-            // Update styles by replacing the style element
-            const newStyleEl = document.createElement('style');
-            try {
-                newStyleEl.textContent = getPanelCSS();
-                const oldStyle = shadowRoot.querySelector('style');
-                if (oldStyle) {
-                    shadowRoot.replaceChild(newStyleEl, oldStyle);
-                }
-            } catch (e) {
-                console.error('Failed to update theme:', e);
-            }
-        });
-
-        // Add scroll collapse functionality
-        setupScrollCollapse(host, panel);
-
-        makeDraggable(host, panel); // Enabled
     }
 
-    function setupScrollCollapse(host, panelElement) {
-        let isManuallyExpanded = false;
+    function getProviderIcon(provider) {
+        const normalizedProvider = String(provider || '')
+            .toLowerCase()
+            .replace(/[^a-z0-9]/g, '');
+        if (!normalizedProvider) return null;
+        const iconKey = Object.keys(cdnIcons).find((key) => {
+            const normalizedKey = key.toLowerCase().replace(/[^a-z0-9]/g, '');
+            if (normalizedProvider.length < 4 || normalizedKey.length < 4) {
+                return normalizedProvider === normalizedKey;
+            }
+            return (
+                normalizedProvider === normalizedKey || normalizedProvider.includes(normalizedKey)
+            );
+        });
+        return iconKey ? cdnIcons[iconKey] : null;
+    }
 
-        // Set transform origin based on panel position in viewport
-        function setTransformOrigin() {
-            const rect = host.getBoundingClientRect();
-            const viewportWidth = window.innerWidth;
-            const viewportHeight = window.innerHeight;
-
-            // Use panel CENTER to determine position (not top-left corner)
-            // This ensures position detection is consistent when panel size changes
-            const centerX = rect.left + rect.width / 2;
-            const centerY = rect.top + rect.height / 2;
-
-            const isRight = centerX > viewportWidth / 2;
-            const isBottom = centerY > viewportHeight / 2;
-
-            // User requested to ALWAYS expand towards top-left
-            // This means we must always anchor the origin to the bottom-right corner
-            let originX = 'right';
-            let originY = 'bottom';
-
-            const origin = `${originX} ${originY}`;
-            panelElement.style.setProperty('transform-origin', origin, 'important');
-
-            console.log(
-                `[CDN Panel] Center: (${Math.round(centerX)}, ${Math.round(centerY)}), Position: ${isRight ? 'Right' : 'Left'}-${isBottom ? 'Bottom' : 'Top'}, Origin: ${origin}`
+    function getProviderMonogram(provider) {
+        const name = String(provider || '').trim();
+        if (!name || /^unknown$/i.test(name)) return '?';
+        const normalizedName = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const knownMonograms = {
+            nginx: 'NG',
+            openresty: 'OR',
+            apache: 'AP',
+            litespeed: 'LS',
+            edgenext: 'EN',
+            bunnycdn: 'BC',
+        };
+        if (knownMonograms[normalizedName]) return knownMonograms[normalizedName];
+        const stopWords = new Set(['cdn', 'cloud', 'server', 'network', 'networks', 'the', 'and']);
+        const words = name
+            .replace(/([a-z])([A-Z])/g, '$1 $2')
+            .split(/[^a-zA-Z0-9]+/)
+            .filter(Boolean);
+        const meaningfulWords = words.filter((word) => !stopWords.has(word.toLowerCase()));
+        const sourceWords = meaningfulWords.length ? meaningfulWords : words;
+        if (sourceWords.length > 1) {
+            return (sourceWords[0][0] + sourceWords[1][0]).toUpperCase();
+        }
+        if (sourceWords.length === 1) {
+            return (
+                sourceWords[0]
+                    .replace(/[^a-zA-Z0-9]/g, '')
+                    .slice(0, 2)
+                    .toUpperCase() || '?'
             );
         }
+        return Array.from(name.replace(/\s+/g, '')).slice(0, 2).join('').toUpperCase() || '?';
+    }
 
-        // Handle scroll events
-        function handleScroll() {
-            // Collapse panel when scrolling
-            if (!isManuallyExpanded) {
-                panelElement.classList.add('collapsed');
-            }
+    function getProviderRole(provider, server) {
+        const webServerNames = new Set([
+            'apache',
+            'caddy',
+            'envoy',
+            'gunicorn',
+            'iis',
+            'jetty',
+            'kestrel',
+            'litespeed',
+            'nginx',
+            'openresty',
+            'tomcat',
+            'traefik',
+            'uvicorn',
+            'varnish',
+        ]);
+        const providerName = String(provider || '')
+            .trim()
+            .split(/[\s/;]/)[0]
+            .toLowerCase();
+        const serverName = String(server || '')
+            .trim()
+            .split(/[\s/;]/)[0]
+            .toLowerCase();
+        return webServerNames.has(providerName) || webServerNames.has(serverName)
+            ? 'WEB SERVER'
+            : 'NETWORK SERVICE';
+    }
+
+    function updateProviderCaption(host, provider, server) {
+        if (!host || !host.shadowRoot) return;
+        const caption = host.shadowRoot.querySelector('.provider-caption');
+        if (caption) caption.textContent = getProviderRole(provider, server);
+    }
+
+    function updateProviderBadge(host, provider) {
+        if (!host || !host.shadowRoot) return;
+        const icon = getProviderIcon(provider);
+        const badgeMarkup = icon
+            ? icon
+            : `<span class="provider-monogram" aria-hidden="true">${escapeHtml(getProviderMonogram(provider))}</span>`;
+        host.shadowRoot.querySelector('.provider-brand').innerHTML = badgeMarkup;
+        host.shadowRoot.querySelector('.collapsed-orb').innerHTML = badgeMarkup;
+        const collapsedBrand = host.shadowRoot.querySelector('.collapsed-orb .provider-brand');
+        if (collapsedBrand) collapsedBrand.classList.remove('provider-brand');
+        host.shadowRoot
+            .querySelector('.collapsed-orb')
+            .setAttribute('aria-label', `Expand ${provider} network details`);
+    }
+
+    function saveUserSettings() {
+        if (typeof GM_setValue !== 'undefined') {
+            GM_setValue('cdnInfoSettings', JSON.stringify(config.settings));
         }
+    }
 
-        // Toggle collapse on click
-        panelElement.addEventListener('click', (e) => {
-            // Ignore the synthetic click fired immediately after a real drag.
+    function setPanelCollapsed(host, panel, collapsed, persist = true) {
+        panel.classList.toggle('collapsed', collapsed);
+        host.classList.toggle('cdn-panel-collapsed', collapsed);
+        host.dataset.collapsed = String(collapsed);
+        if (persist) {
+            config.settings.panelCollapsed = collapsed;
+            saveUserSettings();
+        }
+        host.shadowRoot
+            .querySelector('.collapsed-orb')
+            .setAttribute('aria-expanded', String(!collapsed));
+        requestAnimationFrame(() => constrainPanelPosition(host));
+    }
+
+    function constrainPanelPosition(host) {
+        const margin = 12;
+        const rect = host.getBoundingClientRect();
+        const left = Math.max(margin, Math.min(rect.left, window.innerWidth - rect.width - margin));
+        const top = Math.max(margin, Math.min(rect.top, window.innerHeight - rect.height - margin));
+        if (Math.abs(left - rect.left) < 1 && Math.abs(top - rect.top) < 1) return;
+        host.style.left = `${left}px`;
+        host.style.top = `${top}px`;
+        host.style.right = 'auto';
+        host.style.bottom = 'auto';
+        config.settings.customPosition = { left, top };
+    }
+
+    function setupPanelCollapse(host, panel) {
+        const orb = host.shadowRoot.querySelector('.collapsed-orb');
+        const expandButton = host.shadowRoot.querySelector('.expand-btn');
+        orb.addEventListener('click', (event) => {
             if (host.dataset.justDragged) return;
-
-            // Don't toggle if clicking on buttons
-            if (
-                e.target.classList.contains('close-btn') ||
-                e.target.classList.contains('theme-btn')
-            ) {
-                return;
-            }
-
-            if (panelElement.classList.contains('collapsed')) {
-                // Expand
-                e.stopPropagation();
-                panelElement.classList.remove('collapsed');
-                isManuallyExpanded = true;
-            } else {
-                // Collapse
-                e.stopPropagation();
-                panelElement.classList.add('collapsed');
-                isManuallyExpanded = false;
-            }
+            event.stopPropagation();
+            setPanelCollapsed(host, panel, false);
         });
+        orb.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+            event.preventDefault();
+            setPanelCollapsed(host, panel, false);
+        });
+        expandButton.addEventListener('click', (event) => {
+            event.stopPropagation();
+            const detailsHidden = panel.classList.toggle('details-hidden');
+            expandButton.innerHTML = `<span>${detailsHidden ? 'Expand' : 'Less'}</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>`;
+            expandButton.setAttribute('aria-expanded', String(!detailsHidden));
+            expandButton.setAttribute(
+                'aria-label',
+                detailsHidden ? 'Show details' : 'Hide details'
+            );
+            expandButton.title = detailsHidden ? 'Show details' : 'Hide details';
+            requestAnimationFrame(() => constrainPanelPosition(host));
+        });
+        setPanelCollapsed(host, panel, true, false);
 
-        // Set initial transform origin
-        setTransformOrigin();
-
-        // Default to collapsed state
-        panelElement.classList.add('collapsed');
-
-        // Listen to scroll events. Use an AbortController so the listener is
-        // always torn down when the panel is removed (SPA navigation etc.).
         const controller = new AbortController();
-        window.addEventListener('scroll', handleScroll, {
+        window.addEventListener('resize', () => constrainPanelPosition(host), {
             passive: true,
             signal: controller.signal,
         });
-
-        // Cleanup on panel removal
-        const observer = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
-                mutation.removedNodes.forEach((node) => {
-                    if (node === host) {
-                        controller.abort();
-                        observer.disconnect();
-                    }
-                });
-            });
+        const observer = new MutationObserver(() => {
+            if (!host.isConnected) {
+                controller.abort();
+                observer.disconnect();
+            }
         });
         observer.observe(document.body, { childList: true });
     }
 
     function makeDraggable(element, panelElement) {
-        let isDragging = false,
-            hasMoved = false,
-            startX = 0,
-            startY = 0,
-            elementX = 0,
-            elementY = 0;
-        const DRAG_THRESHOLD = 5; // 最小拖拽距离（px），防止点击时的抖动触发位置重计算
-        const dragTarget = element.shadowRoot.querySelector('#cdn-info-panel-enhanced');
-        dragTarget.addEventListener('mousedown', (e) => {
-            if (
-                e.target.classList.contains('close-btn') ||
-                e.target.classList.contains('theme-btn')
-            )
-                return;
-            isDragging = true;
+        let startX = 0;
+        let startY = 0;
+        let elementX = 0;
+        let elementY = 0;
+        let activePointer = null;
+        let hasMoved = false;
+        let dragHandle = null;
+        const dragTargets = [
+            element.shadowRoot.querySelector('.collapsed-orb'),
+            element.shadowRoot.querySelector('.drag-btn'),
+        ];
+
+        function dragStart(event) {
+            if (event.button !== 0 || activePointer !== null) return;
+            activePointer = event.pointerId;
+            dragHandle = event.currentTarget;
             hasMoved = false;
-            startX = e.clientX;
-            startY = e.clientY;
+            startX = event.clientX;
+            startY = event.clientY;
             const rect = element.getBoundingClientRect();
+            element.style.left = `${rect.left}px`;
+            element.style.top = `${rect.top}px`;
+            element.style.right = 'auto';
+            element.style.bottom = 'auto';
             elementX = rect.left;
             elementY = rect.top;
-            document.addEventListener('mousemove', drag);
-            document.addEventListener('mouseup', dragEnd);
-        });
-        function drag(e) {
-            if (!isDragging) return;
-            const deltaX = e.clientX - startX;
-            const deltaY = e.clientY - startY;
-            // 必须超过阈值才认定为真正的拖拽，防止点击时的抖动
-            if (!hasMoved && Math.sqrt(deltaX * deltaX + deltaY * deltaY) < DRAG_THRESHOLD) return;
+            dragHandle.setPointerCapture(activePointer);
+            event.preventDefault();
+        }
+
+        function drag(event) {
+            if (event.pointerId !== activePointer) return;
+            const deltaX = event.clientX - startX;
+            const deltaY = event.clientY - startY;
+            if (!hasMoved && Math.hypot(deltaX, deltaY) < 5) return;
             hasMoved = true;
-            e.preventDefault();
-            const newX = elementX + deltaX;
-            const newY = elementY + deltaY;
-            // Clamp against the EXPANDED size so the panel can't be dragged to a
-            // spot where it overflows the viewport once it expands.
-            const clampWidth = Math.max(element.offsetWidth, 252);
-            const clampHeight = Math.max(element.offsetHeight, 160);
-            const maxX = window.innerWidth - clampWidth;
-            const maxY = window.innerHeight - clampHeight;
-            element.style.left = `${Math.max(0, Math.min(newX, maxX))}px`;
-            element.style.top = `${Math.max(0, Math.min(newY, maxY))}px`;
+            const margin = 12;
+            const rect = element.getBoundingClientRect();
+            const left = Math.max(
+                margin,
+                Math.min(elementX + deltaX, window.innerWidth - rect.width - margin)
+            );
+            const top = Math.max(
+                margin,
+                Math.min(elementY + deltaY, window.innerHeight - rect.height - margin)
+            );
+            element.style.left = `${left}px`;
+            element.style.top = `${top}px`;
             element.style.right = 'auto';
             element.style.bottom = 'auto';
         }
-        function dragEnd() {
-            isDragging = false;
-            document.removeEventListener('mousemove', drag);
-            document.removeEventListener('mouseup', dragEnd);
 
+        function dragEnd(event) {
+            if (event.pointerId !== activePointer) return;
+            if (dragHandle && dragHandle.hasPointerCapture(activePointer)) {
+                dragHandle.releasePointerCapture(activePointer);
+            }
+            activePointer = null;
+            dragHandle = null;
             if (!hasMoved) return;
-
-            // Suppress the synthetic click that follows a real drag so the panel
-            // doesn't collapse/expand right after being moved.
             element.dataset.justDragged = '1';
-            setTimeout(() => {
-                delete element.dataset.justDragged;
-            }, 0);
-
-            // After dragging, convert positioning to right/bottom anchor
-            // This guarantees that CSS width/height expansions always grow towards the top-left
+            setTimeout(() => delete element.dataset.justDragged, 0);
             const rect = element.getBoundingClientRect();
-            const viewportWidth = window.innerWidth;
-            const viewportHeight = window.innerHeight;
-
-            element.style.right = `${viewportWidth - rect.right}px`;
-            element.style.bottom = `${viewportHeight - rect.bottom}px`;
-            element.style.left = 'auto';
-            element.style.top = 'auto';
-
-            let originX = 'right';
-            let originY = 'bottom';
-
-            const origin = `${originX} ${originY}`;
-            panelElement.style.setProperty('transform-origin', origin, 'important');
-
-            console.log('[CDN Panel] Dragged to new position. Anchored to right-bottom.');
+            config.settings.customPosition = { left: rect.left, top: rect.top };
+            saveUserSettings();
         }
+
+        dragTargets.forEach((target) => {
+            target.addEventListener('pointerdown', dragStart);
+            target.addEventListener('pointermove', drag);
+            target.addEventListener('pointerup', dragEnd);
+            target.addEventListener('pointercancel', dragEnd);
+        });
+        panelElement.addEventListener('dragstart', (event) => event.preventDefault());
     }
 
     function shouldExcludePage() {
@@ -2694,36 +2445,27 @@
                     const parsed = JSON.parse(savedSettings);
                     config.settings = { ...config.settings, ...parsed };
                     console.log('[CDN Detector] Loaded saved settings:', config.settings);
-
-                    // Always re-detect and apply page theme on load
-                    const pageTheme = detectPageTheme();
-                    if (pageTheme) {
-                        config.settings.theme = pageTheme;
-                        console.log('[CDN Detector] Applied page theme:', pageTheme);
-                        GM_setValue('cdnInfoSettings', JSON.stringify(config.settings));
-                    } else if (
-                        config.settings.theme !== 'light' &&
-                        config.settings.theme !== 'dark'
-                    ) {
-                        // Fallback if page theme can't be detected and saved theme is invalid
-                        config.settings.theme = 'light';
-                        GM_setValue('cdnInfoSettings', JSON.stringify(config.settings));
-                    }
                 } else {
                     console.log(
                         '[CDN Detector] No saved settings, using defaults:',
                         config.settings
                     );
-                    // If no settings, initialize theme based on page theme or default to light
                     const pageTheme = detectPageTheme();
                     config.settings.theme = pageTheme || 'light';
-                    GM_setValue('cdnInfoSettings', JSON.stringify(config.settings));
                 }
+                if (!['auto', 'light', 'dark'].includes(config.settings.theme)) {
+                    config.settings.theme = 'auto';
+                }
+                if (config.settings.theme === 'auto') {
+                    config.settings.theme = detectPageTheme() || 'light';
+                }
+                saveUserSettings();
             } catch (e) {
                 console.warn('[CDN Detector] Failed to load user settings:', e);
             }
         } else {
             console.log('[CDN Detector] GM_getValue not available, using defaults');
+            config.settings.theme = detectPageTheme() || 'light';
         }
     }
 
