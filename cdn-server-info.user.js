@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.59.0
-// @description  [v7.59.0] 新增面板设置中心：Auto / 亮色 / 暗色主题、DNS 隐私开关、站点隐藏、位置重置、详情复制与移动端设置态；补齐源站识别和发布校验。
-// @description:en [v7.59.0] Adds a settings center with Auto/Light/Dark themes, DNS privacy controls, per-site hiding, position reset, detail copy and mobile settings layout, plus origin detection and release validation.
+// @version      7.60.0
+// @description  [v7.60.0] 新增国内 CDN 节点码解析与 HTTP TTFB 延迟显示；保留节点码与地理位置的语义边界，不额外发送 Ping。
+// @description:en [v7.60.0] Adds domestic CDN node-code parsing and HTTP TTFB display, distinguishes node codes from verified locations, and sends no extra ping requests.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -15,7 +15,7 @@
 // @grant        GM_setValue
 // @grant        GM_getResourceText
 // @grant        GM_registerMenuCommand
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.59.0
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.60.0
 // @connect      dns.alidns.com
 // @connect      dns.google
 // @connect      1.1.1.1
@@ -111,7 +111,33 @@
     let cdnRules = {};
 
     // Custom handlers for complex extraction logic that can't be easily JSON-ified
+    function getAlibabaViaPop(via) {
+        if (!via) return 'N/A';
+        const nodePattern =
+            /(?:^|[\s,])(?:ens-)?cache\d+\.((?:l2)?[a-z]{2}\d+(?:-\d+)?)(?=\[|\s|,|$)/gi;
+        let match;
+        let fallback = 'N/A';
+        while ((match = nodePattern.exec(via)) !== null) {
+            const code = match[1].toUpperCase();
+            if (code.startsWith('L2')) {
+                fallback = `L2-${code.slice(2)}`;
+            } else {
+                return code;
+            }
+        }
+        return fallback;
+    }
+
     const customHandlers = {
+        'Alibaba Cloud CDN': {
+            getInfo: (h) => ({
+                provider: 'Alibaba Cloud CDN',
+                cache: getCacheStatus(h),
+                pop: getAlibabaViaPop(h.get('via')),
+                popKind: 'node-code',
+                extra: `EagleID: ${h.get('eagleid') || 'N/A'}`,
+            }),
+        },
         Akamai: {
             getInfo: (h, rule) => {
                 let cache = 'N/A';
@@ -231,8 +257,7 @@
                 };
             },
         },
-        'Tencent Cloud': {
-            // Updated name
+        'Tencent Cloud CDN': {
             getInfo: (h, rule) => {
                 let cache = 'N/A';
                 const eoCache = h.get('eo-cache-status');
@@ -247,7 +272,7 @@
                 }
                 const logUuid = h.get('eo-log-uuid') || h.get('x-nws-log-uuid') || 'N/A';
                 return {
-                    provider: 'Tencent Cloud',
+                    provider: 'Tencent Cloud CDN',
                     cache: cache,
                     pop: 'N/A',
                     extra: `Log-UUID: ${logUuid}`,
@@ -288,6 +313,7 @@
                     provider: 'Kingsoft Cloud CDN',
                     cache: cache,
                     pop: pop,
+                    popKind: 'node-code',
                     extra: `Req-ID: ${requestId}`,
                 };
             },
@@ -319,8 +345,7 @@
                 }
                 if (cache === 'N/A') cache = getCacheStatus(h);
 
-                // BytePlus CDN doesn't have standard airport codes, skip POP
-                let pop = 'N/A';
+                const pop = getAlibabaViaPop(h.get('via'));
 
                 const requestId = h.get('x-cdn-request-id') || h.get('x-tt-trace-id') || 'N/A';
 
@@ -328,6 +353,7 @@
                     provider: 'BytePlus CDN',
                     cache: cache,
                     pop: pop,
+                    popKind: 'node-code',
                     extra: `Req-ID: ${requestId}`,
                 };
             },
@@ -417,6 +443,7 @@
                     provider: 'State Cloud CDN',
                     cache: cache,
                     pop: pop,
+                    popKind: 'node-code',
                     extra: `Req-ID: ${requestId}`,
                 };
             },
@@ -475,10 +502,10 @@
                 let pop = 'N/A';
                 const via = h.get('via');
                 if (via) {
-                    const match = via.match(/(?:HCDN|CHN)-([a-zA-Z0-9]+)/);
+                    const match = via.match(/(?:HCDN|CHN)-([a-zA-Z0-9]+)/i);
                     if (match) {
                         const loc = match[1];
-                        const compound = loc.match(/^([A-Z]{2})([a-z]+)/);
+                        const compound = loc.match(/^([a-z]{2})([a-z]+)/i);
                         if (compound) {
                             pop = (compound[1] + '-' + compound[2]).toUpperCase();
                         } else {
@@ -503,6 +530,7 @@
                     provider: 'Huawei Cloud CDN',
                     cache: cache,
                     pop: pop,
+                    popKind: 'node-code',
                     extra: `Req-ID: ${requestId}`,
                 };
             },
@@ -535,6 +563,7 @@
                     provider: 'Baidu Cloud CDN',
                     cache: cache,
                     pop: pop,
+                    popKind: 'node-code',
                     extra: `Req-ID: ${requestId}`,
                 };
             },
@@ -603,12 +632,16 @@
                     if (match && match[1]) {
                         pop = match[1].toUpperCase();
                     } else {
-                        // Fallback: Extract from "live4.cn7594[899,0]" or "ens-live7.cn8685" -> "CN"
+                        // Keep opaque numeric node IDs intact rather than treating CN as a POP.
                         match = viaHeader.match(/(?:ens-)?live\d+\.(cn\d+)/i);
                         if (match && match[1]) {
-                            pop = 'CN';
+                            pop = match[1].toUpperCase();
+                        } else {
+                            pop = getAlibabaViaPop(viaHeader);
                         }
                     }
+                } else {
+                    pop = getAlibabaViaPop(viaHeader);
                 }
 
                 const traceId =
@@ -621,7 +654,21 @@
                     provider: 'ByteDance CDN',
                     cache: cache,
                     pop: pop,
+                    popKind: 'node-code',
                     extra: `Trace-ID: ${traceId}`,
+                };
+            },
+        },
+        UpYun: {
+            getInfo: (h) => {
+                const via = h.get('via') || '';
+                const match = via.match(/(?:^|[\s,])[VST]\.(mix-[a-z]{2}-[a-z]+-\d+)/i);
+                return {
+                    provider: 'UpYun',
+                    cache: getCacheStatus(h),
+                    pop: match ? match[1].toUpperCase() : 'N/A',
+                    popKind: 'node-code',
+                    extra: `Req-ID: ${h.get('x-request-id') || 'N/A'}`,
                 };
             },
         },
@@ -1016,6 +1063,41 @@
         return protocol;
     }
 
+    function formatLatency(milliseconds) {
+        if (!Number.isFinite(milliseconds) || milliseconds < 0) return 'N/A';
+        if (milliseconds < 1000) return `${Math.round(milliseconds)} ms`;
+        return `${(milliseconds / 1000).toFixed(milliseconds < 10000 ? 2 : 1)} s`;
+    }
+
+    function createLatency(startTime, endTime, method = 'HEAD', networkMs = null) {
+        const ttfbMs = Math.max(0, endTime - startTime);
+        return {
+            value: formatLatency(ttfbMs),
+            ttfbMs: Math.round(ttfbMs),
+            networkMs: Number.isFinite(networkMs) && networkMs >= 0 ? Math.round(networkMs) : null,
+            method,
+        };
+    }
+
+    function getResourceTiming(url) {
+        try {
+            const entries = performance.getEntriesByType('resource');
+            for (let index = entries.length - 1; index >= 0; index--) {
+                const entry = entries[index];
+                if (entry.name !== url || entry.entryType !== 'resource') continue;
+                if (entry.responseStart >= entry.startTime && entry.responseStart > 0) {
+                    return entry.responseStart - entry.startTime;
+                }
+                if (entry.responseEnd >= entry.startTime && entry.responseEnd > 0) {
+                    return entry.responseEnd - entry.startTime;
+                }
+            }
+        } catch (error) {
+            console.debug('[CDN Detector] Resource timing unavailable:', error.message);
+        }
+        return null;
+    }
+
     function getAdditionalInfo(h) {
         // Get content type
         const contentType = h.get('content-type');
@@ -1179,9 +1261,7 @@
                 // Add base priority from rules
                 score += rule.priority || 0;
 
-                const handler = customHandlers[name]
-                    ? customHandlers[name].getInfo
-                    : genericGetInfo;
+                const handler = customHandlers[name]?.getInfo || genericGetInfo;
                 candidates.push({
                     ...handler(lowerCaseHeaders, rule, name),
                     score: score,
@@ -1714,6 +1794,15 @@
         const greenColor = isDarkTheme ? '#c0e899' : '#3e663b';
         const redColor = isDarkTheme ? '#f2a39b' : '#ae463d';
         const blueColor = isDarkTheme ? '#a4c8e6' : '#466e90';
+        const orbBackground = isDarkTheme
+            ? 'radial-gradient(circle at 32% 21%, #a6b69738 0%, #3c46355c 34%, #20261c80 100%)'
+            : 'radial-gradient(circle at 32% 21%, #fffffffa 0%, #ffffff7a 20%, #ffffff14 52%, #c2d1ad57 100%)';
+        const orbShadow = isDarkTheme
+            ? '0 16px 34px #12181047, inset 0 1px 1px #ffffff1f, inset 0 0 0 1px #d5e8c31a, inset 0 -6px 14px #0000002e'
+            : '0 16px 34px #313e2a24, 0 2px 5px #313e2a0f, inset 0 1px 1px #fffffff2, inset 0 0 0 1px #ffffff5c, inset 0 -6px 14px #7e90721a';
+        const orbBloom = isDarkTheme
+            ? 'radial-gradient(circle, #c3de9b38 0%, #c3de9b00 68%)'
+            : 'radial-gradient(circle, #e98b3e45 0%, #e98b3e00 68%)';
 
         return `
         :host {
@@ -1730,9 +1819,16 @@
             --panel-accent: ${isDarkTheme ? '#c3de9b' : '#6e8151'};
             --panel-accent-soft: ${isDarkTheme ? '#c3de9b12' : '#e2ead8'};
             --panel-brand: ${isDarkTheme ? '#ffab60' : '#e98b3e'};
-            --panel-orb: ${isDarkTheme ? 'radial-gradient(circle at 35% 25%, #454941, #242724 65%)' : 'radial-gradient(circle at 35% 25%, #ffffff, #e9ede3 70%)'};
+            --panel-orb: ${orbBackground};
+            --panel-orb-edge: ${isDarkTheme ? '#d5e8c329' : '#ffffffdb'};
+            --panel-orb-dot-ring: ${isDarkTheme ? '#1d231af0' : '#f5f8f0f0'};
+            --panel-orb-monogram: ${isDarkTheme ? '#d9e9c3' : '#526545'};
+            --panel-orb-monogram-shadow: ${isDarkTheme ? '0 1px 1px #0000006b, 0 -1px 0 #ffffff14' : '0 1px 0 #ffffffe0, 0 -1px 0 #2c3a2514'};
+            --panel-orb-hit-glow: ${isDarkTheme ? '#b4da8155' : '#4c703d6b'};
+            --panel-orb-miss-glow: ${isDarkTheme ? '#f2a39b59' : '#ae463d59'};
+            --panel-orb-cool-glow: ${isDarkTheme ? '#a4c8e659' : '#466e9052'};
             --panel-shadow: ${isDarkTheme ? '0 20px 50px #0005, inset 0 1px #777c6840' : '0 20px 50px #27302224, inset 0 1px #ffffff90'};
-            --panel-orb-shadow: ${isDarkTheme ? '0 15px 35px #0007, inset 0 1px #72776a80' : '0 15px 35px #27302220, inset 0 1px #ffffff80'};
+            --panel-orb-shadow: ${orbShadow};
             z-index: 2147483647;
             ${getPositionCSS()}
             font-family: ${uiFont};
@@ -1779,41 +1875,87 @@
             width: ${orbSize}px;
             height: ${orbSize}px;
             margin: 8px;
-            padding: 20px 15px;
-            border: 1px solid var(--panel-edge);
+            padding: 0;
+            border: 1px solid var(--panel-orb-edge);
             border-radius: 50%;
             background: var(--panel-orb);
             color: var(--panel-brand);
             box-shadow: var(--panel-orb-shadow);
+            -webkit-backdrop-filter: blur(10px) saturate(1.2);
+            backdrop-filter: blur(10px) saturate(1.2);
+            overflow: visible;
             cursor: grab;
             -webkit-tap-highlight-color: transparent;
             touch-action: none;
+            transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1), border-color 180ms ease;
         }
         .collapsed-orb::before {
             content: '';
             position: absolute;
-            inset: 8px;
-            border: 1px solid var(--panel-edge);
+            inset: 13%;
+            border: 0;
             border-radius: 50%;
+            background: ${orbBloom};
+            filter: blur(7px);
             pointer-events: none;
         }
         .collapsed-orb::after {
             content: '';
             position: absolute;
-            right: 3px;
-            bottom: 4px;
-            width: 11px;
-            height: 11px;
-            border: 3px solid var(--panel-surface);
+            right: 5px;
+            bottom: 5px;
+            z-index: 2;
+            width: 10px;
+            height: 10px;
+            border: 2px solid var(--panel-orb-dot-ring);
             border-radius: 50%;
             background: ${greenColor};
-            box-shadow: 0 0 12px ${isDarkTheme ? '#b4da8140' : '#8cad6240'};
+            box-shadow:
+                0 0 0 1px var(--panel-orb-edge),
+                0 0 11px var(--panel-orb-hit-glow);
         }
-        .collapsed-orb:active { cursor: grabbing; }
-        .collapsed-orb[data-cache="MISS"]::after { background: ${redColor}; }
+        .collapsed-orb:hover {
+            border-color: var(--panel-accent);
+            transform: translateY(-1px) scale(1.008);
+        }
+        .collapsed-orb:active {
+            cursor: grabbing;
+            transform: scale(0.965);
+        }
+        .collapsed-orb[data-cache="MISS"]::after {
+            background: ${redColor};
+            box-shadow:
+                0 0 0 1px var(--panel-orb-edge),
+                0 0 11px var(--panel-orb-miss-glow);
+        }
         .collapsed-orb[data-cache="BYPASS"]::after,
-        .collapsed-orb[data-cache="DYNAMIC"]::after { background: ${blueColor}; }
-        .collapsed-orb[data-cache="N/A"]::after { background: var(--panel-muted); box-shadow: none; }
+        .collapsed-orb[data-cache="DYNAMIC"]::after {
+            background: ${blueColor};
+            box-shadow:
+                0 0 0 1px var(--panel-orb-edge),
+                0 0 11px var(--panel-orb-cool-glow);
+        }
+        .collapsed-orb[data-cache="N/A"]::after {
+            background: var(--panel-muted);
+            box-shadow: 0 0 0 1px var(--panel-orb-edge);
+        }
+        .orb-brand {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: ${isMobile ? 48 : 56}px;
+            height: ${isMobile ? 48 : 56}px;
+            color: var(--panel-brand);
+            filter: drop-shadow(0 2px 3px ${isDarkTheme ? '#00000059' : '#29352329'});
+        }
+        .orb-brand svg {
+            display: block;
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+        }
         #cdn-info-panel-enhanced.collapsed {
             width: ${orbSize + 16}px;
             height: ${orbSize + 16}px;
@@ -1865,14 +2007,19 @@
             box-shadow: 0 0 0 5px var(--panel-accent-soft), inset 0 0 20px var(--panel-accent-soft);
             white-space: nowrap;
         }
-        .collapsed-orb .provider-monogram {
-            width: auto;
-            height: auto;
+        .collapsed-orb .orb-brand .provider-monogram {
+            width: 100%;
+            height: 100%;
             border: 0;
+            border-radius: 50%;
             background: transparent;
             box-shadow: none;
-            font-size: ${isMobile ? 25 : 29}px;
-            letter-spacing: -2px !important;
+            color: var(--panel-orb-monogram);
+            font-size: ${isMobile ? 24 : 28}px;
+            font-weight: 500;
+            letter-spacing: -1px !important;
+            padding-right: 1px;
+            text-shadow: var(--panel-orb-monogram-shadow);
         }
         .provider-name {
             display: block;
@@ -2044,7 +2191,7 @@
         }
         .info-lines-container {
             display: grid;
-            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.15fr) minmax(0, 0.95fr);
             border-top: 1px solid var(--panel-line);
             border-bottom: 1px solid var(--panel-line);
         }
@@ -2275,6 +2422,14 @@
         const cacheClass = 'cache-' + cacheStatus.split(' ')[0];
         const pop = info.pop && info.pop !== 'N/A' ? String(info.pop) : '—';
         const server = info.server && info.server !== 'N/A' ? String(info.server) : '—';
+        const latency = info.latency?.value || '—';
+        const latencyDescription = info.latency
+            ? `${info.latency.method} HTTP time to first byte: ${info.latency.ttfbMs} ms. Includes server processing, not ICMP ping.${info.latency.networkMs !== null ? ` Browser network timing: ${info.latency.networkMs} ms.` : ''}`
+            : 'HTTP time to first byte is unavailable.';
+        const popTitle =
+            info.popKind === 'node-code'
+                ? `${pop} — provider-reported edge node code; not a verified city.`
+                : pop;
         const providerRole = getProviderRole(info.provider, info.server);
         const isOriginResponse = providerRole === 'WEB SERVER' && cacheStatus === 'N/A';
         const contentType =
@@ -2296,13 +2451,17 @@
                     </div>
                     <div class="info-line">
                         <span class="info-label">POP</span>
-                        <span class="info-value pop-value" title="${escapeHtml(pop)}">${escapeHtml(pop)}</span>
+                        <span class="info-value pop-value" title="${escapeHtml(popTitle)}">${escapeHtml(pop)}</span>
+                    </div>
+                    <div class="info-line">
+                        <span class="info-label">TTFB</span>
+                        <span class="info-value latency-value" title="${escapeHtml(latencyDescription)}">${escapeHtml(latency)}</span>
                     </div>
                 </div>
             `;
 
         panel.innerHTML = `
-            <button class="collapsed-orb" data-cache="${escapeHtml(cacheStatus)}" title="Expand network details" aria-label="Expand network details" aria-expanded="false"></button>
+            <button class="collapsed-orb" data-cache="${escapeHtml(cacheStatus.split(' ')[0])}" title="Expand network details" aria-label="Expand network details" aria-expanded="false"></button>
             <div class="panel-surface">
                 <div class="panel-hero">
                     <button class="icon-btn minimize-btn" type="button" title="Collapse to status orb" aria-label="Collapse to status orb"></button>
@@ -2321,6 +2480,10 @@
                     <span class="info-value server-value" title="${escapeHtml(server)}">${escapeHtml(server)}</span>
                 </div>
                 <div class="detail-lines">
+                    <div class="detail-line">
+                        <span class="info-label">Response</span>
+                        <span class="info-value" title="${escapeHtml(latencyDescription)}">${escapeHtml(info.latency ? `${info.latency.method} · ${info.latency.ttfbMs} ms` : '—')}</span>
+                    </div>
                     <div class="detail-line">
                         <span class="info-label">Transport</span>
                         <span class="info-value">${escapeHtml(info.connection || '—')}</span>
@@ -2529,8 +2692,10 @@
                 role: readValue('.provider-caption'),
                 cache: cacheValue,
                 pop: readValue('.pop-value') || info.pop,
+                popType: info.popKind === 'node-code' ? 'node-code' : null,
                 server: readValue('.server-value') || info.server,
                 transport: info.connection || null,
+                latency: info.latency || null,
                 contentType: contentType === '—' ? null : contentType,
                 dns: readValue('.dns-value'),
             };
@@ -2663,9 +2828,8 @@
             ? icon
             : `<span class="provider-monogram" aria-hidden="true">${escapeHtml(getProviderMonogram(provider))}</span>`;
         host.shadowRoot.querySelector('.provider-brand').innerHTML = badgeMarkup;
-        host.shadowRoot.querySelector('.collapsed-orb').innerHTML = badgeMarkup;
-        const collapsedBrand = host.shadowRoot.querySelector('.collapsed-orb .provider-brand');
-        if (collapsedBrand) collapsedBrand.classList.remove('provider-brand');
+        host.shadowRoot.querySelector('.collapsed-orb').innerHTML =
+            `<span class="orb-brand" aria-hidden="true">${badgeMarkup}</span>`;
         host.shadowRoot
             .querySelector('.collapsed-orb')
             .setAttribute('aria-label', `Expand ${provider} network details`);
@@ -2688,24 +2852,52 @@
     function getBottomRightAnchor(host) {
         const rect = host.getBoundingClientRect();
         return {
-            right: Math.max(0, window.innerWidth - rect.right),
-            bottom: Math.max(0, window.innerHeight - rect.bottom),
+            right: Math.max(0, Math.round(window.innerWidth - rect.right)),
+            bottom: Math.max(0, Math.round(window.innerHeight - rect.bottom)),
+        };
+    }
+
+    function normalizeAnchor(anchor) {
+        const right = Number(anchor?.right);
+        const bottom = Number(anchor?.bottom);
+        if (!Number.isFinite(right) || !Number.isFinite(bottom)) return null;
+        return {
+            right: Math.max(0, Math.round(right)),
+            bottom: Math.max(0, Math.round(bottom)),
+        };
+    }
+
+    function getConfiguredAnchor(host) {
+        const customAnchor = normalizeAnchor(config.settings.customAnchor);
+        if (customAnchor) return customAnchor;
+        if (config.settings.customPosition && host) {
+            const migratedAnchor = normalizeAnchor(getBottomRightAnchor(host));
+            if (migratedAnchor) {
+                config.settings.customAnchor = migratedAnchor;
+                delete config.settings.customPosition;
+                return migratedAnchor;
+            }
+        }
+        return {
+            right: Math.max(0, Math.round(parseFloat(config.initialPosition.right) || 20)),
+            bottom: Math.max(0, Math.round(parseFloat(config.initialPosition.bottom) || 20)),
         };
     }
 
     function applyPanelAnchor(host, anchor) {
+        const normalizedAnchor = normalizeAnchor(anchor);
+        if (!normalizedAnchor) return;
         host.style.left = 'auto';
         host.style.top = 'auto';
-        host.style.right = `${anchor.right}px`;
-        host.style.bottom = `${anchor.bottom}px`;
+        host.style.right = `${normalizedAnchor.right}px`;
+        host.style.bottom = `${normalizedAnchor.bottom}px`;
     }
 
     function setPanelCollapsed(host, panel, collapsed, persist = true) {
+        let anchor = null;
         if (usesBottomRightAnchor()) {
-            const anchor = getBottomRightAnchor(host);
+            anchor = getConfiguredAnchor(host);
             applyPanelAnchor(host, anchor);
-            config.settings.customAnchor = anchor;
-            delete config.settings.customPosition;
         }
         panel.classList.toggle('collapsed', collapsed);
         host.classList.toggle('cdn-panel-collapsed', collapsed);
@@ -2718,7 +2910,10 @@
         host.shadowRoot
             .querySelector('.collapsed-orb')
             .setAttribute('aria-expanded', String(!collapsed));
-        requestAnimationFrame(() => constrainPanelPosition(host));
+        requestAnimationFrame(() => {
+            if (anchor) applyPanelAnchor(host, anchor);
+            constrainPanelPosition(host);
+        });
     }
 
     function setPanelDetailsHidden(panel, detailsHidden) {
@@ -2735,20 +2930,18 @@
         const margin = 12;
         const rect = host.getBoundingClientRect();
         if (usesBottomRightAnchor()) {
+            const anchor = getConfiguredAnchor(host);
             const maxRight = Math.max(margin, window.innerWidth - rect.width - margin);
             const maxBottom = Math.max(margin, window.innerHeight - rect.height - margin);
-            const right = Math.min(Math.max(window.innerWidth - rect.right, margin), maxRight);
-            const bottom = Math.min(Math.max(window.innerHeight - rect.bottom, margin), maxBottom);
+            const right = Math.min(Math.max(anchor.right, margin), maxRight);
+            const bottom = Math.min(Math.max(anchor.bottom, margin), maxBottom);
             if (
                 Math.abs(right - (window.innerWidth - rect.right)) < 1 &&
                 Math.abs(bottom - (window.innerHeight - rect.bottom)) < 1
             ) {
                 return;
             }
-            const anchor = { right, bottom };
-            applyPanelAnchor(host, anchor);
-            config.settings.customAnchor = anchor;
-            delete config.settings.customPosition;
+            applyPanelAnchor(host, { right, bottom });
             return;
         }
         const left = Math.max(margin, Math.min(rect.left, window.innerWidth - rect.width - margin));
@@ -2816,10 +3009,6 @@
             startX = event.clientX;
             startY = event.clientY;
             const rect = element.getBoundingClientRect();
-            element.style.left = `${rect.left}px`;
-            element.style.top = `${rect.top}px`;
-            element.style.right = 'auto';
-            element.style.bottom = 'auto';
             elementX = rect.left;
             elementY = rect.top;
             dragHandle.setPointerCapture(activePointer);
@@ -2831,7 +3020,13 @@
             const deltaX = event.clientX - startX;
             const deltaY = event.clientY - startY;
             if (!hasMoved && Math.hypot(deltaX, deltaY) < 5) return;
-            hasMoved = true;
+            if (!hasMoved) {
+                hasMoved = true;
+                element.style.left = `${elementX}px`;
+                element.style.top = `${elementY}px`;
+                element.style.right = 'auto';
+                element.style.bottom = 'auto';
+            }
             const margin = 12;
             const rect = element.getBoundingClientRect();
             const left = Math.max(
@@ -2902,6 +3097,7 @@
             return;
         console.log(`[CDN Detector] Attempting to fetch headers... Retries left: ${retriesLeft}`);
         try {
+            const headStartTime = performance.now();
             let response = await fetch(currentHref, {
                 method: 'HEAD',
                 cache: 'no-store',
@@ -2911,12 +3107,15 @@
                     Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
                 },
             });
+            let latency = createLatency(headStartTime, performance.now());
+            latency.networkMs = getResourceTiming(response.url);
 
             // If HEAD returns 403, try GET as some CDNs block HEAD requests
             if (response.status === 403 || response.status === 405) {
                 console.log(
                     `[CDN Detector] HEAD returned ${response.status}, retrying with GET...`
                 );
+                const getStartTime = performance.now();
                 response = await fetch(currentHref, {
                     method: 'GET',
                     cache: 'no-store',
@@ -2926,10 +3125,13 @@
                         Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
                     },
                 });
+                latency = createLatency(getStartTime, performance.now(), 'GET');
+                latency.networkMs = getResourceTiming(response.url);
             }
 
             const info = parseInfo(response);
             if (info) {
+                info.latency = latency;
                 createDisplayPanel(info);
                 status[currentHref] = 'succeeded';
                 console.log('[CDN Detector] Success:', info);
@@ -3096,6 +3298,8 @@
             cnameMatchesPattern,
             getProviderRole,
             escapeHtml,
+            createLatency,
+            formatLatency,
             loadRules,
         };
     }

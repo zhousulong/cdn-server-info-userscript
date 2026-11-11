@@ -14,6 +14,7 @@ module.exports = [
                 navigator: 'readonly',
                 console: 'readonly',
                 fetch: 'readonly',
+                performance: 'readonly',
                 setTimeout: 'readonly',
                 clearTimeout: 'readonly',
                 setInterval: 'readonly',

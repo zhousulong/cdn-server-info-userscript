@@ -17,6 +17,8 @@ const {
     getCacheStatus,
     getProviderRole,
     escapeHtml,
+    createLatency,
+    formatLatency,
     loadRules,
 } = require('../cdn-server-info.user.js');
 
@@ -85,6 +87,86 @@ check('Akamai headers and POP', () => {
     assert.equal(result.server, 'AkamaiGHost');
 });
 
+check('Alibaba preserves the reported numeric edge node code', () => {
+    const result = parse({
+        eagleid: '3ad80e2617943607821885547e',
+        server: 'Tengine',
+        via: 'cache18.cn3842[4,0]',
+        'x-cache': 'MISS TCP_MISS',
+    });
+    assert.equal(result.provider, 'Alibaba Cloud CDN');
+    assert.equal(result.pop, 'CN3842');
+    assert.equal(result.popKind, 'node-code');
+});
+
+check('Alibaba preserves multi-layer and numeric node suffixes', () => {
+    const result = parse({
+        eagleid: 'test',
+        via: 'cache53.l2ea120-5[57,57,200-0,M], cache19.l2ea120-5[59,0], ens-cache11.cn9604[96,95,200-0,M], ens-cache15.cn9604[98,0]',
+    });
+    assert.equal(result.pop, 'CN9604');
+});
+
+check('Alibaba does not invent a POP from unrelated Via formats', () => {
+    const result = parse({ eagleid: 'test', via: '1.1 example.proxy' });
+    assert.equal(result.pop, 'N/A');
+});
+
+check('Tencent does not confuse a request UUID with a POP', () => {
+    const result = parse({
+        'eo-cache-status': 'HIT',
+        'eo-log-uuid': '8905593979387011449',
+    });
+    assert.equal(result.provider, 'Tencent Cloud CDN');
+    assert.equal(result.pop, 'N/A');
+});
+
+check('ByteDance parses its city-bearing Via node code', () => {
+    const result = parse({
+        'x-tt-trace-tag': 'id=03;cdn-cache=hit;type=static',
+        via: 'cache17.jswuxi-ct32[0,0]',
+    });
+    assert.equal(result.provider, 'ByteDance CDN');
+    assert.equal(result.pop, 'JSWUXI');
+    assert.equal(result.popKind, 'node-code');
+});
+
+check('ByteDance retains opaque numeric node IDs', () => {
+    const result = parse({
+        'x-tt-trace-tag': 'id=03;cdn-cache=miss;type=dyn',
+        via: 'live4.cn7594[899,0]',
+    });
+    assert.equal(result.pop, 'CN7594');
+});
+
+check('Baidu exposes the reported cache node', () => {
+    const result = parse({
+        'x-logserver': 'yunjiasu-nginx',
+        'ohc-cache-hit': '1 from bjct3',
+    });
+    assert.equal(result.provider, 'Baidu Cloud CDN');
+    assert.equal(result.pop, 'BJCT3');
+});
+
+check('Huawei matches lowercase Via node codes', () => {
+    const result = parse({
+        'dl-from': 'HWCDN',
+        via: 'HCDN-hdzj1',
+    });
+    assert.equal(result.provider, 'Huawei Cloud CDN');
+    assert.equal(result.pop, 'HD-ZJ');
+});
+
+check('UpYun parses the documented Via node format', () => {
+    const result = parse({
+        server: 'marco/2.9',
+        'x-upyun-width': '100',
+        via: 'T.200.M, V.mix-hb-wuxi-084, T.61.1',
+    });
+    assert.equal(result.provider, 'UpYun');
+    assert.equal(result.pop, 'MIX-HB-WUXI-084');
+});
+
 check('Vercel headers and POP', () => {
     const result = parse({
         'x-vercel-id': 'iad1::abc123',
@@ -126,6 +208,27 @@ check('Header values are HTML-escaped', () => {
         escapeHtml('<script>alert("x")</script>'),
         '&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;'
     );
+});
+
+check('Latency reports HTTP TTFB without claiming ICMP ping', () => {
+    const result = createLatency(100, 135.6);
+    assert.equal(result.value, '36 ms');
+    assert.equal(result.ttfbMs, 36);
+    assert.equal(result.method, 'HEAD');
+    assert.equal(result.networkMs, null);
+});
+
+check('GET fallback records its own request and network timing', () => {
+    const result = createLatency(500, 1780, 'GET', 1200.4);
+    assert.equal(result.value, '1.28 s');
+    assert.equal(result.method, 'GET');
+    assert.equal(result.networkMs, 1200);
+});
+
+check('Invalid latency stays unavailable', () => {
+    assert.equal(formatLatency(null), 'N/A');
+    assert.equal(formatLatency(-1), 'N/A');
+    assert.equal(formatLatency(Infinity), 'N/A');
 });
 
 console.log(`detection checks: ${checks}`);
