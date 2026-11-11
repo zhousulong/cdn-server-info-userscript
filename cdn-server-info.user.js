@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.57.2
-// @description  [v7.57.2] 修复右下角及拖动后面板的折叠位置回归：移除展开时冲突的位置校正，保持右下锚点，使折叠圆钮返回原位置，不再向展开面板左上角漂移。
-// @description:en [v7.57.2] Fixed panel collapse positioning at the bottom-right and after dragging: removed the conflicting expansion repositioning so the collapsed button returns to its original bottom-right anchor instead of drifting toward the expanded panel's top-left corner.
+// @version      7.58.0
+// @description  [v7.58.0] 全新晨光 / 夜光仪器面板：品牌徽章、无图标字母兜底、主题持久化与折叠圆钮；并修复右下角及拖动后的折叠位置回归。
+// @description:en [v7.58.0] New Dawn / Night instrument panels with brand badges, monogram fallback, persistent themes and a collapsed status orb; also fixes bottom-right and post-drag collapse positioning.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.57.2
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.58.0
 // @connect      dns.alidns.com
 // @connect      dns.google
 // @connect      1.1.1.1

@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-7.57.2-blue.svg)
+![Version](https://img.shields.io/badge/version-7.58.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Tampermonkey](https://img.shields.io/badge/Tampermonkey-Compatible-orange.svg)
 
@@ -148,7 +148,7 @@
 
 ## 📋 版本更新
 
-### v7.57.2 (2026-11-10) - 仪器面板重构与折叠位置修复
+### v7.58.0 (2026-11-11) - 仪器面板重构与折叠位置修复
 
 #### 🎨 界面
 
