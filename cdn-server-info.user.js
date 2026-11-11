@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.64.0
-// @description  [v7.64.0] 折叠圆钮改用中心轻微偏移、右下聚焦的折射光斑状态色场，保留小尺寸品牌图标与透明玻璃边缘。
-// @description:en [v7.64.0] Gives the collapsed orb a refracted status bloom with an offset color core and lower-right caustic, while retaining the compact brand mark and clear glass edge.
+// @version      7.65.0
+// @description  [v7.65.0] 折叠圆钮改为真实 CDN Logo 镂空透光窗，状态色从图标轮廓中透出，不再使用橙色贴纸式品牌标记。
+// @description:en [v7.65.0] Turns the collapsed orb into a clear logo cutout window, letting the status color shine through the real CDN mark instead of an orange sticker-style badge.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -15,7 +15,7 @@
 // @grant        GM_setValue
 // @grant        GM_getResourceText
 // @grant        GM_registerMenuCommand
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.64.0
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.65.0
 // @connect      dns.alidns.com
 // @connect      dns.google
 // @connect      1.1.1.1
@@ -1832,6 +1832,15 @@
         const orbBloom = isDarkTheme
             ? 'radial-gradient(circle, #c3de9b38 0%, #c3de9b00 68%)'
             : 'radial-gradient(circle, #e98b3e45 0%, #e98b3e00 68%)';
+        const orbWindowBackground = isDarkTheme
+            ? 'radial-gradient(circle at 35% 27%, #e7f5e024 0%, transparent 34%), linear-gradient(145deg, #dfefd60f, #0f150d1a)'
+            : 'radial-gradient(circle at 35% 27%, #ffffff57 0%, transparent 34%), linear-gradient(145deg, #f9fcf53d, #c6d3bf14)';
+        const orbWindowShadow = isDarkTheme
+            ? 'inset 0 1px 1px #ffffff17, inset 0 -6px 12px #00000024'
+            : 'inset 0 1px 1px #ffffff61, inset 0 -6px 12px #1f2b1a0d';
+        const orbWindowFilter = isDarkTheme
+            ? 'blur(2.2px) saturate(0.16) brightness(0.52)'
+            : 'blur(2.2px) saturate(0.18) brightness(1.14)';
 
         return `
         :host {
@@ -2005,6 +2014,27 @@
             width: 100%;
             height: 100%;
             overflow: visible;
+        }
+        .orb-logo-window {
+            position: absolute;
+            inset: 21%;
+            z-index: 1;
+            border-radius: 50%;
+            background: ${orbWindowBackground};
+            box-shadow: ${orbWindowShadow};
+            -webkit-backdrop-filter: ${orbWindowFilter};
+            backdrop-filter: ${orbWindowFilter};
+            -webkit-mask-image: var(--orb-logo-mask), radial-gradient(circle, #000 0 52%, #000d 63%, transparent 76%);
+            -webkit-mask-position: center, center;
+            -webkit-mask-repeat: no-repeat;
+            -webkit-mask-size: 72% auto, 100% 100%;
+            -webkit-mask-composite: xor;
+            mask-image: var(--orb-logo-mask), radial-gradient(circle, #000 0 52%, #000d 63%, transparent 76%);
+            mask-position: center, center;
+            mask-repeat: no-repeat;
+            mask-size: 72% auto, 100% 100%;
+            mask-composite: exclude;
+            pointer-events: none;
         }
         #cdn-info-panel-enhanced.collapsed {
             width: ${orbSize + 16}px;
@@ -2863,6 +2893,27 @@
         if (caption) caption.textContent = getProviderRole(provider, server);
     }
 
+    function getSvgMaskUrl(svgMarkup) {
+        let svg = String(svgMarkup || '').replace(/currentColor/gi, '#000');
+        if (!/\sxmlns=/.test(svg)) {
+            svg = svg.replace(/<svg\b/, '<svg xmlns="http://www.w3.org/2000/svg"');
+        }
+        return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+    }
+
+    function updateCollapsedOrbBrand(orb, icon, badgeMarkup) {
+        if (!orb) return;
+        if (!icon) {
+            orb.innerHTML = `<span class="orb-brand" aria-hidden="true">${badgeMarkup}</span>`;
+            return;
+        }
+        const logoWindow = document.createElement('span');
+        logoWindow.className = 'orb-logo-window';
+        logoWindow.setAttribute('aria-hidden', 'true');
+        logoWindow.style.setProperty('--orb-logo-mask', getSvgMaskUrl(icon));
+        orb.replaceChildren(logoWindow);
+    }
+
     function updateProviderBadge(host, provider) {
         if (!host || !host.shadowRoot) return;
         const icon = getProviderIcon(provider);
@@ -2871,7 +2922,7 @@
             : `<span class="provider-monogram" aria-hidden="true">${escapeHtml(getProviderMonogram(provider))}</span>`;
         host.shadowRoot.querySelector('.provider-brand').innerHTML = badgeMarkup;
         const orb = host.shadowRoot.querySelector('.collapsed-orb');
-        orb.innerHTML = `<span class="orb-brand" aria-hidden="true">${badgeMarkup}</span>`;
+        updateCollapsedOrbBrand(orb, icon, badgeMarkup);
         const cacheLabel =
             orb.dataset.cache === 'N/A'
                 ? 'Cache status unavailable'

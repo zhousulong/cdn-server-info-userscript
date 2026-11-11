@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-7.64.0-blue.svg)
+![Version](https://img.shields.io/badge/version-7.65.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Tampermonkey](https://img.shields.io/badge/Tampermonkey-Compatible-orange.svg)
 
@@ -68,7 +68,7 @@
 - **晨光 / 夜光主题**：银白陶瓷与深色仪器两种风格，并支持跟随页面与系统
 - **品牌徽章**：大尺寸 CDN Logo；无 Logo 时自动生成厂商字母缩写
 - **响应式布局**：完美适配桌面和移动设备
-- **状态圆钮**：折叠时以小尺寸品牌图标和折射光斑色场区分缓存状态
+- **状态圆钮**：折叠时以真实 CDN Logo 镂空窗引导状态色透光，品牌与缓存状态共用同一发光材质
 - **设置面板**：主题、DNS、站点隐藏、位置重置和详情复制集中管理
 - **可拖拽**：拖动徽章或底部手柄调整位置
 - **Shadow DOM 隔离**：确保样式不受网站影响
@@ -202,6 +202,15 @@
 ---
 
 ## 📋 版本更新
+
+### v7.65.0 (2026-11-11) - 镂空云窗
+
+#### 💠 折叠圆钮
+
+- **Logo 镂空窗**：真实 SVG 图标转为玻璃内层遮罩，状态光从图标轮廓中透出，不再叠加橙色品牌图标。
+- **中性玻璃层**：Logo 周围的背景降低饱和度并轻微提亮或压暗，让只有镂空轮廓保留纯粹的状态色。
+- **通用图标支持**：所有带 SVG 图标的 CDN 自动使用镂空效果；无图标厂商继续回退为中性字母徽章。
+- **双端双主题**：桌面 `76px`、移动端 `64px`，亮暗主题及 HIT / MISS / BYPASS / N/A 四态均已复核。
 
 ### v7.64.0 (2026-11-11) - 折射光斑
 
