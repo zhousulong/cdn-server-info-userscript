@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.63.0
-// @description  [v7.63.0] 折叠圆钮改用中心色芯与内部光环组成的光学双环状态色场，缩小品牌图标并保留透明玻璃边缘。
-// @description:en [v7.63.0] Gives the collapsed orb an optical doublet status field with a central color core and inner halo, while reducing the brand mark and preserving the clear glass edge.
+// @version      7.64.0
+// @description  [v7.64.0] 折叠圆钮改用中心轻微偏移、右下聚焦的折射光斑状态色场，保留小尺寸品牌图标与透明玻璃边缘。
+// @description:en [v7.64.0] Gives the collapsed orb a refracted status bloom with an offset color core and lower-right caustic, while retaining the compact brand mark and clear glass edge.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -15,7 +15,7 @@
 // @grant        GM_setValue
 // @grant        GM_getResourceText
 // @grant        GM_registerMenuCommand
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.63.0
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.64.0
 // @connect      dns.alidns.com
 // @connect      dns.google
 // @connect      1.1.1.1
@@ -1852,18 +1852,18 @@
             --panel-orb-edge: ${isDarkTheme ? '#d5e8c329' : '#ffffffdb'};
             --panel-orb-monogram: ${isDarkTheme ? '#d9e9c3' : '#526545'};
             --panel-orb-monogram-shadow: ${isDarkTheme ? '0 1px 1px #0000006b, 0 -1px 0 #ffffff14' : '0 1px 0 #ffffffe0, 0 -1px 0 #2c3a2514'};
-            --panel-orb-status-core: ${isDarkTheme ? '#7bef71a8' : '#269553a8'};
-            --panel-orb-status-mid: ${isDarkTheme ? '#4fbf6c80' : '#3d8b4f80'};
-            --panel-orb-status-aura: ${isDarkTheme ? '#68dc706b' : '#2d995766'};
-            --panel-orb-miss-core: ${isDarkTheme ? '#ff7d75a8' : '#de443aa8'};
-            --panel-orb-miss-mid: ${isDarkTheme ? '#e8625c80' : '#c84b4280'};
-            --panel-orb-miss-aura: ${isDarkTheme ? '#ff716a6b' : '#d8473e66'};
-            --panel-orb-cool-core: ${isDarkTheme ? '#65c3ffa8' : '#247fc7a8'};
-            --panel-orb-cool-mid: ${isDarkTheme ? '#4aa3e680' : '#3a76b280'};
-            --panel-orb-cool-aura: ${isDarkTheme ? '#55b7ff6b' : '#287bc066'};
-            --panel-orb-muted-core: ${isDarkTheme ? '#b5c0b7a0' : '#77837aa0'};
-            --panel-orb-muted-mid: ${isDarkTheme ? '#929e9573' : '#7d898073'};
-            --panel-orb-muted-aura: ${isDarkTheme ? '#9eaaa155' : '#6b786f4d'};
+            --panel-orb-status-core: ${isDarkTheme ? '#7bef71c7' : '#1fae60e0'};
+            --panel-orb-status-mid: ${isDarkTheme ? '#4fbf6c99' : '#328f5499'};
+            --panel-orb-status-aura: ${isDarkTheme ? '#68dc7080' : '#2d99577a'};
+            --panel-orb-miss-core: ${isDarkTheme ? '#ff7d75cc' : '#e3483ee6'};
+            --panel-orb-miss-mid: ${isDarkTheme ? '#e8625c99' : '#c84b4299'};
+            --panel-orb-miss-aura: ${isDarkTheme ? '#ff716a80' : '#d8473e73'};
+            --panel-orb-cool-core: ${isDarkTheme ? '#65c3ffcc' : '#2a80cfe6'};
+            --panel-orb-cool-mid: ${isDarkTheme ? '#4aa3e699' : '#3a76b299'};
+            --panel-orb-cool-aura: ${isDarkTheme ? '#55b7ff80' : '#287bc073'};
+            --panel-orb-muted-core: ${isDarkTheme ? '#b5c0b7b3' : '#78867da8'};
+            --panel-orb-muted-mid: ${isDarkTheme ? '#929e9580' : '#7d89808c'};
+            --panel-orb-muted-aura: ${isDarkTheme ? '#9eaaa15c' : '#6b786f52'};
             --panel-shadow: ${isDarkTheme ? '0 20px 50px #0005, inset 0 1px #777c6840' : '0 20px 50px #27302224, inset 0 1px #ffffff90'};
             --panel-orb-shadow: ${orbShadow};
             z-index: 2147483647;
@@ -1916,16 +1916,7 @@
             border: 1px solid var(--panel-orb-edge);
             border-radius: 50%;
             background:
-                radial-gradient(
-                    circle at 50% 50%,
-                    var(--panel-orb-status-core) 0%,
-                    var(--panel-orb-status-core) 24%,
-                    transparent 38%,
-                    transparent 42%,
-                    var(--panel-orb-status-mid) 49%,
-                    var(--panel-orb-status-mid) 55%,
-                    transparent 69%
-                ),
+                radial-gradient(ellipse 20% 9% at 68% 81%, ${isDarkTheme ? '#ffffff24' : '#ffffff80'} 0%, transparent 72%),
                 var(--panel-orb);
             color: var(--panel-brand);
             box-shadow:
@@ -1933,7 +1924,7 @@
                 0 0 24px var(--panel-orb-status-aura);
             -webkit-backdrop-filter: blur(10px) saturate(1.2);
             backdrop-filter: blur(10px) saturate(1.2);
-            overflow: visible;
+            overflow: hidden;
             cursor: grab;
             -webkit-tap-highlight-color: transparent;
             touch-action: none;
@@ -1942,23 +1933,36 @@
         .collapsed-orb::before {
             content: '';
             position: absolute;
-            inset: 13%;
+            inset: 2%;
             border: 0;
             border-radius: 50%;
-            background: ${orbBloom};
-            filter: blur(7px);
+            background:
+                radial-gradient(
+                    circle at 48% 49%,
+                    var(--panel-orb-status-core) 0%,
+                    var(--panel-orb-status-mid) 32%,
+                    transparent 63%
+                ),
+                radial-gradient(
+                    ellipse 54% 17% at 67% 79%,
+                    var(--panel-orb-status-mid) 0%,
+                    transparent 67%
+                ),
+                ${orbBloom};
+            filter: blur(2.4px);
+            transform: translateY(1%);
             pointer-events: none;
         }
         .collapsed-orb::after {
             content: '';
             position: absolute;
-            inset: 9%;
+            inset: 11% 9% 7% 13%;
             z-index: 2;
             border: 1px solid ${isDarkTheme ? '#e8f6e01f' : '#ffffff5c'};
             border-radius: 50%;
-            box-shadow:
-                0 0 0 3px var(--panel-orb-status-aura),
-                inset 0 0 12px ${isDarkTheme ? '#ffffff0d' : '#ffffff1f'};
+            box-shadow: inset 0 0 12px ${isDarkTheme ? '#ffffff0d' : '#ffffff1f'};
+            filter: blur(.3px);
+            transform: rotate(-7deg);
             pointer-events: none;
         }
         .collapsed-orb:hover {

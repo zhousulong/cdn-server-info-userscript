@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-7.63.0-blue.svg)
+![Version](https://img.shields.io/badge/version-7.64.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Tampermonkey](https://img.shields.io/badge/Tampermonkey-Compatible-orange.svg)
 
@@ -68,7 +68,7 @@
 - **晨光 / 夜光主题**：银白陶瓷与深色仪器两种风格，并支持跟随页面与系统
 - **品牌徽章**：大尺寸 CDN Logo；无 Logo 时自动生成厂商字母缩写
 - **响应式布局**：完美适配桌面和移动设备
-- **状态圆钮**：折叠时以小尺寸品牌图标和光学双环色场区分缓存状态
+- **状态圆钮**：折叠时以小尺寸品牌图标和折射光斑色场区分缓存状态
 - **设置面板**：主题、DNS、站点隐藏、位置重置和详情复制集中管理
 - **可拖拽**：拖动徽章或底部手柄调整位置
 - **Shadow DOM 隔离**：确保样式不受网站影响
@@ -202,6 +202,15 @@
 ---
 
 ## 📋 版本更新
+
+### v7.64.0 (2026-11-11) - 折射光斑
+
+#### 💠 折叠圆钮
+
+- **折射光斑**：状态色从偏移的中心色芯向外渐隐，并在右下形成一层轻微焦散，不再使用完整同心内环。
+- **透镜边缘**：保留透明玻璃外圈、白色高光和不规则折射弧，让色光看起来存在于镜片内部。
+- **品牌比例**：延续桌面 `50px`、移动端 `42px` 的小尺寸图标，为色光与玻璃边缘留出空间。
+- **四态配色**：提高 HIT 绿、MISS 红、BYPASS / DYNAMIC 蓝的色芯强度，N/A 继续使用中性灰。
 
 ### v7.63.0 (2026-11-11) - 光学双环
 
