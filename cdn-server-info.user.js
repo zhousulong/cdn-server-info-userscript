@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.61.0
-// @description  [v7.61.0] 新增国内 CDN 节点码解析与 HTTP TTFB 延迟显示；保留节点码与地理位置的语义边界，不额外发送 Ping。
-// @description:en [v7.61.0] Adds domestic CDN node-code parsing and HTTP TTFB display, distinguishes node codes from verified locations, and sends no extra ping requests.
+// @version      7.62.0
+// @description  [v7.62.0] 将缓存状态色融入折叠圆钮的镜片底色，以绿、红、蓝、灰底光区分 HIT / MISS / BYPASS / N/A。
+// @description:en [v7.62.0] Tints the collapsed orb's lens base with green, red, blue, or gray status washes for HIT / MISS / BYPASS / N/A recognition.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -15,7 +15,7 @@
 // @grant        GM_setValue
 // @grant        GM_getResourceText
 // @grant        GM_registerMenuCommand
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.61.0
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.62.0
 // @connect      dns.alidns.com
 // @connect      dns.google
 // @connect      1.1.1.1
@@ -1850,12 +1850,20 @@
             --panel-brand: ${isDarkTheme ? '#ffab60' : '#e98b3e'};
             --panel-orb: ${orbBackground};
             --panel-orb-edge: ${isDarkTheme ? '#d5e8c329' : '#ffffffdb'};
-            --panel-orb-dot-ring: ${isDarkTheme ? '#1d231af0' : '#f5f8f0f0'};
             --panel-orb-monogram: ${isDarkTheme ? '#d9e9c3' : '#526545'};
             --panel-orb-monogram-shadow: ${isDarkTheme ? '0 1px 1px #0000006b, 0 -1px 0 #ffffff14' : '0 1px 0 #ffffffe0, 0 -1px 0 #2c3a2514'};
-            --panel-orb-hit-glow: ${isDarkTheme ? '#b4da8155' : '#4c703d6b'};
-            --panel-orb-miss-glow: ${isDarkTheme ? '#f2a39b59' : '#ae463d59'};
-            --panel-orb-cool-glow: ${isDarkTheme ? '#a4c8e659' : '#466e9052'};
+            --panel-orb-status-wash: ${isDarkTheme ? '#b4da8159' : '#4f73404f'};
+            --panel-orb-status-inner: ${isDarkTheme ? '#b4da8166' : '#5f7f5066'};
+            --panel-orb-status-aura: ${isDarkTheme ? '#b4da8147' : '#5b744b40'};
+            --panel-orb-miss-wash: ${isDarkTheme ? '#f2a39b61' : '#b65c5459'};
+            --panel-orb-miss-inner: ${isDarkTheme ? '#f2a39b6b' : '#bc6b636b'};
+            --panel-orb-miss-aura: ${isDarkTheme ? '#f2a39b52' : '#ae463d4a'};
+            --panel-orb-cool-wash: ${isDarkTheme ? '#a4c8e666' : '#587d9966'};
+            --panel-orb-cool-inner: ${isDarkTheme ? '#a4c8e670' : '#6489a770'};
+            --panel-orb-cool-aura: ${isDarkTheme ? '#a4c8e65c' : '#466e9052'};
+            --panel-orb-muted-wash: ${isDarkTheme ? '#a5ad9a42' : '#858e8452'};
+            --panel-orb-muted-inner: ${isDarkTheme ? '#a5ad9a4d' : '#858e8457'};
+            --panel-orb-muted-aura: ${isDarkTheme ? '#a5ad9a38' : '#727b6d33'};
             --panel-shadow: ${isDarkTheme ? '0 20px 50px #0005, inset 0 1px #777c6840' : '0 20px 50px #27302224, inset 0 1px #ffffff90'};
             --panel-orb-shadow: ${orbShadow};
             z-index: 2147483647;
@@ -1907,9 +1915,14 @@
             padding: 0;
             border: 1px solid var(--panel-orb-edge);
             border-radius: 50%;
-            background: var(--panel-orb);
+            background:
+                linear-gradient(154deg, transparent 36%, var(--panel-orb-status-wash) 100%),
+                radial-gradient(ellipse at 74% 82%, var(--panel-orb-status-inner) 0%, transparent 64%),
+                var(--panel-orb);
             color: var(--panel-brand);
-            box-shadow: var(--panel-orb-shadow);
+            box-shadow:
+                var(--panel-orb-shadow),
+                0 0 24px var(--panel-orb-status-aura);
             -webkit-backdrop-filter: blur(10px) saturate(1.2);
             backdrop-filter: blur(10px) saturate(1.2);
             overflow: visible;
@@ -1924,24 +1937,11 @@
             inset: 13%;
             border: 0;
             border-radius: 50%;
-            background: ${orbBloom};
-            filter: blur(7px);
+            background:
+                radial-gradient(circle at 70% 79%, var(--panel-orb-status-inner) 0%, transparent 58%),
+                ${orbBloom};
+            filter: blur(9px);
             pointer-events: none;
-        }
-        .collapsed-orb::after {
-            content: '';
-            position: absolute;
-            right: 5px;
-            bottom: 5px;
-            z-index: 2;
-            width: 10px;
-            height: 10px;
-            border: 2px solid var(--panel-orb-dot-ring);
-            border-radius: 50%;
-            background: ${greenColor};
-            box-shadow:
-                0 0 0 1px var(--panel-orb-edge),
-                0 0 11px var(--panel-orb-hit-glow);
         }
         .collapsed-orb:hover {
             border-color: var(--panel-accent);
@@ -1951,22 +1951,21 @@
             cursor: grabbing;
             transform: scale(0.965);
         }
-        .collapsed-orb[data-cache="MISS"]::after {
-            background: ${redColor};
-            box-shadow:
-                0 0 0 1px var(--panel-orb-edge),
-                0 0 11px var(--panel-orb-miss-glow);
+        .collapsed-orb[data-cache="MISS"] {
+            --panel-orb-status-wash: var(--panel-orb-miss-wash);
+            --panel-orb-status-inner: var(--panel-orb-miss-inner);
+            --panel-orb-status-aura: var(--panel-orb-miss-aura);
         }
-        .collapsed-orb[data-cache="BYPASS"]::after,
-        .collapsed-orb[data-cache="DYNAMIC"]::after {
-            background: ${blueColor};
-            box-shadow:
-                0 0 0 1px var(--panel-orb-edge),
-                0 0 11px var(--panel-orb-cool-glow);
+        .collapsed-orb[data-cache="BYPASS"],
+        .collapsed-orb[data-cache="DYNAMIC"] {
+            --panel-orb-status-wash: var(--panel-orb-cool-wash);
+            --panel-orb-status-inner: var(--panel-orb-cool-inner);
+            --panel-orb-status-aura: var(--panel-orb-cool-aura);
         }
-        .collapsed-orb[data-cache="N/A"]::after {
-            background: var(--panel-muted);
-            box-shadow: 0 0 0 1px var(--panel-orb-edge);
+        .collapsed-orb[data-cache="N/A"] {
+            --panel-orb-status-wash: var(--panel-orb-muted-wash);
+            --panel-orb-status-inner: var(--panel-orb-muted-inner);
+            --panel-orb-status-aura: var(--panel-orb-muted-aura);
         }
         .orb-brand {
             position: relative;
@@ -2488,7 +2487,7 @@
             `;
 
         panel.innerHTML = `
-            <button class="collapsed-orb" data-cache="${escapeHtml(cacheStatus.split(' ')[0])}" title="Expand network details" aria-label="Expand network details" aria-expanded="false"></button>
+            <button class="collapsed-orb" data-cache="${escapeHtml(cacheStatus.split(' ')[0])}" title="Cache ${escapeHtml(cacheStatus)} — expand network details" aria-label="Cache ${escapeHtml(cacheStatus)}. Expand network details" aria-expanded="false"></button>
             <div class="panel-surface">
                 <div class="panel-hero">
                     <button class="icon-btn minimize-btn" type="button" title="Collapse to status orb" aria-label="Collapse to status orb"></button>
@@ -2849,11 +2848,13 @@
             ? icon
             : `<span class="provider-monogram" aria-hidden="true">${escapeHtml(getProviderMonogram(provider))}</span>`;
         host.shadowRoot.querySelector('.provider-brand').innerHTML = badgeMarkup;
-        host.shadowRoot.querySelector('.collapsed-orb').innerHTML =
-            `<span class="orb-brand" aria-hidden="true">${badgeMarkup}</span>`;
-        host.shadowRoot
-            .querySelector('.collapsed-orb')
-            .setAttribute('aria-label', `Expand ${provider} network details`);
+        const orb = host.shadowRoot.querySelector('.collapsed-orb');
+        orb.innerHTML = `<span class="orb-brand" aria-hidden="true">${badgeMarkup}</span>`;
+        const cacheLabel =
+            orb.dataset.cache === 'N/A'
+                ? 'Cache status unavailable'
+                : `Cache ${orb.dataset.cache || 'unknown'}`;
+        orb.setAttribute('aria-label', `${cacheLabel}. Expand ${provider} network details`);
     }
 
     function saveUserSettings() {
