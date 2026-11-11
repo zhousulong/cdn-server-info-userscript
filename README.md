@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-7.60.0-blue.svg)
+![Version](https://img.shields.io/badge/version-7.61.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Tampermonkey](https://img.shields.io/badge/Tampermonkey-Compatible-orange.svg)
 
@@ -56,6 +56,7 @@
 - **缓存状态检测**：实时显示 HIT、MISS、BYPASS、DYNAMIC 状态
 - **POP / 节点码**：国际厂商显示机场码；国内厂商有明确节点标识时保留原始节点码，并标明不是已验证的城市位置
 - **HTTP TTFB**：显示本次检测请求的首字节耗时，包含网络与服务端处理时间，不冒充 ICMP Ping
+- **协议与建连**：显示本次请求协商的 HTTP 协议（HTTP/2、HTTP/3 等）和 TCP+TLS 建连耗时；连接复用时显示 `reused`。建连耗时是浏览器里最接近网络往返（ping）的指标
 - **服务器信息**：识别 Web 服务器类型和版本
 - **颜色编码**：
     - 🟢 **绿色** - 缓存命中 (HIT)
@@ -128,6 +129,8 @@
 │  CACHE       POP    TTFB │
 │  ● HIT       SJC    36ms │
 │  SERVER      nginx       │
+│  PROTOCOL    HTTP/3      │
+│  CONNECT     reused      │
 │  NETWORK MONITOR      ⌃  │
 └──────────────────────────┘
 ```
@@ -135,7 +138,7 @@
 ### 交互操作
 
 - **展开 / 缩小**：点击状态圆钮展开，点击面板左上角的“—”按钮回到圆钮
-- **收起详情**：点击“Less”只隐藏响应、服务器与 DNS 明细，不缩小整个面板
+- **收起详情**：点击“Less”只隐藏服务器、协议与 DNS 明细，不缩小整个面板
 - **拖拽移动**：拖动折叠圆钮或底部拖拽手柄
 - **切换主题**：点击面板上的 ☀️/🌙 图标固定切换亮色 / 暗色
 - **打开设置**：点击面板右上角的滑杆按钮
@@ -179,7 +182,10 @@
         "value": "61 ms",
         "ttfbMs": 61,
         "networkMs": null,
-        "method": "HEAD"
+        "method": "HEAD",
+        "protocol": "h2",
+        "connectMs": 42,
+        "reused": false
     }
 }
 ```
@@ -196,6 +202,23 @@
 ---
 
 ## 📋 版本更新
+
+### v7.61.0 (2026-11-11) - 速度指标聚焦
+
+#### ⚡ 新增速度指标
+
+- **Protocol**：显示本次探测实际协商的协议（HTTP/2、HTTP/3 等），来自浏览器 Resource Timing，零额外请求。
+- **Connect**：显示 TCP + TLS 建连耗时，是浏览器里最接近网络往返（ping）的指标；连接复用时显示 `reused`，悬停可查看说明。
+
+#### 🧹 面板精简
+
+- **移除重复的 Response 行**：与主网格的 TTFB 列完全重复。
+- **移除 Content 行**：内容类型与速度无关；原 Transport 行只显示 HTTPS/HTTP，由真实协议数据替代。
+- **复制详情**：`latency` 中新增 `protocol`、`connectMs`、`reused`；移除 `transport`、`contentType` 字段。
+
+#### 🧪 工程
+
+- 新增协议名归一化测试（`h2`/`h3`/`http/1.1`）。
 
 ### v7.60.0 (2026-11-11) - 国内 CDN 节点码与 HTTP 延迟
 

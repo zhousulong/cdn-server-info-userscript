@@ -19,6 +19,7 @@ const {
     escapeHtml,
     createLatency,
     formatLatency,
+    formatProtocol,
     loadRules,
 } = require('../cdn-server-info.user.js');
 
@@ -229,6 +230,14 @@ check('Invalid latency stays unavailable', () => {
     assert.equal(formatLatency(null), 'N/A');
     assert.equal(formatLatency(-1), 'N/A');
     assert.equal(formatLatency(Infinity), 'N/A');
+});
+
+check('Protocol names are normalized for display', () => {
+    assert.equal(formatProtocol('h2'), 'HTTP/2');
+    assert.equal(formatProtocol('h3'), 'HTTP/3');
+    assert.equal(formatProtocol('http/1.1'), 'HTTP/1.1');
+    assert.equal(formatProtocol(''), null);
+    assert.equal(formatProtocol(null), null);
 });
 
 console.log(`detection checks: ${checks}`);

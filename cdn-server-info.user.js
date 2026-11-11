@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.60.0
-// @description  [v7.60.0] 新增国内 CDN 节点码解析与 HTTP TTFB 延迟显示；保留节点码与地理位置的语义边界，不额外发送 Ping。
-// @description:en [v7.60.0] Adds domestic CDN node-code parsing and HTTP TTFB display, distinguishes node codes from verified locations, and sends no extra ping requests.
+// @version      7.61.0
+// @description  [v7.61.0] 新增国内 CDN 节点码解析与 HTTP TTFB 延迟显示；保留节点码与地理位置的语义边界，不额外发送 Ping。
+// @description:en [v7.61.0] Adds domestic CDN node-code parsing and HTTP TTFB display, distinguishes node codes from verified locations, and sends no extra ping requests.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -15,7 +15,7 @@
 // @grant        GM_setValue
 // @grant        GM_getResourceText
 // @grant        GM_registerMenuCommand
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.60.0
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.61.0
 // @connect      dns.alidns.com
 // @connect      dns.google
 // @connect      1.1.1.1
@@ -1069,6 +1069,25 @@
         return `${(milliseconds / 1000).toFixed(milliseconds < 10000 ? 2 : 1)} s`;
     }
 
+    function formatProtocol(nextHopProtocol) {
+        if (!nextHopProtocol) return null;
+        const normalized = String(nextHopProtocol).trim().toLowerCase();
+        if (normalized === 'h2') return 'HTTP/2';
+        if (normalized === 'h3') return 'HTTP/3';
+        return normalized.toUpperCase();
+    }
+
+    function getConnectDescription(latency) {
+        if (!latency) return 'Connection timing is unavailable.';
+        if (latency.reused === true) {
+            return 'TCP/TLS connection was reused; no new handshake was needed for this probe.';
+        }
+        if (latency.connectMs !== null) {
+            return `TCP + TLS handshake took ${latency.connectMs} ms. Closest browser-side equivalent of a network round trip.`;
+        }
+        return 'Connection timing is unavailable.';
+    }
+
     function createLatency(startTime, endTime, method = 'HEAD', networkMs = null) {
         const ttfbMs = Math.max(0, endTime - startTime);
         return {
@@ -1080,22 +1099,32 @@
     }
 
     function getResourceTiming(url) {
+        const timing = { networkMs: null, protocol: null, connectMs: null, reused: null };
         try {
             const entries = performance.getEntriesByType('resource');
             for (let index = entries.length - 1; index >= 0; index--) {
                 const entry = entries[index];
                 if (entry.name !== url || entry.entryType !== 'resource') continue;
+                let networkMs = null;
                 if (entry.responseStart >= entry.startTime && entry.responseStart > 0) {
-                    return entry.responseStart - entry.startTime;
+                    networkMs = entry.responseStart - entry.startTime;
+                } else if (entry.responseEnd >= entry.startTime && entry.responseEnd > 0) {
+                    networkMs = entry.responseEnd - entry.startTime;
                 }
-                if (entry.responseEnd >= entry.startTime && entry.responseEnd > 0) {
-                    return entry.responseEnd - entry.startTime;
+                timing.networkMs = Number.isFinite(networkMs) && networkMs >= 0 ? networkMs : null;
+                timing.protocol = entry.nextHopProtocol || null;
+                if (entry.connectEnd > entry.connectStart && entry.connectStart > 0) {
+                    timing.connectMs = Math.round(entry.connectEnd - entry.connectStart);
+                    timing.reused = false;
+                } else if (entry.connectEnd > 0 || entry.startTime > 0) {
+                    timing.reused = true;
                 }
+                break;
             }
         } catch (error) {
             console.debug('[CDN Detector] Resource timing unavailable:', error.message);
         }
-        return null;
+        return timing;
     }
 
     function getAdditionalInfo(h) {
@@ -2426,16 +2455,14 @@
         const latencyDescription = info.latency
             ? `${info.latency.method} HTTP time to first byte: ${info.latency.ttfbMs} ms. Includes server processing, not ICMP ping.${info.latency.networkMs !== null ? ` Browser network timing: ${info.latency.networkMs} ms.` : ''}`
             : 'HTTP time to first byte is unavailable.';
+        const protocol = formatProtocol(info.latency?.protocol);
+        const connectDescription = getConnectDescription(info.latency);
         const popTitle =
             info.popKind === 'node-code'
                 ? `${pop} — provider-reported edge node code; not a verified city.`
                 : pop;
         const providerRole = getProviderRole(info.provider, info.server);
         const isOriginResponse = providerRole === 'WEB SERVER' && cacheStatus === 'N/A';
-        const contentType =
-            String(info.additional || '')
-                .replace(/^Type:\s*/i, '')
-                .trim() || '—';
         const cachePopMarkup = isOriginResponse
             ? `
                 <div class="origin-note">
@@ -2481,16 +2508,12 @@
                 </div>
                 <div class="detail-lines">
                     <div class="detail-line">
-                        <span class="info-label">Response</span>
-                        <span class="info-value" title="${escapeHtml(latencyDescription)}">${escapeHtml(info.latency ? `${info.latency.method} · ${info.latency.ttfbMs} ms` : '—')}</span>
+                        <span class="info-label">Protocol</span>
+                        <span class="info-value" title="Negotiated HTTP protocol for this probe">${escapeHtml(protocol || '—')}</span>
                     </div>
                     <div class="detail-line">
-                        <span class="info-label">Transport</span>
-                        <span class="info-value">${escapeHtml(info.connection || '—')}</span>
-                    </div>
-                    <div class="detail-line">
-                        <span class="info-label">Content</span>
-                        <span class="info-value" title="${escapeHtml(contentType)}">${escapeHtml(contentType)}</span>
+                        <span class="info-label">Connect</span>
+                        <span class="info-value" title="${escapeHtml(connectDescription)}">${escapeHtml(info.latency?.reused === true ? 'reused' : info.latency?.connectMs !== null ? `${info.latency.connectMs} ms` : '—')}</span>
                     </div>
                 </div>
                 <div class="panel-footer">
@@ -2694,9 +2717,7 @@
                 pop: readValue('.pop-value') || info.pop,
                 popType: info.popKind === 'node-code' ? 'node-code' : null,
                 server: readValue('.server-value') || info.server,
-                transport: info.connection || null,
                 latency: info.latency || null,
-                contentType: contentType === '—' ? null : contentType,
                 dns: readValue('.dns-value'),
             };
             const copied = await copyTextToClipboard(JSON.stringify(details, null, 2));
@@ -3108,7 +3129,7 @@
                 },
             });
             let latency = createLatency(headStartTime, performance.now());
-            latency.networkMs = getResourceTiming(response.url);
+            Object.assign(latency, getResourceTiming(response.url));
 
             // If HEAD returns 403, try GET as some CDNs block HEAD requests
             if (response.status === 403 || response.status === 405) {
@@ -3126,7 +3147,7 @@
                     },
                 });
                 latency = createLatency(getStartTime, performance.now(), 'GET');
-                latency.networkMs = getResourceTiming(response.url);
+                Object.assign(latency, getResourceTiming(response.url));
             }
 
             const info = parseInfo(response);
@@ -3300,6 +3321,7 @@
             escapeHtml,
             createLatency,
             formatLatency,
+            formatProtocol,
             loadRules,
         };
     }
