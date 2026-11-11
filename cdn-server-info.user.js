@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.62.1
-// @description  [v7.62.1] 将缓存状态改为从折叠圆钮中心向外扩散的高饱和色场，以绿、红、蓝、灰强化 HIT / MISS / BYPASS / N/A 辨识度。
-// @description:en [v7.62.1] Uses vivid green, red, blue, or gray status fields radiating from the collapsed orb's center for clearer HIT / MISS / BYPASS / N/A recognition.
+// @version      7.63.0
+// @description  [v7.63.0] 折叠圆钮改用中心色芯与内部光环组成的光学双环状态色场，缩小品牌图标并保留透明玻璃边缘。
+// @description:en [v7.63.0] Gives the collapsed orb an optical doublet status field with a central color core and inner halo, while reducing the brand mark and preserving the clear glass edge.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -15,7 +15,7 @@
 // @grant        GM_setValue
 // @grant        GM_getResourceText
 // @grant        GM_registerMenuCommand
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.62.1
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.63.0
 // @connect      dns.alidns.com
 // @connect      dns.google
 // @connect      1.1.1.1
@@ -1916,7 +1916,16 @@
             border: 1px solid var(--panel-orb-edge);
             border-radius: 50%;
             background:
-                radial-gradient(circle at 50% 52%, var(--panel-orb-status-core) 0%, var(--panel-orb-status-mid) 46%, transparent 82%),
+                radial-gradient(
+                    circle at 50% 50%,
+                    var(--panel-orb-status-core) 0%,
+                    var(--panel-orb-status-core) 24%,
+                    transparent 38%,
+                    transparent 42%,
+                    var(--panel-orb-status-mid) 49%,
+                    var(--panel-orb-status-mid) 55%,
+                    transparent 69%
+                ),
                 var(--panel-orb);
             color: var(--panel-brand);
             box-shadow:
@@ -1936,10 +1945,20 @@
             inset: 13%;
             border: 0;
             border-radius: 50%;
-            background:
-                radial-gradient(circle at 50% 53%, var(--panel-orb-status-core) 0%, transparent 62%),
-                ${orbBloom};
+            background: ${orbBloom};
             filter: blur(7px);
+            pointer-events: none;
+        }
+        .collapsed-orb::after {
+            content: '';
+            position: absolute;
+            inset: 9%;
+            z-index: 2;
+            border: 1px solid ${isDarkTheme ? '#e8f6e01f' : '#ffffff5c'};
+            border-radius: 50%;
+            box-shadow:
+                0 0 0 3px var(--panel-orb-status-aura),
+                inset 0 0 12px ${isDarkTheme ? '#ffffff0d' : '#ffffff1f'};
             pointer-events: none;
         }
         .collapsed-orb:hover {
@@ -1972,8 +1991,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            width: ${isMobile ? 48 : 56}px;
-            height: ${isMobile ? 48 : 56}px;
+            width: ${isMobile ? 42 : 50}px;
+            height: ${isMobile ? 42 : 50}px;
             color: var(--panel-brand);
             filter: drop-shadow(0 2px 3px ${isDarkTheme ? '#00000059' : '#29352329'});
         }
@@ -2042,7 +2061,7 @@
             background: transparent;
             box-shadow: none;
             color: var(--panel-orb-monogram);
-            font-size: ${isMobile ? 24 : 28}px;
+            font-size: ${isMobile ? 21 : 25}px;
             font-weight: 500;
             letter-spacing: -1px !important;
             padding-right: 1px;
