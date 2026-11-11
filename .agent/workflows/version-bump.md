@@ -4,7 +4,7 @@ description: 版本号更新工作流 - 在提交前自动更新版本号
 
 # 版本号更新工作流
 
-此工作流用于在提交代码前更新项目版本号,确保 `package.json` 和 `cdn-server-info.user.js` 中的版本号保持一致。
+此工作流用于在提交代码前更新项目版本号,确保 `package.json`、`package-lock.json`、userscript 和 README 徽章保持一致。
 
 ## 使用方法
 
@@ -57,6 +57,7 @@ node .agent/workflows/scripts/update-version.js 7.55.0
 grep '"version"' package.json
 grep '@version' cdn-server-info.user.js
 grep '@resource' cdn-server-info.user.js
+npm run release:check
 ```
 
 ### 5. 提交更改
@@ -72,10 +73,12 @@ git push
 1. **版本号格式**: 必须遵循 `x.y.z` 格式 (例如: `7.55.0`)
 2. **同步更新**: 脚本会自动更新以下位置的版本号:
     - `package.json` 中的 `version` 字段
+    - `package-lock.json` 中的根项目 `version`
     - `cdn-server-info.user.js` 中的 `@version` 标签
     - `cdn-server-info.user.js` 中的 `@description` 和 `@description:en` (版本号引用)
     - `cdn-server-info.user.js` 中的 `@resource` URL 参数
-3. **提交前检查**: 建议在提交前运行 `npm run lint` 确保代码质量
+    - `README.md` 中的版本徽章
+3. **提交前检查**: 建议在提交前运行 `npm run lint && npm test && npm run release:check && npm run format:check`
 
 ## 快速命令
 

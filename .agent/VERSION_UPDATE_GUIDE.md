@@ -31,8 +31,11 @@ node .agent/workflows/scripts/update-version.js minor
 # 2. 检查更改
 git diff
 
-# 3. 运行代码检查
+# 3. 更新 README 版本说明并运行检查
 npm run lint
+npm test
+npm run release:check
+npm run format:check
 
 # 4. 暂存所有更改
 git add .
@@ -58,12 +61,14 @@ git push
 脚本会自动更新以下位置:
 
 1. ✅ `package.json` → `"version": "x.y.z"`
-2. ✅ `cdn-server-info.user.js` → `// @version x.y.z`
-3. ✅ `cdn-server-info.user.js` → `// @description [vx.y.z] ...`
-4. ✅ `cdn-server-info.user.js` → `// @resource ... ?v=x.y.z`
+2. ✅ `package-lock.json` → 根项目 `version`
+3. ✅ `cdn-server-info.user.js` → `// @version x.y.z`
+4. ✅ `cdn-server-info.user.js` → `// @description [vx.y.z] ...`
+5. ✅ `cdn-server-info.user.js` → `// @resource ... ?v=x.y.z`
+6. ✅ `README.md` → 版本徽章
 
 ## ⚠️ 注意事项
 
 - 版本号必须遵循 `x.y.z` 格式
-- 提交前务必运行 `npm run lint` 检查代码质量
+- 提交前务必运行 `npm run lint && npm test && npm run release:check`
 - 推荐使用自动递增方式,避免手动输入错误

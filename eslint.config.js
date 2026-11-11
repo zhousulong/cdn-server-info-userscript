@@ -41,6 +41,7 @@ module.exports = [
                 GM_setValue: 'readonly',
                 GM_getResourceText: 'readonly',
                 GM_xmlhttpRequest: 'readonly',
+                GM_registerMenuCommand: 'readonly',
                 GM_info: 'readonly',
 
                 // Node.js globals

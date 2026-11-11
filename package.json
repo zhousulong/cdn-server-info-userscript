@@ -1,10 +1,13 @@
 {
     "name": "cdn-server-info-userscript",
-    "version": "7.58.0",
+    "version": "7.59.0",
     "description": "A userscript to display CDN and server information",
     "main": "cdn-server-info.user.js",
     "scripts": {
-        "test": "node tools/test_cname_matching.mjs",
+        "test": "npm run test:cname && npm run test:detection",
+        "test:cname": "node tools/test_cname_matching.mjs",
+        "test:detection": "node tools/test_parse_info.mjs",
+        "release:check": "node tools/check-version.mjs",
         "lint": "eslint .",
         "lint:fix": "eslint . --fix",
         "format": "prettier --write .",

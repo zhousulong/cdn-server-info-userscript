@@ -11,7 +11,9 @@ const path = require('path');
 // 文件路径
 const PROJECT_ROOT = path.join(__dirname, '../../..');
 const PACKAGE_JSON_PATH = path.join(PROJECT_ROOT, 'package.json');
+const PACKAGE_LOCK_PATH = path.join(PROJECT_ROOT, 'package-lock.json');
 const USERSCRIPT_PATH = path.join(PROJECT_ROOT, 'cdn-server-info.user.js');
+const README_PATH = path.join(PROJECT_ROOT, 'README.md');
 
 // ANSI 颜色代码
 const colors = {
@@ -93,6 +95,21 @@ function updatePackageJson(newVersion) {
 }
 
 /**
+ * 更新 package-lock.json 中的根项目版本号
+ */
+function updatePackageLock(newVersion) {
+    const packageLock = JSON.parse(fs.readFileSync(PACKAGE_LOCK_PATH, 'utf8'));
+    const oldVersion = packageLock.version;
+    packageLock.version = newVersion;
+    if (packageLock.packages && packageLock.packages['']) {
+        packageLock.packages[''].version = newVersion;
+    }
+
+    fs.writeFileSync(PACKAGE_LOCK_PATH, JSON.stringify(packageLock, null, 4) + '\n', 'utf8');
+    log(`✓ package-lock.json: ${oldVersion} → ${newVersion}`, 'green');
+}
+
+/**
  * 更新 userscript 中的版本号
  */
 function updateUserscript(newVersion) {
@@ -139,6 +156,23 @@ function updateUserscript(newVersion) {
 }
 
 /**
+ * 更新 README 中的版本徽章
+ */
+function updateReadme(newVersion) {
+    let content = fs.readFileSync(README_PATH, 'utf8');
+    const oldVersionMatch = content.match(/badge\/version-(\d+\.\d+\.\d+)-blue\.svg/);
+    if (!oldVersionMatch) {
+        throw new Error('README 中未找到版本徽章');
+    }
+    content = content.replace(
+        /badge\/version-\d+\.\d+\.\d+-blue\.svg/,
+        `badge/version-${newVersion}-blue.svg`
+    );
+    fs.writeFileSync(README_PATH, content, 'utf8');
+    log(`✓ README.md 徽章: ${oldVersionMatch[1]} → ${newVersion}`, 'green');
+}
+
+/**
  * 主函数
  */
 function main() {
@@ -182,14 +216,17 @@ function main() {
     try {
         // 更新文件
         updatePackageJson(newVersion);
+        updatePackageLock(newVersion);
         updateUserscript(newVersion);
+        updateReadme(newVersion);
 
         log('\n✓ 版本号更新完成!', 'green');
         log('\n下一步:', 'yellow');
         log('  1. 检查更改: git diff', 'cyan');
-        log('  2. 运行测试: npm run lint', 'cyan');
-        log(`  3. 提交更改: git commit -m "chore: bump version to ${newVersion}"`, 'cyan');
-        log('  4. 推送代码: git push', 'cyan');
+        log('  2. 更新版本说明: README.md', 'cyan');
+        log('  3. 运行检查: npm run lint && npm test && npm run release:check', 'cyan');
+        log(`  4. 提交更改: git commit -m "chore: bump version to ${newVersion}"`, 'cyan');
+        log('  5. 推送代码: git push', 'cyan');
     } catch (error) {
         log(`\n错误: ${error.message}`, 'red');
         process.exit(1);

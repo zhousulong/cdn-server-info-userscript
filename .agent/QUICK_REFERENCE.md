@@ -73,11 +73,18 @@
 
 ## 🔧 版本更新
 
-**3 个位置必须同时更新**:
+**版本号由脚本统一同步**:
 
 1. Line 5-7: `// @version 7.57.0`
 2. Line 17: `?v=7.57.0`
 3. 描述信息
+4. `package.json` / `package-lock.json`
+5. README 版本徽章
+
+```bash
+npm run version:minor
+npm run release:check
+```
 
 ---
 
@@ -96,5 +103,5 @@
 - [ ] 头是否专有？
 - [ ] 避免了通用头？
 - [ ] Logo 用了 `currentColor`？
-- [ ] 更新了 3 处版本号？
+- [ ] 运行了 `npm run release:check`？
 - [ ] 理解优先级不能解决冲突？

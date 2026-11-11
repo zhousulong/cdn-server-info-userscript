@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.58.0
-// @description  [v7.58.0] 全新晨光 / 夜光仪器面板：品牌徽章、无图标字母兜底、主题持久化与折叠圆钮；并修复右下角及拖动后的折叠位置回归。
-// @description:en [v7.58.0] New Dawn / Night instrument panels with brand badges, monogram fallback, persistent themes and a collapsed status orb; also fixes bottom-right and post-drag collapse positioning.
+// @version      7.59.0
+// @description  [v7.59.0] 新增面板设置中心：Auto / 亮色 / 暗色主题、DNS 隐私开关、站点隐藏、位置重置、详情复制与移动端设置态；补齐源站识别和发布校验。
+// @description:en [v7.59.0] Adds a settings center with Auto/Light/Dark themes, DNS privacy controls, per-site hiding, position reset, detail copy and mobile settings layout, plus origin detection and release validation.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -14,7 +14,8 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_getResourceText
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.58.0
+// @grant        GM_registerMenuCommand
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.59.0
 // @connect      dns.alidns.com
 // @connect      dns.google
 // @connect      1.1.1.1
@@ -46,8 +47,8 @@
         settings: {
             theme: 'auto', // 'auto', 'dark' or 'light'
             panelPosition: 'bottom-right', // 'top-left', 'top-right', 'bottom-left', 'bottom-right'
-            showExtraInfo: true,
-            excludedUrls: [],
+            dnsLookup: true,
+            disabledSites: [],
         },
         // Initial position for custom placement
         initialPosition: {
@@ -56,7 +57,9 @@
         },
     };
 
-    window.cdnScriptStatus = window.cdnScriptStatus || {};
+    if (typeof window !== 'undefined') {
+        window.cdnScriptStatus = window.cdnScriptStatus || {};
+    }
 
     // --- Core Info Parsing Functions ---
     function getCacheStatus(h) {
@@ -1396,6 +1399,7 @@
     }
 
     async function checkDNS(domain) {
+        if (config.settings.dnsLookup === false) return null;
         if (!domain) {
             console.log('[CDN DNS] Skipped: no domain');
             return null;
@@ -1522,6 +1526,7 @@
 
     // Update the panel if DNS detection finds a better result
     function updatePanelWithDNS(dnsResult, currentInfo, expectedHost, expectedDomain) {
+        if (config.settings.dnsLookup === false) return;
         if (!dnsResult) return;
 
         // Guard against SPA races: an in-flight DNS lookup from a previous URL
@@ -1573,6 +1578,8 @@
         if (!statusLine) {
             statusLine = document.createElement('div');
             statusLine.className = 'dns-status';
+            statusLine.setAttribute('role', 'status');
+            statusLine.setAttribute('aria-live', 'polite');
             const panelFooter = panel.shadowRoot.querySelector('.panel-footer');
             panel.shadowRoot.querySelector('.panel-surface').insertBefore(statusLine, panelFooter);
         }
@@ -1677,6 +1684,15 @@
         return (r * 299 + g * 587 + b * 114) / 1000;
     }
 
+    function getEffectiveTheme() {
+        if (config.settings.theme !== 'auto') {
+            return config.settings.theme === 'dark' ? 'dark' : 'light';
+        }
+        const pageTheme = detectPageTheme();
+        if (pageTheme) return pageTheme;
+        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+
     // Detect if user is on mobile device
     function isMobileDevice() {
         return (
@@ -1687,7 +1703,7 @@
     }
 
     function getPanelCSS() {
-        const isDarkTheme = config.settings.theme === 'dark';
+        const isDarkTheme = getEffectiveTheme() === 'dark';
         const isMobile = isMobileDevice();
         const uiFont =
             '"Avenir Next", Avenir, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
@@ -1810,14 +1826,15 @@
         }
         #cdn-info-panel-enhanced.collapsed .collapsed-orb { display: flex; }
         #cdn-info-panel-enhanced.collapsed .panel-surface { display: none; }
+        #cdn-info-panel-enhanced.settings-open { min-height: ${isMobile ? 470 : 0}px; }
         .panel-hero {
             position: relative;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-height: ${isMobile ? 112 : 130}px;
-            padding: 20px 24px 16px;
+            min-height: ${isMobile ? 146 : 154}px;
+            padding: ${isMobile ? 68 : 56}px 24px ${isMobile ? 18 : 20}px;
             background: radial-gradient(ellipse at 50% 100%, ${isDarkTheme ? '#c3de9b17' : '#adc78625'}, transparent 70%);
         }
         .provider-brand {
@@ -1826,7 +1843,7 @@
             justify-content: center;
             width: 142px;
             height: ${isMobile ? 50 : 61}px;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
             color: var(--panel-brand);
         }
         .provider-brand svg { display: block; width: 100%; height: 100%; overflow: visible; }
@@ -1894,12 +1911,136 @@
         }
         .icon-btn:hover { background: var(--panel-accent-soft); color: var(--panel-text); }
         .icon-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+        .minimize-btn {
+            position: absolute;
+            top: 8px;
+            ${isRTLLanguage() ? 'right' : 'left'}: 8px;
+        }
+        .settings-popover {
+            position: absolute;
+            inset: 5px;
+            z-index: 5;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 18px;
+            border: 1px solid var(--panel-edge);
+            border-radius: 24px;
+            background: var(--panel-surface);
+            color: var(--panel-text);
+            box-shadow: 0 18px 38px #0003, inset 0 1px #ffffff20;
+            overflow: auto;
+        }
+        .settings-popover[hidden],
+        #cdn-info-panel-enhanced.collapsed .settings-popover { display: none; }
+        .settings-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            min-height: ${controlSize}px;
+        }
+        .settings-title {
+            color: var(--panel-muted);
+            font-size: 10px;
+            letter-spacing: 1.2px !important;
+        }
+        .settings-section { display: flex; flex-direction: column; gap: 6px; }
+        .settings-label {
+            color: var(--panel-muted);
+            font-size: 10px;
+            letter-spacing: 0.8px !important;
+            text-transform: uppercase;
+        }
+        .settings-hint { color: var(--panel-muted); font-size: 10px; line-height: 1.45; }
+        .settings-theme-options {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 4px;
+        }
+        .settings-theme-btn {
+            min-width: 0;
+            min-height: ${controlSize}px;
+            padding: 0 4px;
+            border: 1px solid var(--panel-line);
+            border-radius: 8px;
+            background: transparent;
+            color: var(--panel-muted);
+            font: inherit;
+            font-size: 10px;
+            cursor: pointer;
+        }
+        .settings-theme-btn[aria-pressed="true"] {
+            border-color: var(--panel-accent);
+            background: var(--panel-accent-soft);
+            color: var(--panel-text);
+        }
+        .settings-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .settings-switch {
+            position: relative;
+            flex: 0 0 40px;
+            width: 40px;
+            height: 24px;
+            padding: 0;
+            border: 1px solid var(--panel-edge);
+            border-radius: 999px;
+            background: var(--panel-shell);
+            cursor: pointer;
+        }
+        .settings-switch::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--panel-muted);
+            transition: left 160ms ease, background 160ms ease;
+        }
+        .settings-switch[aria-checked="true"] {
+            border-color: var(--panel-accent);
+            background: var(--panel-accent-soft);
+        }
+        .settings-switch[aria-checked="true"]::after {
+            left: 18px;
+            background: var(--panel-accent);
+        }
+        .settings-action {
+            width: 100%;
+            min-height: ${controlSize}px;
+            padding: 0 10px;
+            border: 1px solid var(--panel-line);
+            border-radius: 8px;
+            background: transparent;
+            color: var(--panel-text);
+            font: inherit;
+            font-size: 11px;
+            text-align: ${isRTLLanguage() ? 'right' : 'left'};
+            cursor: pointer;
+        }
+        .settings-action:hover {
+            border-color: var(--panel-accent);
+            background: var(--panel-accent-soft);
+        }
+        .settings-action.danger { color: ${redColor}; }
+        .settings-feedback {
+            min-height: 14px;
+            color: var(--panel-accent);
+            font-size: 10px;
+            line-height: 1.4;
+        }
         .hero-actions {
             position: absolute;
             top: 8px;
             ${isRTLLanguage() ? 'left' : 'right'}: 8px;
             display: flex;
-            gap: 1px;
+            gap: 2px;
         }
         .info-lines-container {
             display: grid;
@@ -1907,6 +2048,20 @@
             border-top: 1px solid var(--panel-line);
             border-bottom: 1px solid var(--panel-line);
         }
+        .origin-note {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 13px 16px;
+            border-top: 1px solid var(--panel-line);
+            border-bottom: 1px solid var(--panel-line);
+        }
+        .origin-title {
+            color: var(--panel-accent);
+            font-size: 10px;
+            letter-spacing: 0.9px !important;
+        }
+        .origin-copy { color: var(--panel-muted); font-size: 11px; line-height: 1.45; }
         .info-line { min-width: 0; padding: 12px 15px; }
         .info-line + .info-line { ${isRTLLanguage() ? 'border-right' : 'border-left'}: 1px solid var(--panel-line); }
         .info-label {
@@ -1941,7 +2096,7 @@
         .cache-BYPASS, .cache-DYNAMIC { color: ${blueColor} !important; }
         .server-line {
             display: flex;
-            align-items: center;
+            align-items: baseline;
             justify-content: space-between;
             gap: 12px;
             min-height: 38px;
@@ -1949,7 +2104,41 @@
             color: var(--panel-muted);
             font-size: 11px;
         }
-        .server-line .info-value { max-width: 70%; font-size: 11px; text-align: ${isRTLLanguage() ? 'left' : 'right'}; }
+        .server-line .info-label,
+        .detail-line .info-label {
+            margin-bottom: 0;
+            line-height: 1.35;
+            white-space: nowrap;
+        }
+        .server-line .info-value {
+            max-width: 70%;
+            font-size: 11px;
+            line-height: 1.35;
+            text-align: ${isRTLLanguage() ? 'left' : 'right'};
+        }
+        .detail-lines {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin: 0 16px;
+            padding: 9px 0 11px;
+            border-top: 1px solid var(--panel-line);
+        }
+        .detail-line {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 12px;
+            min-width: 0;
+            color: var(--panel-muted);
+            font-size: 10px;
+        }
+        .detail-line .info-value {
+            max-width: 72%;
+            font-size: 10px;
+            line-height: 1.35;
+            text-align: ${isRTLLanguage() ? 'left' : 'right'};
+        }
         .panel-footer {
             display: flex;
             align-items: center;
@@ -1964,6 +2153,7 @@
         .expand-btn svg { width: 14px; height: 14px; transition: transform 180ms ease; }
         #cdn-info-panel-enhanced.details-hidden .expand-btn svg { transform: rotate(180deg); }
         #cdn-info-panel-enhanced.details-hidden .server-line,
+        #cdn-info-panel-enhanced.details-hidden .detail-lines,
         #cdn-info-panel-enhanced.details-hidden .dns-status { display: none; }
         .dns-status {
             display: flex;
@@ -1979,7 +2169,9 @@
         }
         .dns-label { white-space: nowrap; flex-shrink: 0; font-family: ${uiFont}; font-size: 10px; letter-spacing: 0.5px !important; }
         .dns-value { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--panel-text); }
-        .collapsed-orb:focus-visible, .icon-btn:focus-visible { outline: 2px solid var(--panel-accent); outline-offset: 2px; }
+        .collapsed-orb:focus-visible, .icon-btn:focus-visible,
+        .settings-theme-btn:focus-visible, .settings-switch:focus-visible,
+        .settings-action:focus-visible { outline: 2px solid var(--panel-accent); outline-offset: 2px; }
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
         }
@@ -1987,6 +2179,12 @@
     }
 
     function getPositionCSS() {
+        if (config.settings.customAnchor) {
+            const { right, bottom } = config.settings.customAnchor;
+            if (Number.isFinite(right) && Number.isFinite(bottom)) {
+                return `right: ${right}px; bottom: ${bottom}px;`;
+            }
+        }
         if (config.settings.customPosition) {
             const { left, top } = config.settings.customPosition;
             if (Number.isFinite(left) && Number.isFinite(top)) {
@@ -2006,6 +2204,61 @@
         }
     }
 
+    function syncThemeButton(host) {
+        if (!host || !host.shadowRoot) return;
+        const themeButton = host.shadowRoot.querySelector('.theme-btn');
+        if (!themeButton) return;
+        const isDark = getEffectiveTheme() === 'dark';
+        const isAuto = config.settings.theme === 'auto';
+        themeButton.innerHTML = isDark
+            ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>'
+            : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>';
+        const label = isAuto
+            ? `Theme: Auto (${isDark ? 'Dark' : 'Light'})`
+            : `Theme: ${isDark ? 'Dark' : 'Light'}`;
+        themeButton.title = label;
+        themeButton.setAttribute('aria-label', label);
+    }
+
+    function syncSettingsControls(host) {
+        if (!host || !host.shadowRoot) return;
+        const theme = ['auto', 'light', 'dark'].includes(config.settings.theme)
+            ? config.settings.theme
+            : 'auto';
+        host.shadowRoot.querySelectorAll('.settings-theme-btn').forEach((button) => {
+            button.setAttribute('aria-pressed', String(button.dataset.themeValue === theme));
+        });
+        const dnsToggle = host.shadowRoot.querySelector('.settings-dns-toggle');
+        if (dnsToggle) {
+            dnsToggle.setAttribute('aria-checked', String(config.settings.dnsLookup !== false));
+        }
+    }
+
+    function refreshPanelTheme(host) {
+        if (!host || !host.shadowRoot) return;
+        const styleEl = host.shadowRoot.querySelector('style');
+        if (styleEl) styleEl.textContent = getPanelCSS();
+        syncThemeButton(host);
+        syncSettingsControls(host);
+    }
+
+    async function copyTextToClipboard(text) {
+        try {
+            await navigator.clipboard.writeText(text);
+            return true;
+        } catch {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.setAttribute('readonly', '');
+            textarea.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0;';
+            document.body.appendChild(textarea);
+            textarea.select();
+            const copied = document.execCommand('copy');
+            textarea.remove();
+            return copied;
+        }
+    }
+
     function createDisplayPanel(info) {
         if (!info || document.getElementById('cdn-info-host-enhanced')) return;
         const host = document.createElement('div');
@@ -2022,32 +2275,60 @@
         const cacheClass = 'cache-' + cacheStatus.split(' ')[0];
         const pop = info.pop && info.pop !== 'N/A' ? String(info.pop) : '—';
         const server = info.server && info.server !== 'N/A' ? String(info.server) : '—';
+        const providerRole = getProviderRole(info.provider, info.server);
+        const isOriginResponse = providerRole === 'WEB SERVER' && cacheStatus === 'N/A';
+        const contentType =
+            String(info.additional || '')
+                .replace(/^Type:\s*/i, '')
+                .trim() || '—';
+        const cachePopMarkup = isOriginResponse
+            ? `
+                <div class="origin-note">
+                    <span class="origin-title">ORIGIN RESPONSE</span>
+                    <span class="origin-copy">No CDN cache headers were returned. This response appears to come directly from the web server.</span>
+                </div>
+            `
+            : `
+                <div class="info-lines-container">
+                    <div class="info-line">
+                        <span class="info-label">Cache</span>
+                        <span class="info-value cache-value ${cacheClass}" title="${escapeHtml(cacheStatus)}">${cacheStatus === 'N/A' ? '—' : '● ' + escapeHtml(cacheStatus)}</span>
+                    </div>
+                    <div class="info-line">
+                        <span class="info-label">POP</span>
+                        <span class="info-value pop-value" title="${escapeHtml(pop)}">${escapeHtml(pop)}</span>
+                    </div>
+                </div>
+            `;
 
         panel.innerHTML = `
             <button class="collapsed-orb" data-cache="${escapeHtml(cacheStatus)}" title="Expand network details" aria-label="Expand network details" aria-expanded="false"></button>
             <div class="panel-surface">
                 <div class="panel-hero">
+                    <button class="icon-btn minimize-btn" type="button" title="Collapse to status orb" aria-label="Collapse to status orb"></button>
                     <div class="hero-actions">
-                        <button class="icon-btn theme-btn" title="Toggle light / dark theme" aria-label="Toggle light / dark theme"></button>
-                        <button class="icon-btn close-btn" title="Close" aria-label="Close"></button>
+                        <button class="icon-btn settings-btn" type="button" title="Settings" aria-label="Settings" aria-haspopup="dialog" aria-expanded="false" aria-controls="cdn-panel-settings"></button>
+                        <button class="icon-btn theme-btn" type="button" title="Toggle light / dark theme" aria-label="Toggle light / dark theme"></button>
+                        <button class="icon-btn close-btn" type="button" title="Close" aria-label="Close"></button>
                     </div>
                     <div class="provider-brand"></div>
                     <span class="info-value provider-name" title="${escapeHtml(info.provider)}">${escapeHtml(info.provider)}</span>
-                    <span class="provider-caption">${escapeHtml(getProviderRole(info.provider, info.server))}</span>
+                    <span class="provider-caption">${escapeHtml(providerRole)}</span>
                 </div>
-                <div class="info-lines-container">
-                    <div class="info-line">
-                        <span class="info-label">Cache</span>
-                        <span class="info-value ${cacheClass}" title="${escapeHtml(cacheStatus)}">${cacheStatus === 'N/A' ? '—' : '● ' + escapeHtml(cacheStatus)}</span>
-                    </div>
-                    <div class="info-line">
-                        <span class="info-label">POP</span>
-                        <span class="info-value" title="${escapeHtml(pop)}">${escapeHtml(pop)}</span>
-                    </div>
-                </div>
+                ${cachePopMarkup}
                 <div class="server-line">
                     <span class="info-label">Server</span>
-                    <span class="info-value" title="${escapeHtml(server)}">${escapeHtml(server)}</span>
+                    <span class="info-value server-value" title="${escapeHtml(server)}">${escapeHtml(server)}</span>
+                </div>
+                <div class="detail-lines">
+                    <div class="detail-line">
+                        <span class="info-label">Transport</span>
+                        <span class="info-value">${escapeHtml(info.connection || '—')}</span>
+                    </div>
+                    <div class="detail-line">
+                        <span class="info-label">Content</span>
+                        <span class="info-value" title="${escapeHtml(contentType)}">${escapeHtml(contentType)}</span>
+                    </div>
                 </div>
                 <div class="panel-footer">
                     <span class="footer-caption">NETWORK MONITOR</span>
@@ -2057,61 +2338,235 @@
                     </div>
                 </div>
             </div>
+            <div class="settings-popover" id="cdn-panel-settings" role="dialog" aria-modal="true" aria-labelledby="cdn-settings-title" hidden>
+                <div class="settings-head">
+                    <span class="settings-title" id="cdn-settings-title">PANEL SETTINGS</span>
+                    <button class="icon-btn settings-close-btn" title="Close settings" aria-label="Close settings"></button>
+                </div>
+                <div class="settings-section">
+                    <span class="settings-label">Theme</span>
+                    <div class="settings-theme-options" role="group" aria-label="Theme">
+                        <button class="settings-theme-btn" type="button" data-theme-value="auto" aria-pressed="false">Auto</button>
+                        <button class="settings-theme-btn" type="button" data-theme-value="light" aria-pressed="false">Light</button>
+                        <button class="settings-theme-btn" type="button" data-theme-value="dark" aria-pressed="false">Dark</button>
+                    </div>
+                    <span class="settings-hint">Auto follows the page theme, then your system preference.</span>
+                </div>
+                <div class="settings-section">
+                    <div class="settings-row">
+                        <span class="settings-label">DNS lookup</span>
+                        <button class="settings-switch settings-dns-toggle" type="button" role="switch" aria-checked="true" aria-label="DNS lookup"></button>
+                    </div>
+                    <span class="settings-hint">Sends this hostname to Google or AliDNS DoH for CNAME detection.</span>
+                </div>
+                <div class="settings-section">
+                    <button class="settings-action danger settings-hide-site" type="button">Hide on this site</button>
+                    <button class="settings-action settings-reset-position" type="button">Reset position</button>
+                    <button class="settings-action settings-copy-details" type="button">Copy details</button>
+                </div>
+                <div class="settings-feedback" role="status" aria-live="polite"></div>
+            </div>
         `;
         shadowRoot.appendChild(panel);
         updateProviderBadge(host, info.provider);
 
-        shadowRoot.querySelector('.close-btn').innerHTML =
+        const closeIcon =
             '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>';
+        shadowRoot.querySelector('.minimize-btn').innerHTML =
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg>';
+        shadowRoot.querySelector('.settings-btn').innerHTML =
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>';
+        shadowRoot.querySelector('.close-btn').innerHTML = closeIcon;
+        shadowRoot.querySelector('.settings-close-btn').innerHTML = closeIcon;
         shadowRoot.querySelector('.drag-btn').innerHTML =
             '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="8" cy="6" r="1.3"/><circle cx="16" cy="6" r="1.3"/><circle cx="8" cy="12" r="1.3"/><circle cx="16" cy="12" r="1.3"/><circle cx="8" cy="18" r="1.3"/><circle cx="16" cy="18" r="1.3"/></svg>';
 
-        function updateThemeButton() {
-            const isDark = config.settings.theme === 'dark';
-            const themeButton = shadowRoot.querySelector('.theme-btn');
-            themeButton.innerHTML = isDark
-                ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>'
-                : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>';
-        }
-        updateThemeButton();
-        updateExpandButton(false);
+        const settingsButton = shadowRoot.querySelector('.settings-btn');
+        const panelSurface = shadowRoot.querySelector('.panel-surface');
+        const settingsPopover = shadowRoot.querySelector('.settings-popover');
+        const settingsFeedback = shadowRoot.querySelector('.settings-feedback');
+        const dnsToggle = shadowRoot.querySelector('.settings-dns-toggle');
+        let feedbackTimer;
 
-        function updateExpandButton(detailsHidden) {
-            const expandButton = shadowRoot.querySelector('.expand-btn');
-            expandButton.setAttribute('aria-expanded', String(!detailsHidden));
-            expandButton.setAttribute(
-                'aria-label',
-                detailsHidden ? 'Show details' : 'Hide details'
+        function setSettingsFeedback(message) {
+            clearTimeout(feedbackTimer);
+            settingsFeedback.textContent = message;
+            if (message) {
+                feedbackTimer = setTimeout(() => {
+                    if (settingsFeedback.textContent === message) settingsFeedback.textContent = '';
+                }, 3500);
+            }
+        }
+
+        function setSettingsOpen(open, restoreFocus = true) {
+            settingsPopover.hidden = !open;
+            settingsButton.setAttribute('aria-expanded', String(open));
+            panel.classList.toggle('settings-open', open);
+            panelSurface.toggleAttribute('inert', open);
+            requestAnimationFrame(() => constrainPanelPosition(host));
+            if (!open) {
+                setSettingsFeedback('');
+                if (restoreFocus) settingsButton.focus();
+                return;
+            }
+            syncSettingsControls(host);
+            const selectedTheme = settingsPopover.querySelector(
+                '.settings-theme-btn[aria-pressed="true"]'
             );
-            expandButton.title = detailsHidden ? 'Show details' : 'Hide details';
-            expandButton.innerHTML = `<span>${detailsHidden ? 'Expand' : 'Less'}</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>`;
+            requestAnimationFrame(() => {
+                (selectedTheme || settingsPopover.querySelector('.settings-close-btn')).focus();
+            });
         }
 
+        function removeDnsStatus() {
+            shadowRoot.querySelector('.dns-status')?.remove();
+        }
+
+        function runDnsLookup(announce = false) {
+            if (!config.settings.dnsLookup) return;
+            const dnsDomain = window.location.hostname;
+            checkDNS(dnsDomain)
+                .then((dnsResult) => {
+                    if (!config.settings.dnsLookup) return;
+                    updatePanelWithDNS(dnsResult, info, host, dnsDomain);
+                    if (announce) {
+                        setSettingsFeedback(
+                            dnsResult
+                                ? 'DNS lookup complete.'
+                                : 'DNS lookup complete; no CNAME found.'
+                        );
+                    }
+                })
+                .catch(() => {
+                    if (announce) setSettingsFeedback('DNS lookup failed.');
+                });
+        }
+
+        syncThemeButton(host);
+        syncSettingsControls(host);
+        setPanelDetailsHidden(panel, false);
+
+        shadowRoot.querySelector('.minimize-btn').addEventListener('click', (event) => {
+            event.stopPropagation();
+            setSettingsOpen(false, false);
+            setPanelCollapsed(host, panel, true);
+        });
         shadowRoot.querySelector('.close-btn').addEventListener('click', (event) => {
             event.stopPropagation();
             host.remove();
         });
+        settingsButton.addEventListener('click', (event) => {
+            event.stopPropagation();
+            setSettingsOpen(settingsPopover.hidden);
+        });
+        shadowRoot
+            .querySelector('.settings-close-btn')
+            .addEventListener('click', () => setSettingsOpen(false));
         shadowRoot.querySelector('.theme-btn').addEventListener('click', (event) => {
             event.stopPropagation();
-            config.settings.theme = config.settings.theme === 'dark' ? 'light' : 'dark';
+            config.settings.theme = getEffectiveTheme() === 'dark' ? 'light' : 'dark';
             saveUserSettings();
-            styleEl.textContent = getPanelCSS();
-            updateThemeButton();
+            refreshPanelTheme(host);
             requestAnimationFrame(() => constrainPanelPosition(host));
+        });
+        settingsPopover.querySelectorAll('.settings-theme-btn').forEach((button) => {
+            button.addEventListener('click', () => {
+                const nextTheme = button.dataset.themeValue;
+                if (!['auto', 'light', 'dark'].includes(nextTheme)) return;
+                config.settings.theme = nextTheme;
+                saveUserSettings();
+                refreshPanelTheme(host);
+                setSettingsFeedback(`Theme set to ${button.textContent.trim()}.`);
+                requestAnimationFrame(() => constrainPanelPosition(host));
+            });
+        });
+        dnsToggle.addEventListener('click', () => {
+            const enabled = !config.settings.dnsLookup;
+            config.settings.dnsLookup = enabled;
+            saveUserSettings();
+            syncSettingsControls(host);
+            if (!enabled) {
+                removeDnsStatus();
+                const providerName = shadowRoot.querySelector('.provider-name');
+                providerName.textContent = info.provider;
+                providerName.title = info.provider;
+                updateProviderBadge(host, info.provider);
+                updateProviderCaption(host, info.provider, info.server);
+                setSettingsFeedback('DNS lookup disabled; header detection restored.');
+                return;
+            }
+            setSettingsFeedback('DNS lookup enabled.');
+            runDnsLookup(true);
+        });
+        shadowRoot.querySelector('.settings-hide-site').addEventListener('click', () => {
+            const hostname = window.location.hostname.toLowerCase();
+            const disabledSites = Array.isArray(config.settings.disabledSites)
+                ? config.settings.disabledSites
+                : [];
+            if (!disabledSites.includes(hostname)) disabledSites.push(hostname);
+            config.settings.disabledSites = disabledSites;
+            saveUserSettings();
+            host.remove();
+        });
+        shadowRoot.querySelector('.settings-reset-position').addEventListener('click', () => {
+            config.settings.panelPosition = 'bottom-right';
+            delete config.settings.customAnchor;
+            delete config.settings.customPosition;
+            applyPanelAnchor(host, { right: 20, bottom: 20 });
+            saveUserSettings();
+            setSettingsFeedback('Panel position reset to the bottom-right.');
+            requestAnimationFrame(() => constrainPanelPosition(host));
+        });
+        shadowRoot.querySelector('.settings-copy-details').addEventListener('click', async () => {
+            const readValue = (selector) => {
+                const text = shadowRoot.querySelector(selector)?.textContent?.trim() || '';
+                return text && text !== '—' ? text : null;
+            };
+            const cacheValue = readValue('.cache-value')?.replace(/^●\s*/, '') || info.cache;
+            const details = {
+                url: window.location.href,
+                provider: readValue('.provider-name') || info.provider,
+                role: readValue('.provider-caption'),
+                cache: cacheValue,
+                pop: readValue('.pop-value') || info.pop,
+                server: readValue('.server-value') || info.server,
+                transport: info.connection || null,
+                contentType: contentType === '—' ? null : contentType,
+                dns: readValue('.dns-value'),
+            };
+            const copied = await copyTextToClipboard(JSON.stringify(details, null, 2));
+            setSettingsFeedback(copied ? 'Details copied to clipboard.' : 'Clipboard copy failed.');
+        });
+        shadowRoot.addEventListener('keydown', (event) => {
+            if (settingsPopover.hidden) return;
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                setSettingsOpen(false);
+                return;
+            }
+            if (event.key !== 'Tab') return;
+            const focusable = Array.from(
+                settingsPopover.querySelectorAll('button:not([disabled])')
+            );
+            if (focusable.length === 0) return;
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (event.shiftKey && shadowRoot.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && shadowRoot.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
         });
 
         setupPanelCollapse(host, panel);
         makeDraggable(host, panel);
         if (config.settings.panelCollapsed === false) {
             setPanelCollapsed(host, panel, false);
-        } else if (config.settings.panelCollapsed === undefined && window.innerWidth >= 900) {
-            setPanelCollapsed(host, panel, false, false);
         }
 
-        const dnsDomain = window.location.hostname;
-        checkDNS(dnsDomain).then((dnsResult) => {
-            updatePanelWithDNS(dnsResult, info, host, dnsDomain);
-        });
+        runDnsLookup(false);
     }
 
     function getProviderIcon(provider) {
@@ -2222,10 +2677,40 @@
         }
     }
 
+    function usesBottomRightAnchor() {
+        return (
+            config.settings.panelPosition === 'bottom-right' ||
+            Boolean(config.settings.customPosition) ||
+            Boolean(config.settings.customAnchor)
+        );
+    }
+
+    function getBottomRightAnchor(host) {
+        const rect = host.getBoundingClientRect();
+        return {
+            right: Math.max(0, window.innerWidth - rect.right),
+            bottom: Math.max(0, window.innerHeight - rect.bottom),
+        };
+    }
+
+    function applyPanelAnchor(host, anchor) {
+        host.style.left = 'auto';
+        host.style.top = 'auto';
+        host.style.right = `${anchor.right}px`;
+        host.style.bottom = `${anchor.bottom}px`;
+    }
+
     function setPanelCollapsed(host, panel, collapsed, persist = true) {
+        if (usesBottomRightAnchor()) {
+            const anchor = getBottomRightAnchor(host);
+            applyPanelAnchor(host, anchor);
+            config.settings.customAnchor = anchor;
+            delete config.settings.customPosition;
+        }
         panel.classList.toggle('collapsed', collapsed);
         host.classList.toggle('cdn-panel-collapsed', collapsed);
         host.dataset.collapsed = String(collapsed);
+        if (!collapsed) setPanelDetailsHidden(panel, false);
         if (persist) {
             config.settings.panelCollapsed = collapsed;
             saveUserSettings();
@@ -2236,9 +2721,36 @@
         requestAnimationFrame(() => constrainPanelPosition(host));
     }
 
+    function setPanelDetailsHidden(panel, detailsHidden) {
+        panel.classList.toggle('details-hidden', detailsHidden);
+        const expandButton = panel.querySelector('.expand-btn');
+        if (!expandButton) return;
+        expandButton.setAttribute('aria-expanded', String(!detailsHidden));
+        expandButton.setAttribute('aria-label', detailsHidden ? 'Show details' : 'Hide details');
+        expandButton.title = detailsHidden ? 'Show details' : 'Hide details';
+        expandButton.innerHTML = `<span>${detailsHidden ? 'Expand' : 'Less'}</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>`;
+    }
+
     function constrainPanelPosition(host) {
         const margin = 12;
         const rect = host.getBoundingClientRect();
+        if (usesBottomRightAnchor()) {
+            const maxRight = Math.max(margin, window.innerWidth - rect.width - margin);
+            const maxBottom = Math.max(margin, window.innerHeight - rect.height - margin);
+            const right = Math.min(Math.max(window.innerWidth - rect.right, margin), maxRight);
+            const bottom = Math.min(Math.max(window.innerHeight - rect.bottom, margin), maxBottom);
+            if (
+                Math.abs(right - (window.innerWidth - rect.right)) < 1 &&
+                Math.abs(bottom - (window.innerHeight - rect.bottom)) < 1
+            ) {
+                return;
+            }
+            const anchor = { right, bottom };
+            applyPanelAnchor(host, anchor);
+            config.settings.customAnchor = anchor;
+            delete config.settings.customPosition;
+            return;
+        }
         const left = Math.max(margin, Math.min(rect.left, window.innerWidth - rect.width - margin));
         const top = Math.max(margin, Math.min(rect.top, window.innerHeight - rect.height - margin));
         if (Math.abs(left - rect.left) < 1 && Math.abs(top - rect.top) < 1) return;
@@ -2264,14 +2776,7 @@
         });
         expandButton.addEventListener('click', (event) => {
             event.stopPropagation();
-            const detailsHidden = panel.classList.toggle('details-hidden');
-            expandButton.innerHTML = `<span>${detailsHidden ? 'Expand' : 'Less'}</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>`;
-            expandButton.setAttribute('aria-expanded', String(!detailsHidden));
-            expandButton.setAttribute(
-                'aria-label',
-                detailsHidden ? 'Show details' : 'Hide details'
-            );
-            expandButton.title = detailsHidden ? 'Show details' : 'Hide details';
+            setPanelDetailsHidden(panel, !panel.classList.contains('details-hidden'));
             requestAnimationFrame(() => constrainPanelPosition(host));
         });
         setPanelCollapsed(host, panel, true, false);
@@ -2353,8 +2858,10 @@
             if (!hasMoved) return;
             element.dataset.justDragged = '1';
             setTimeout(() => delete element.dataset.justDragged, 0);
-            const rect = element.getBoundingClientRect();
-            config.settings.customPosition = { left: rect.left, top: rect.top };
+            const anchor = getBottomRightAnchor(element);
+            applyPanelAnchor(element, anchor);
+            config.settings.customAnchor = anchor;
+            delete config.settings.customPosition;
             saveUserSettings();
         }
 
@@ -2371,6 +2878,14 @@
         const url = window.location.href.toLowerCase();
         if (config.excludePatterns.some((pattern) => pattern.test(url))) {
             console.log('[CDN Detector] Excluded by URL pattern.');
+            return true;
+        }
+        const hostname = window.location.hostname.toLowerCase();
+        const disabledSites = Array.isArray(config.settings.disabledSites)
+            ? config.settings.disabledSites
+            : [];
+        if (disabledSites.includes(hostname)) {
+            console.log('[CDN Detector] Excluded by site preference.');
             return true;
         }
         return false;
@@ -2443,35 +2958,57 @@
                 const savedSettings = GM_getValue('cdnInfoSettings');
                 if (savedSettings) {
                     const parsed = JSON.parse(savedSettings);
-                    config.settings = { ...config.settings, ...parsed };
+                    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                        config.settings = { ...config.settings, ...parsed };
+                    }
                     console.log('[CDN Detector] Loaded saved settings:', config.settings);
                 } else {
                     console.log(
                         '[CDN Detector] No saved settings, using defaults:',
                         config.settings
                     );
-                    const pageTheme = detectPageTheme();
-                    config.settings.theme = pageTheme || 'light';
                 }
                 if (!['auto', 'light', 'dark'].includes(config.settings.theme)) {
                     config.settings.theme = 'auto';
                 }
-                if (config.settings.theme === 'auto') {
-                    config.settings.theme = detectPageTheme() || 'light';
+                if (typeof config.settings.dnsLookup !== 'boolean') {
+                    config.settings.dnsLookup = true;
                 }
+                const normalizedSites = [];
+                if (Array.isArray(config.settings.disabledSites)) {
+                    for (const site of config.settings.disabledSites) {
+                        if (typeof site === 'string' && site.trim()) {
+                            normalizedSites.push(site.trim().toLowerCase());
+                        }
+                    }
+                }
+                config.settings.disabledSites = normalizedSites;
                 saveUserSettings();
             } catch (e) {
                 console.warn('[CDN Detector] Failed to load user settings:', e);
             }
         } else {
             console.log('[CDN Detector] GM_getValue not available, using defaults');
-            config.settings.theme = detectPageTheme() || 'light';
         }
+    }
+
+    function registerMenuCommands() {
+        if (typeof GM_registerMenuCommand === 'undefined') return;
+        GM_registerMenuCommand('Enable CDN panel on this site', () => {
+            const hostname = window.location.hostname.toLowerCase();
+            const disabledSites = Array.isArray(config.settings.disabledSites)
+                ? config.settings.disabledSites
+                : [];
+            config.settings.disabledSites = disabledSites.filter((site) => site !== hostname);
+            saveUserSettings();
+            window.location.reload();
+        });
     }
 
     function main() {
         // Load user settings
         loadUserSettings();
+        registerMenuCommands();
 
         setTimeout(() => runExecution(config.max_retries), config.initial_delay);
         let lastUrl = window.location.href;
@@ -2502,10 +3039,7 @@
             if (config.settings.theme === 'auto' || !config.settings.theme) {
                 console.log('[CDN Detector] System theme changed, updating panel...');
                 const oldPanel = document.getElementById('cdn-info-host-enhanced');
-                if (oldPanel) {
-                    oldPanel.remove();
-                    setTimeout(() => runExecution(config.max_retries), 100);
-                }
+                if (oldPanel) refreshPanelTheme(oldPanel);
             }
         });
 
@@ -2534,10 +3068,7 @@
                         lastPageTheme = currentPageTheme;
 
                         const oldPanel = document.getElementById('cdn-info-host-enhanced');
-                        if (oldPanel) {
-                            oldPanel.remove();
-                            setTimeout(() => runExecution(config.max_retries), 100);
-                        }
+                        if (oldPanel) refreshPanelTheme(oldPanel);
                     }
                 }
             }, 300);
@@ -2558,5 +3089,16 @@
         }
     }
 
-    main();
+    if (typeof module !== 'undefined' && module.exports) {
+        module.exports = {
+            parseInfo,
+            getCacheStatus,
+            cnameMatchesPattern,
+            getProviderRole,
+            escapeHtml,
+            loadRules,
+        };
+    }
+
+    if (typeof window !== 'undefined') main();
 })();
