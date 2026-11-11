@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-7.62.0-blue.svg)
+![Version](https://img.shields.io/badge/version-7.62.1-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Tampermonkey](https://img.shields.io/badge/Tampermonkey-Compatible-orange.svg)
 
@@ -68,7 +68,7 @@
 - **晨光 / 夜光主题**：银白陶瓷与深色仪器两种风格，并支持跟随页面与系统
 - **品牌徽章**：大尺寸 CDN Logo；无 Logo 时自动生成厂商字母缩写
 - **响应式布局**：完美适配桌面和移动设备
-- **状态圆钮**：折叠时保留品牌图标，并以镜片底色区分缓存状态
+- **状态圆钮**：折叠时保留品牌图标，并以中心向外扩散的镜片色场区分缓存状态
 - **设置面板**：主题、DNS、站点隐藏、位置重置和详情复制集中管理
 - **可拖拽**：拖动徽章或底部手柄调整位置
 - **Shadow DOM 隔离**：确保样式不受网站影响
@@ -202,6 +202,14 @@
 ---
 
 ## 📋 版本更新
+
+### v7.62.1 (2026-11-11) - 中心状态色场
+
+#### 🎨 状态辨识
+
+- **中心扩散**：状态色改为从镜片中心向外渐隐的径向色场，不再集中在圆钮底部。
+- **高饱和配色**：HIT 使用鲜绿、MISS 使用红珊瑚、BYPASS / DYNAMIC 使用亮蓝，N/A 保持中性灰；亮暗主题分别调校。
+- **主视觉保留**：橙色品牌图标、白色镜片边缘和顶部高光继续作为主体，状态色负责背景识别。
 
 ### v7.62.0 (2026-11-11) - 状态底色聚焦
 

@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.62.0
-// @description  [v7.62.0] 将缓存状态色融入折叠圆钮的镜片底色，以绿、红、蓝、灰底光区分 HIT / MISS / BYPASS / N/A。
-// @description:en [v7.62.0] Tints the collapsed orb's lens base with green, red, blue, or gray status washes for HIT / MISS / BYPASS / N/A recognition.
+// @version      7.62.1
+// @description  [v7.62.1] 将缓存状态改为从折叠圆钮中心向外扩散的高饱和色场，以绿、红、蓝、灰强化 HIT / MISS / BYPASS / N/A 辨识度。
+// @description:en [v7.62.1] Uses vivid green, red, blue, or gray status fields radiating from the collapsed orb's center for clearer HIT / MISS / BYPASS / N/A recognition.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -15,7 +15,7 @@
 // @grant        GM_setValue
 // @grant        GM_getResourceText
 // @grant        GM_registerMenuCommand
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.62.0
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.62.1
 // @connect      dns.alidns.com
 // @connect      dns.google
 // @connect      1.1.1.1
@@ -1852,18 +1852,18 @@
             --panel-orb-edge: ${isDarkTheme ? '#d5e8c329' : '#ffffffdb'};
             --panel-orb-monogram: ${isDarkTheme ? '#d9e9c3' : '#526545'};
             --panel-orb-monogram-shadow: ${isDarkTheme ? '0 1px 1px #0000006b, 0 -1px 0 #ffffff14' : '0 1px 0 #ffffffe0, 0 -1px 0 #2c3a2514'};
-            --panel-orb-status-wash: ${isDarkTheme ? '#b4da8159' : '#4f73404f'};
-            --panel-orb-status-inner: ${isDarkTheme ? '#b4da8166' : '#5f7f5066'};
-            --panel-orb-status-aura: ${isDarkTheme ? '#b4da8147' : '#5b744b40'};
-            --panel-orb-miss-wash: ${isDarkTheme ? '#f2a39b61' : '#b65c5459'};
-            --panel-orb-miss-inner: ${isDarkTheme ? '#f2a39b6b' : '#bc6b636b'};
-            --panel-orb-miss-aura: ${isDarkTheme ? '#f2a39b52' : '#ae463d4a'};
-            --panel-orb-cool-wash: ${isDarkTheme ? '#a4c8e666' : '#587d9966'};
-            --panel-orb-cool-inner: ${isDarkTheme ? '#a4c8e670' : '#6489a770'};
-            --panel-orb-cool-aura: ${isDarkTheme ? '#a4c8e65c' : '#466e9052'};
-            --panel-orb-muted-wash: ${isDarkTheme ? '#a5ad9a42' : '#858e8452'};
-            --panel-orb-muted-inner: ${isDarkTheme ? '#a5ad9a4d' : '#858e8457'};
-            --panel-orb-muted-aura: ${isDarkTheme ? '#a5ad9a38' : '#727b6d33'};
+            --panel-orb-status-core: ${isDarkTheme ? '#7bef71a8' : '#269553a8'};
+            --panel-orb-status-mid: ${isDarkTheme ? '#4fbf6c80' : '#3d8b4f80'};
+            --panel-orb-status-aura: ${isDarkTheme ? '#68dc706b' : '#2d995766'};
+            --panel-orb-miss-core: ${isDarkTheme ? '#ff7d75a8' : '#de443aa8'};
+            --panel-orb-miss-mid: ${isDarkTheme ? '#e8625c80' : '#c84b4280'};
+            --panel-orb-miss-aura: ${isDarkTheme ? '#ff716a6b' : '#d8473e66'};
+            --panel-orb-cool-core: ${isDarkTheme ? '#65c3ffa8' : '#247fc7a8'};
+            --panel-orb-cool-mid: ${isDarkTheme ? '#4aa3e680' : '#3a76b280'};
+            --panel-orb-cool-aura: ${isDarkTheme ? '#55b7ff6b' : '#287bc066'};
+            --panel-orb-muted-core: ${isDarkTheme ? '#b5c0b7a0' : '#77837aa0'};
+            --panel-orb-muted-mid: ${isDarkTheme ? '#929e9573' : '#7d898073'};
+            --panel-orb-muted-aura: ${isDarkTheme ? '#9eaaa155' : '#6b786f4d'};
             --panel-shadow: ${isDarkTheme ? '0 20px 50px #0005, inset 0 1px #777c6840' : '0 20px 50px #27302224, inset 0 1px #ffffff90'};
             --panel-orb-shadow: ${orbShadow};
             z-index: 2147483647;
@@ -1916,8 +1916,7 @@
             border: 1px solid var(--panel-orb-edge);
             border-radius: 50%;
             background:
-                linear-gradient(154deg, transparent 36%, var(--panel-orb-status-wash) 100%),
-                radial-gradient(ellipse at 74% 82%, var(--panel-orb-status-inner) 0%, transparent 64%),
+                radial-gradient(circle at 50% 52%, var(--panel-orb-status-core) 0%, var(--panel-orb-status-mid) 46%, transparent 82%),
                 var(--panel-orb);
             color: var(--panel-brand);
             box-shadow:
@@ -1938,9 +1937,9 @@
             border: 0;
             border-radius: 50%;
             background:
-                radial-gradient(circle at 70% 79%, var(--panel-orb-status-inner) 0%, transparent 58%),
+                radial-gradient(circle at 50% 53%, var(--panel-orb-status-core) 0%, transparent 62%),
                 ${orbBloom};
-            filter: blur(9px);
+            filter: blur(7px);
             pointer-events: none;
         }
         .collapsed-orb:hover {
@@ -1952,19 +1951,19 @@
             transform: scale(0.965);
         }
         .collapsed-orb[data-cache="MISS"] {
-            --panel-orb-status-wash: var(--panel-orb-miss-wash);
-            --panel-orb-status-inner: var(--panel-orb-miss-inner);
+            --panel-orb-status-core: var(--panel-orb-miss-core);
+            --panel-orb-status-mid: var(--panel-orb-miss-mid);
             --panel-orb-status-aura: var(--panel-orb-miss-aura);
         }
         .collapsed-orb[data-cache="BYPASS"],
         .collapsed-orb[data-cache="DYNAMIC"] {
-            --panel-orb-status-wash: var(--panel-orb-cool-wash);
-            --panel-orb-status-inner: var(--panel-orb-cool-inner);
+            --panel-orb-status-core: var(--panel-orb-cool-core);
+            --panel-orb-status-mid: var(--panel-orb-cool-mid);
             --panel-orb-status-aura: var(--panel-orb-cool-aura);
         }
         .collapsed-orb[data-cache="N/A"] {
-            --panel-orb-status-wash: var(--panel-orb-muted-wash);
-            --panel-orb-status-inner: var(--panel-orb-muted-inner);
+            --panel-orb-status-core: var(--panel-orb-muted-core);
+            --panel-orb-status-mid: var(--panel-orb-muted-mid);
             --panel-orb-status-aura: var(--panel-orb-muted-aura);
         }
         .orb-brand {
