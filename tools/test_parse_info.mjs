@@ -22,6 +22,7 @@ const {
     formatProtocol,
     loadRules,
     themeFromValue,
+    themeFromBackgroundColor,
 } = require('../cdn-server-info.user.js');
 
 loadRules();
@@ -236,6 +237,15 @@ check('Theme tokens ignore unrelated class names', () => {
     assert.equal(themeFromValue('dark:bg-black'), null);
     assert.equal(themeFromValue('light dark'), null);
     assert.equal(themeFromValue('auto'), null);
+});
+
+check('Rendered background colors use the original brightness threshold', () => {
+    assert.equal(themeFromBackgroundColor('rgb(13, 18, 25)'), 'dark');
+    assert.equal(themeFromBackgroundColor('rgb(255, 255, 255)'), 'light');
+    assert.equal(themeFromBackgroundColor('rgb(107, 114, 128)'), 'dark');
+    assert.equal(themeFromBackgroundColor('rgb(128, 128, 128)'), 'light');
+    assert.equal(themeFromBackgroundColor('rgba(0, 0, 0, 0)'), null);
+    assert.equal(themeFromBackgroundColor('transparent'), null);
 });
 
 check('GET fallback records its own request and network timing', () => {

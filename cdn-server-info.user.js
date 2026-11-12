@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.66.3
-// @description  [v7.66.3] 折叠入口改为 130×46px 品牌状态签；展开为边缘航图面板，显示节点、TTFB 与缓存，并适配亮暗主题。
-// @description:en [v7.66.3] Replaces the collapsed orb with a 130×46px brand status tag and an edge-atlas panel showing node, TTFB and cache in light and dark themes.
+// @version      7.66.4
+// @description  [v7.66.4] 折叠入口改为 130×46px 品牌状态签；展开为边缘航图面板，显示节点、TTFB 与缓存，并适配亮暗主题。
+// @description:en [v7.66.4] Replaces the collapsed orb with a 130×46px brand status tag and an edge-atlas panel showing node, TTFB and cache in light and dark themes.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -15,7 +15,7 @@
 // @grant        GM_setValue
 // @grant        GM_getResourceText
 // @grant        GM_registerMenuCommand
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.66.3
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.66.4
 // @connect      dns.alidns.com
 // @connect      dns.google
 // @connect      1.1.1.1
@@ -1739,45 +1739,60 @@
         return null;
     }
 
+    function isTransparentColor(color) {
+        if (!color) return true;
+        const normalized = String(color).trim().toLowerCase();
+        if (!normalized || normalized === 'transparent') return true;
+        const match = normalized.match(/^rgba?\((.*)\)$/);
+        if (!match) return false;
+        const parts = match[1].split(/[\s,/]+/).filter(Boolean);
+        return parts.length >= 4 && Number.parseFloat(parts[3]) === 0;
+    }
+
+    function themeFromBackgroundColor(color) {
+        if (isTransparentColor(color)) return null;
+        return calculateBrightness(color) < 128 ? 'dark' : 'light';
+    }
+
+    function getBackgroundTheme() {
+        for (const element of [document.body, document.documentElement]) {
+            if (!element) continue;
+            const bgColor = getComputedStyle(element).backgroundColor;
+            const theme = themeFromBackgroundColor(bgColor);
+            if (theme) return theme;
+        }
+        return null;
+    }
+
     // Detect if the current page is using dark or light theme
     function detectPageTheme() {
         try {
-            // Method 1: Check explicit theme attributes on html/body
+            // Method 1: Trust the rendered page background first. This matches
+            // what the user actually sees and avoids stale theme attributes.
+            const backgroundTheme = getBackgroundTheme();
+            if (backgroundTheme) return backgroundTheme;
+
+            // Method 2: Check explicit theme attributes on html/body
             const htmlTheme = themeFromElementAttributes(document.documentElement);
             if (htmlTheme) return htmlTheme;
 
             const bodyTheme = themeFromElementAttributes(document.body);
             if (bodyTheme) return bodyTheme;
 
-            // Method 2: Check class names such as dark, theme-dark or dark-mode
+            // Method 3: Check class names such as dark, theme-dark or dark-mode
             const combinedClasses =
                 `${document.documentElement.className || ''} ${document.body?.className || ''}`.toLowerCase();
             const classTheme = themeFromValue(combinedClasses);
             if (classTheme) return classTheme;
 
-            // Method 3: Check an explicit color-scheme. "light dark" means both are
+            // Method 4: Check an explicit color-scheme. "light dark" means both are
             // supported and the used scheme follows the system, so it is not decisive.
-            const colorScheme = getComputedStyle(document.documentElement).colorScheme || '';
-            const explicitSchemes = colorScheme
+            const schemeValue = getComputedStyle(document.documentElement).colorScheme || '';
+            const explicitSchemes = schemeValue
                 .toLowerCase()
                 .split(/\s+/)
                 .filter((scheme) => scheme === 'dark' || scheme === 'light');
             if (explicitSchemes.length === 1) return explicitSchemes[0];
-
-            // Method 4: Analyze background color brightness
-            const bgColor = getComputedStyle(document.body).backgroundColor;
-            if (bgColor && bgColor !== 'transparent' && bgColor !== 'rgba(0, 0, 0, 0)') {
-                const brightness = calculateBrightness(bgColor);
-                // Lower threshold for better dark detection
-                return brightness < 100 ? 'dark' : 'light';
-            }
-
-            // Fallback to html element
-            const htmlBg = getComputedStyle(document.documentElement).backgroundColor;
-            if (htmlBg && htmlBg !== 'transparent' && htmlBg !== 'rgba(0, 0, 0, 0)') {
-                const brightness = calculateBrightness(htmlBg);
-                return brightness < 100 ? 'dark' : 'light';
-            }
 
             return null; // Cannot determine
         } catch (e) {
@@ -3366,6 +3381,7 @@
             formatProtocol,
             loadRules,
             themeFromValue,
+            themeFromBackgroundColor,
         };
     }
 

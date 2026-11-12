@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-7.66.3-blue.svg)
+![Version](https://img.shields.io/badge/version-7.66.4-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Tampermonkey](https://img.shields.io/badge/Tampermonkey-Compatible-orange.svg)
 
@@ -208,6 +208,15 @@
 ---
 
 ## 📋 版本更新
+
+### v7.66.4 (2026-11-12) - 主题误判修复
+
+#### 🎨 自动主题
+
+- **背景优先**：先读取 `body` / `html` 的实际渲染背景，再回退到主题属性、类名和 `color-scheme`，避免页面残留 `data-theme="light"` 时把深色页面误判为亮色。
+- **恢复原始阈值**：背景亮度重新使用 `< 128` 作为深色判断线，修复中间灰度背景被误判为亮色的问题。
+- **透明背景兼容**：透明色继续向下回退，不把 `transparent` / `rgba(..., 0)` 当作有效背景。
+- **回归测试**：新增背景亮度、灰度边界与透明色测试，并复核 Auto 动态切换及手动 Light / Dark 锁定。
 
 ### v7.66.3 (2026-11-12) - 石墨 Logo
 
