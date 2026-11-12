@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.65.1
-// @description  [v7.65.1] 纯白页面亮色圆钮改用冷银烟晶与中性深灰镜缘，云窗只保留状态色透光，同时加强浅色面板轮廓。
-// @description:en [v7.65.1] Gives the light orb a cool silver-smoke base and neutral rim for white pages, keeps only status light inside the logo cutout, and clarifies the light panel outline.
+// @version      7.66.0
+// @description  [v7.66.0] 折叠入口改为 130×46px 品牌状态签；展开为边缘航图面板，显示节点、TTFB 与缓存，并适配亮暗主题。
+// @description:en [v7.66.0] Replaces the collapsed orb with a 130×46px brand status tag and an edge-atlas panel showing node, TTFB and cache in light and dark themes.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -15,7 +15,7 @@
 // @grant        GM_setValue
 // @grant        GM_getResourceText
 // @grant        GM_registerMenuCommand
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.65.1
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.66.0
 // @connect      dns.alidns.com
 // @connect      dns.google
 // @connect      1.1.1.1
@@ -1817,32 +1817,39 @@
         const uiFont =
             '"Avenir Next", Avenir, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
         const monoFont = '"SFMono-Regular", "SF Mono", Menlo, Consolas, monospace';
-        const orbSize = isMobile ? 64 : 76;
         const panelWidth = isMobile ? 258 : 286;
         const controlSize = isMobile ? 44 : 32;
         const greenColor = isDarkTheme ? '#c0e899' : '#3e663b';
         const redColor = isDarkTheme ? '#f2a39b' : '#ae463d';
         const blueColor = isDarkTheme ? '#a4c8e6' : '#466e90';
-        const orbBackground = isDarkTheme
-            ? 'radial-gradient(circle at 32% 21%, #a6b69738 0%, #3c46355c 34%, #20261c80 100%)'
-            : 'radial-gradient(circle at 28% 18%, #ffffff 0%, #f5f7f6f5 16%, #d7dddaed 39%, #aab4b0c9 73%, #7d8d87c2 100%)';
-        const orbShadow = isDarkTheme
-            ? '0 16px 34px #12181047, inset 0 1px 1px #ffffff1f, inset 0 0 0 1px #d5e8c31a, inset 0 -6px 14px #0000002e'
-            : '0 12px 24px #263d3633, 0 3px 7px #263d361a, inset 0 1px 1px #ffffffff, inset 0 0 0 1px #f9fffc99, inset 0 -9px 16px #344e4933';
-        const orbBloom = isDarkTheme
-            ? 'radial-gradient(circle, #c3de9b38 0%, #c3de9b00 68%)'
-            : 'radial-gradient(circle, #e1eee940 0%, #e1eee900 68%)';
-        const orbWindowBackground = isDarkTheme
-            ? 'radial-gradient(circle at 35% 27%, #e7f5e024 0%, transparent 34%), linear-gradient(145deg, #dfefd60f, #0f150d1a)'
-            : 'radial-gradient(circle at 35% 27%, #f8fffc30 0%, transparent 34%), linear-gradient(145deg, #dce8e31f, #405a5340)';
-        const orbWindowShadow = isDarkTheme
-            ? 'inset 0 1px 1px #ffffff17, inset 0 -6px 12px #00000024'
-            : 'inset 0 1px 1px #ffffff66, inset 0 -6px 12px #203b3526';
-        const orbWindowFilter = isDarkTheme
-            ? 'blur(2.2px) saturate(0.16) brightness(0.52)'
-            : 'blur(1.4px) saturate(0.12) brightness(0.72)';
 
         return `
+        :host {
+            --atlas-surface: ${isDarkTheme ? '#171d25' : '#f7f9fc'};
+            --atlas-shell: ${isDarkTheme ? '#26303d' : '#e1e7ef'};
+            --atlas-edge: ${isDarkTheme ? '#485565' : '#bdc8d5'};
+            --atlas-line: ${isDarkTheme ? '#35414f' : '#dce3eb'};
+            --atlas-text: ${isDarkTheme ? '#edf3fa' : '#1e2a3a'};
+            --atlas-muted: ${isDarkTheme ? '#9aaabd' : '#718094'};
+            --atlas-accent: ${isDarkTheme ? '#91bfff' : '#3476bf'};
+            --atlas-accent-soft: ${isDarkTheme ? '#91bfff17' : '#e7f0fc'};
+            --atlas-brand: ${isDarkTheme ? '#ffad69' : '#e88032'};
+            --atlas-map: ${isDarkTheme ? '#101720' : '#ffffff'};
+            --atlas-map-grid: ${isDarkTheme ? '#2c3948' : '#e8edf2'};
+            --atlas-map-line: ${isDarkTheme ? '#769aca' : '#6f97c3'};
+            --atlas-map-node: ${isDarkTheme ? '#7f92a8' : '#93a4b7'};
+            --atlas-shadow: ${isDarkTheme ? '0 16px 42px #0007, inset 0 1px #ffffff0a' : '0 13px 30px #26344c1a, inset 0 1px #ffffff'};
+            --panel-surface: var(--atlas-surface);
+            --panel-shell: var(--atlas-shell);
+            --panel-edge: var(--atlas-edge);
+            --panel-line: var(--atlas-line);
+            --panel-text: var(--atlas-text);
+            --panel-muted: var(--atlas-muted);
+            --panel-accent: var(--atlas-accent);
+            --panel-accent-soft: var(--atlas-accent-soft);
+            --panel-brand: var(--atlas-brand);
+            --panel-shadow: var(--atlas-shadow);
+        }
         :host {
             all: initial;
             position: fixed;
@@ -1857,24 +1864,7 @@
             --panel-accent: ${isDarkTheme ? '#c3de9b' : '#6e8151'};
             --panel-accent-soft: ${isDarkTheme ? '#c3de9b12' : '#e2ead8'};
             --panel-brand: ${isDarkTheme ? '#ffab60' : '#e98b3e'};
-            --panel-orb: ${orbBackground};
-            --panel-orb-edge: ${isDarkTheme ? '#d5e8c329' : '#435b5180'};
-            --panel-orb-monogram: ${isDarkTheme ? '#d9e9c3' : '#526545'};
-            --panel-orb-monogram-shadow: ${isDarkTheme ? '0 1px 1px #0000006b, 0 -1px 0 #ffffff14' : '0 1px 0 #ffffffe0, 0 -1px 0 #2c3a2514'};
-            --panel-orb-status-core: ${isDarkTheme ? '#7bef71c7' : '#0eaa5df5'};
-            --panel-orb-status-mid: ${isDarkTheme ? '#4fbf6c99' : '#078c50bd'};
-            --panel-orb-status-aura: ${isDarkTheme ? '#68dc7080' : '#13844f47'};
-            --panel-orb-miss-core: ${isDarkTheme ? '#ff7d75cc' : '#f14742f5'};
-            --panel-orb-miss-mid: ${isDarkTheme ? '#e8625c99' : '#cc3636bd'};
-            --panel-orb-miss-aura: ${isDarkTheme ? '#ff716a80' : '#b9363640'};
-            --panel-orb-cool-core: ${isDarkTheme ? '#65c3ffcc' : '#208ceaf5'};
-            --panel-orb-cool-mid: ${isDarkTheme ? '#4aa3e699' : '#2172bdbd'};
-            --panel-orb-cool-aura: ${isDarkTheme ? '#55b7ff80' : '#2268a347'};
-            --panel-orb-muted-core: ${isDarkTheme ? '#b5c0b7b3' : '#4e6861e6'};
-            --panel-orb-muted-mid: ${isDarkTheme ? '#929e9580' : '#536961c2'};
-            --panel-orb-muted-aura: ${isDarkTheme ? '#9eaaa15c' : '#3d554c40'};
             --panel-shadow: ${isDarkTheme ? '0 20px 50px #0005, inset 0 1px #777c6840' : '0 20px 50px #27302229, inset 0 1px #ffffff90'};
-            --panel-orb-shadow: ${orbShadow};
             z-index: 2147483647;
             ${getPositionCSS()}
             font-family: ${uiFont};
@@ -1882,7 +1872,6 @@
             -moz-osx-font-smoothing: grayscale;
             text-size-adjust: 100%;
         }
-        :host(.cdn-panel-collapsed) { width: ${orbSize + 16}px; height: ${orbSize + 16}px; }
         #cdn-info-panel-enhanced {
             all: unset;
             position: relative;
@@ -1913,142 +1902,10 @@
             background: var(--panel-surface);
             overflow: hidden;
         }
-        .collapsed-orb {
-            display: none;
-            position: relative;
-            align-items: center;
-            justify-content: center;
-            width: ${orbSize}px;
-            height: ${orbSize}px;
-            margin: 8px;
-            padding: 0;
-            border: 1px solid var(--panel-orb-edge);
-            border-radius: 50%;
-            background:
-                radial-gradient(ellipse 20% 9% at 68% 81%, ${isDarkTheme ? '#ffffff24' : '#f4fff9a6'} 0%, transparent 72%),
-                var(--panel-orb);
-            color: var(--panel-brand);
-            box-shadow:
-                var(--panel-orb-shadow),
-                0 0 24px var(--panel-orb-status-aura);
-            -webkit-backdrop-filter: blur(10px) saturate(1.2);
-            backdrop-filter: blur(10px) saturate(1.2);
-            overflow: hidden;
-            cursor: grab;
-            -webkit-tap-highlight-color: transparent;
-            touch-action: none;
-            transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1), border-color 180ms ease;
-        }
-        .collapsed-orb::before {
-            content: '';
-            position: absolute;
-            inset: 2%;
-            border: 0;
-            border-radius: 50%;
-            background:
-                radial-gradient(
-                    circle at 48% 49%,
-                    var(--panel-orb-status-core) 0%,
-                    var(--panel-orb-status-mid) 32%,
-                    transparent 63%
-                ),
-                radial-gradient(
-                    ellipse 54% 17% at 67% 79%,
-                    var(--panel-orb-status-mid) 0%,
-                    transparent 67%
-                ),
-                ${orbBloom};
-            filter: blur(2.4px);
-            transform: translateY(1%);
-            pointer-events: none;
-        }
-        .collapsed-orb::after {
-            content: '';
-            position: absolute;
-            inset: 11% 9% 7% 13%;
-            z-index: 2;
-            border: 1px solid ${isDarkTheme ? '#e8f6e01f' : '#f7fffc8a'};
-            border-radius: 50%;
-            box-shadow:
-                inset 0 0 12px ${isDarkTheme ? '#ffffff0d' : '#f8fffc47'},
-                0 0 0 1px ${isDarkTheme ? '#00000000' : '#36594d1f'};
-            filter: blur(.3px);
-            transform: rotate(-7deg);
-            pointer-events: none;
-        }
-        .collapsed-orb:hover {
-            border-color: var(--panel-accent);
-            transform: translateY(-1px) scale(1.008);
-        }
-        .collapsed-orb:active {
-            cursor: grabbing;
-            transform: scale(0.965);
-        }
-        .collapsed-orb[data-cache="MISS"] {
-            --panel-orb-status-core: var(--panel-orb-miss-core);
-            --panel-orb-status-mid: var(--panel-orb-miss-mid);
-            --panel-orb-status-aura: var(--panel-orb-miss-aura);
-        }
-        .collapsed-orb[data-cache="BYPASS"],
-        .collapsed-orb[data-cache="DYNAMIC"] {
-            --panel-orb-status-core: var(--panel-orb-cool-core);
-            --panel-orb-status-mid: var(--panel-orb-cool-mid);
-            --panel-orb-status-aura: var(--panel-orb-cool-aura);
-        }
-        .collapsed-orb[data-cache="N/A"] {
-            --panel-orb-status-core: var(--panel-orb-muted-core);
-            --panel-orb-status-mid: var(--panel-orb-muted-mid);
-            --panel-orb-status-aura: var(--panel-orb-muted-aura);
-        }
-        .orb-brand {
-            position: relative;
-            z-index: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: ${isMobile ? 42 : 50}px;
-            height: ${isMobile ? 42 : 50}px;
-            color: var(--panel-brand);
-            filter: drop-shadow(0 2px 3px ${isDarkTheme ? '#00000059' : '#29352329'});
-        }
-        .orb-brand svg {
-            display: block;
-            width: 100%;
-            height: 100%;
-            overflow: visible;
-        }
-        .orb-logo-window {
-            position: absolute;
-            inset: 21%;
-            z-index: 1;
-            border-radius: 50%;
-            background: ${orbWindowBackground};
-            box-shadow: ${orbWindowShadow};
-            -webkit-backdrop-filter: ${orbWindowFilter};
-            backdrop-filter: ${orbWindowFilter};
-            -webkit-mask-image: var(--orb-logo-mask), radial-gradient(circle, #000 0 52%, #000d 63%, transparent 76%);
-            -webkit-mask-position: center, center;
-            -webkit-mask-repeat: no-repeat;
-            -webkit-mask-size: 72% auto, 100% 100%;
-            -webkit-mask-composite: xor;
-            mask-image: var(--orb-logo-mask), radial-gradient(circle, #000 0 52%, #000d 63%, transparent 76%);
-            mask-position: center, center;
-            mask-repeat: no-repeat;
-            mask-size: 72% auto, 100% 100%;
-            mask-composite: exclude;
-            pointer-events: none;
-        }
         #cdn-info-panel-enhanced.collapsed {
-            width: ${orbSize + 16}px;
-            height: ${orbSize + 16}px;
-            padding: 0;
-            border: 0;
-            border-radius: 50%;
-            background: transparent;
-            box-shadow: none;
-            overflow: visible;
+            display: flex;
         }
-        #cdn-info-panel-enhanced.collapsed .collapsed-orb { display: flex; }
+        #cdn-info-panel-enhanced.collapsed .status-tag { display: flex; }
         #cdn-info-panel-enhanced.collapsed .panel-surface { display: none; }
         #cdn-info-panel-enhanced.settings-open { min-height: ${isMobile ? 470 : 0}px; }
         .panel-hero {
@@ -2088,20 +1945,6 @@
             padding-right: 3px;
             box-shadow: 0 0 0 5px var(--panel-accent-soft), inset 0 0 20px var(--panel-accent-soft);
             white-space: nowrap;
-        }
-        .collapsed-orb .orb-brand .provider-monogram {
-            width: 100%;
-            height: 100%;
-            border: 0;
-            border-radius: 50%;
-            background: transparent;
-            box-shadow: none;
-            color: var(--panel-orb-monogram);
-            font-size: ${isMobile ? 21 : 25}px;
-            font-weight: 500;
-            letter-spacing: -1px !important;
-            padding-right: 1px;
-            text-shadow: var(--panel-orb-monogram-shadow);
         }
         .provider-name {
             display: block;
@@ -2398,12 +2241,146 @@
         }
         .dns-label { white-space: nowrap; flex-shrink: 0; font-family: ${uiFont}; font-size: 10px; letter-spacing: 0.5px !important; }
         .dns-value { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--panel-text); }
-        .collapsed-orb:focus-visible, .icon-btn:focus-visible,
+        .status-tag:focus-visible, .icon-btn:focus-visible,
         .settings-theme-btn:focus-visible, .settings-switch:focus-visible,
         .settings-action:focus-visible { outline: 2px solid var(--panel-accent); outline-offset: 2px; }
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
         }
+        `;
+    }
+
+    function getAtlasPanelCSS() {
+        const isDarkTheme = getEffectiveTheme() === 'dark';
+        const isMobile = isMobileDevice();
+        const greenColor = isDarkTheme ? '#7ce2b0' : '#087f5b';
+        const redColor = isDarkTheme ? '#ff9b94' : '#c74640';
+        const blueColor = isDarkTheme ? '#91c4ff' : '#3476bf';
+        const neutralColor = isDarkTheme ? '#a8b3c0' : '#77827d';
+        const greenSoft = isDarkTheme ? '#7ce2b017' : '#e3f3eb';
+        const redSoft = isDarkTheme ? '#ff9b9417' : '#ffebe8';
+        const blueSoft = isDarkTheme ? '#91c4ff17' : '#e7f0fc';
+        const neutralSoft = isDarkTheme ? '#a8b3c017' : '#e9edef';
+        const collapsedWidth = 130;
+        const collapsedHeight = isMobile ? 48 : 46;
+        const panelWidth = isMobile ? 278 : 302;
+        const controlSize = isMobile ? 44 : 32;
+        return `
+        :host { width: ${panelWidth}px; --panel-surface: var(--atlas-surface); --panel-shell: var(--atlas-shell); --panel-edge: var(--atlas-edge); --panel-line: var(--atlas-line); --panel-text: var(--atlas-text); --panel-muted: var(--atlas-muted); --panel-accent: var(--atlas-accent); --panel-accent-soft: var(--atlas-accent-soft); --panel-brand: var(--atlas-brand); --panel-shadow: var(--atlas-shadow); }
+        :host { --panel-status: ${greenColor}; --panel-status-soft: ${greenSoft}; }
+        :host(.cdn-panel-collapsed) { width: ${collapsedWidth}px; height: ${collapsedHeight}px; }
+        #cdn-info-panel-enhanced {
+            width: ${panelWidth}px;
+            padding: 1px;
+            border: 1px solid var(--atlas-edge);
+            border-radius: 16px;
+            background: var(--atlas-shell);
+        }
+        .panel-surface { border: 1px solid var(--atlas-line); border-radius: 13px; background: var(--atlas-surface); }
+        .status-tag {
+            display: none;
+            position: relative;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 9px;
+            width: ${collapsedWidth}px;
+            height: ${collapsedHeight}px;
+            margin: 0;
+            padding: 0 10px;
+            border: 1px solid var(--atlas-edge);
+            border-radius: 13px;
+            background: var(--atlas-surface);
+            color: var(--atlas-text);
+            box-shadow: var(--atlas-shadow);
+            text-align: left;
+            overflow: hidden;
+            cursor: grab;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: none;
+            transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1), border-color 180ms ease;
+        }
+        .status-tag:hover { border-color: var(--atlas-accent); transform: translateY(-1px); }
+        .status-tag:active { cursor: grabbing; transform: scale(0.985); }
+        .status-tag[data-cache="MISS"] { --panel-status: ${redColor}; --panel-status-soft: ${redSoft}; }
+        .status-tag[data-cache="BYPASS"], .status-tag[data-cache="DYNAMIC"] { --panel-status: ${blueColor}; --panel-status-soft: ${blueSoft}; }
+        .status-tag[data-cache="N/A"] { --panel-status: ${neutralColor}; --panel-status-soft: ${neutralSoft}; }
+        .tag-brand {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 32px;
+            width: 32px;
+            height: 24px;
+            color: var(--atlas-brand);
+        }
+        .tag-brand svg { display: block; width: 100%; height: 100%; overflow: visible; }
+        .tag-readout { min-width: 0; }
+        .tag-cache { display: block; color: var(--panel-status); font-size: 11px; font-weight: 700; line-height: 1.15; }
+        .tag-metrics { display: block; margin-top: 4px; color: var(--atlas-muted); font-size: 8px; line-height: 1.15; white-space: nowrap; }
+        #cdn-info-panel-enhanced.collapsed { width: ${collapsedWidth}px; height: ${collapsedHeight}px; padding: 0; border: 0; border-radius: 13px; background: transparent; box-shadow: none; overflow: visible; }
+        #cdn-info-panel-enhanced.collapsed .status-tag { display: flex; }
+        #cdn-info-panel-enhanced.collapsed .panel-surface { display: none; }
+        #cdn-info-panel-enhanced.settings-open { min-height: ${isMobile ? 500 : 380}px; }
+        .panel-hero {
+            position: relative;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 48px;
+            padding: ${isMobile ? 52 : 9}px 14px 10px;
+            border-bottom: 1px solid var(--atlas-line);
+            background: transparent;
+        }
+        .provider-heading { display: flex; align-items: center; gap: 9px; width: 100%; min-width: 0; padding-right: ${isMobile ? 0 : 137}px; }
+        .provider-brand { display: flex; align-items: center; justify-content: center; flex: 0 0 30px; width: 30px; height: 22px; color: var(--atlas-brand); }
+        .provider-brand svg { display: block; width: 100%; height: 100%; overflow: visible; }
+        .provider-monogram { display: flex; align-items: center; justify-content: center; width: 30px; height: 26px; padding: 0; border: 1px solid var(--atlas-line); border-radius: 6px; background: var(--atlas-accent-soft); color: var(--atlas-accent); font-size: 11px; font-weight: 650; letter-spacing: 0 !important; line-height: 1; box-shadow: none; white-space: nowrap; }
+        .status-tag .tag-brand .provider-monogram { width: 100%; height: 24px; padding: 0; border: 0; border-radius: 0; background: transparent; font-size: 11px; font-weight: 650; letter-spacing: 0 !important; line-height: 24px; text-shadow: none; }
+        .info-value.provider-name { color: var(--atlas-text); font-size: 14px; font-weight: 600; line-height: 1.35; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .provider-caption { display: none; }
+        .minimize-btn { position: absolute; top: ${isMobile ? 2 : 7}px; ${isRTLLanguage() ? 'right' : 'left'}: 7px; z-index: 1; }
+        .hero-actions { position: absolute; top: ${isMobile ? 2 : 7}px; ${isRTLLanguage() ? 'left' : 'right'}: 7px; display: flex; gap: 0; }
+        .minimize-btn + .hero-actions { ${isRTLLanguage() ? 'left' : 'right'}: ${isMobile ? 51 : 39}px; }
+        .icon-btn { flex-basis: ${controlSize}px; width: ${controlSize}px; height: ${controlSize}px; }
+        .edge-map {
+            position: relative;
+            height: ${isMobile ? 112 : 122}px;
+            margin: 14px;
+            border: 1px solid var(--atlas-line);
+            border-radius: 9px;
+            background-color: var(--atlas-map);
+            background-image: linear-gradient(var(--atlas-map-grid) 1px, transparent 1px), linear-gradient(90deg, var(--atlas-map-grid) 1px, transparent 1px);
+            background-size: 18px 18px;
+            overflow: hidden;
+        }
+        .edge-route { display: block; width: 100%; height: 100%; }
+        .edge-route-line { fill: none; stroke: var(--atlas-map-line); stroke-width: 1.5; stroke-dasharray: 3 3; }
+        .edge-route-origin { fill: var(--atlas-map); stroke: var(--atlas-map-node); stroke-width: 1.5; }
+        .edge-route-node { fill: var(--panel-status); }
+        .edge-route-cross { fill: none; stroke: var(--atlas-map); stroke-width: 1; }
+        .edge-map-label { position: absolute; left: 12px; bottom: 10px; color: var(--atlas-muted); font-family: "SFMono-Regular", Menlo, monospace; font-size: 7px; letter-spacing: 0.9px !important; }
+        .edge-map-code { position: absolute; top: 10px; right: 11px; max-width: 65%; color: var(--panel-status); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .atlas-summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 14px 14px; }
+        .latency-readout { min-width: 0; }
+        .latency-readout .latency-value { overflow: visible; color: var(--atlas-text); font-size: 28px; font-weight: 450; letter-spacing: -1.5px !important; line-height: 1.1; }
+        .latency-caption { display: block; margin-top: 5px; color: var(--atlas-muted); font-size: 8px; }
+        .cache-badge { flex-shrink: 0; max-width: 52%; padding: 5px 8px; border-radius: 4px; background: var(--panel-status-soft); color: var(--panel-status); font-size: 10px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        #cdn-info-panel-enhanced[data-cache="MISS"] { --panel-status: ${redColor}; --panel-status-soft: ${redSoft}; }
+        #cdn-info-panel-enhanced[data-cache="BYPASS"], #cdn-info-panel-enhanced[data-cache="DYNAMIC"] { --panel-status: ${blueColor}; --panel-status-soft: ${blueSoft}; }
+        #cdn-info-panel-enhanced[data-cache="N/A"] { --panel-status: ${neutralColor}; --panel-status-soft: ${neutralSoft}; }
+        .origin-note { margin: 14px 0 0; border: 0; padding: 0 14px; }
+        .origin-title { color: var(--atlas-muted); }
+        .server-line { padding: 9px 14px; border-top: 1px solid var(--atlas-line); }
+        .atlas-summary + .server-line { border-top: 0; }
+        .server-line .info-label, .detail-line .info-label { font-size: 10px; letter-spacing: 0.7px !important; }
+        .server-line .info-value, .detail-line .info-value { font-size: 10px; }
+        .detail-lines { margin: 0 14px; padding: 9px 0 11px; }
+        .panel-footer { padding: 4px 9px 6px 14px; border-top: 1px solid var(--atlas-line); }
+        #cdn-info-panel-enhanced.details-hidden .edge-map { display: none; }
+        #cdn-info-panel-enhanced.details-hidden .atlas-summary { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--atlas-line); }
+        .settings-popover { inset: 1px; border-radius: 13px; }
+        .status-tag:focus-visible { outline-color: var(--atlas-accent); }
         `;
     }
 
@@ -2466,7 +2443,7 @@
     function refreshPanelTheme(host) {
         if (!host || !host.shadowRoot) return;
         const styleEl = host.shadowRoot.querySelector('style');
-        if (styleEl) styleEl.textContent = getPanelCSS();
+        if (styleEl) styleEl.textContent = getPanelCSS() + getAtlasPanelCSS();
         syncThemeButton(host);
         syncSettingsControls(host);
     }
@@ -2495,13 +2472,14 @@
         document.body.appendChild(host);
         const shadowRoot = host.attachShadow({ mode: 'open' });
         const styleEl = document.createElement('style');
-        styleEl.textContent = getPanelCSS();
+        styleEl.textContent = getPanelCSS() + getAtlasPanelCSS();
         shadowRoot.appendChild(styleEl);
         const panel = document.createElement('div');
         panel.id = 'cdn-info-panel-enhanced';
 
         const cacheStatus = String(info.cache || 'N/A').toUpperCase();
         const cacheClass = 'cache-' + cacheStatus.split(' ')[0];
+        const cacheKey = cacheStatus.split(' ')[0];
         const pop = info.pop && info.pop !== 'N/A' ? String(info.pop) : '—';
         const server = info.server && info.server !== 'N/A' ? String(info.server) : '—';
         const latency = info.latency?.value || '—';
@@ -2509,6 +2487,9 @@
             ? `${info.latency.method} HTTP time to first byte: ${info.latency.ttfbMs} ms. Includes server processing, not ICMP ping.${info.latency.networkMs !== null ? ` Browser network timing: ${info.latency.networkMs} ms.` : ''}`
             : 'HTTP time to first byte is unavailable.';
         const protocol = formatProtocol(info.latency?.protocol);
+        let connectionState = 'CONNECT N/A';
+        if (info.latency?.reused === true) connectionState = 'REUSED';
+        if (info.latency?.reused === false) connectionState = 'NEW CONNECTION';
         const connectDescription = getConnectDescription(info.latency);
         const popTitle =
             info.popKind === 'node-code'
@@ -2524,35 +2505,27 @@
                 </div>
             `
             : `
-                <div class="info-lines-container">
-                    <div class="info-line">
-                        <span class="info-label">Cache</span>
-                        <span class="info-value cache-value ${cacheClass}" title="${escapeHtml(cacheStatus)}">${cacheStatus === 'N/A' ? '—' : '● ' + escapeHtml(cacheStatus)}</span>
-                    </div>
-                    <div class="info-line">
-                        <span class="info-label">POP</span>
-                        <span class="info-value pop-value" title="${escapeHtml(popTitle)}">${escapeHtml(pop)}</span>
-                    </div>
-                    <div class="info-line">
-                        <span class="info-label">TTFB</span>
-                        <span class="info-value latency-value" title="${escapeHtml(latencyDescription)}">${escapeHtml(latency)}</span>
-                    </div>
+                <div class="edge-map">
+                    <svg class="edge-route" viewBox="0 0 268 122" fill="none" aria-hidden="true"><path class="edge-route-line" d="M52 75C97 23 151 27 216 49"/><circle class="edge-route-origin" cx="52" cy="75" r="5"/><circle class="edge-route-node" cx="216" cy="49" r="5"/><path class="edge-route-cross" d="M216 41v16M208 49h16"/></svg>
+                    <span class="edge-map-label">YOUR CONNECTION</span><span class="info-value pop-value edge-map-code" title="${escapeHtml(popTitle)}">${escapeHtml(pop)}</span>
+                </div>
+                <div class="atlas-summary">
+                    <div class="latency-readout"><span class="info-value latency-value" title="${escapeHtml(latencyDescription)}">${escapeHtml(latency)}</span><small class="latency-caption">TIME TO FIRST BYTE</small></div>
+                    <span class="info-value cache-value cache-badge ${cacheClass}" title="${escapeHtml(cacheStatus)}">${escapeHtml(cacheStatus)}</span>
                 </div>
             `;
 
         panel.innerHTML = `
-            <button class="collapsed-orb" data-cache="${escapeHtml(cacheStatus.split(' ')[0])}" title="Cache ${escapeHtml(cacheStatus)} — expand network details" aria-label="Cache ${escapeHtml(cacheStatus)}. Expand network details" aria-expanded="false"></button>
+            <button class="status-tag" data-cache="${escapeHtml(cacheKey)}" title="Cache ${escapeHtml(cacheStatus)} — expand network details" aria-label="Cache ${escapeHtml(cacheStatus)}. Expand network details" aria-expanded="false"></button>
             <div class="panel-surface">
                 <div class="panel-hero">
-                    <button class="icon-btn minimize-btn" type="button" title="Collapse to status orb" aria-label="Collapse to status orb"></button>
+                    <button class="icon-btn minimize-btn" type="button" title="Collapse to brand status tag" aria-label="Collapse to brand status tag"></button>
                     <div class="hero-actions">
                         <button class="icon-btn settings-btn" type="button" title="Settings" aria-label="Settings" aria-haspopup="dialog" aria-expanded="false" aria-controls="cdn-panel-settings"></button>
                         <button class="icon-btn theme-btn" type="button" title="Toggle light / dark theme" aria-label="Toggle light / dark theme"></button>
                         <button class="icon-btn close-btn" type="button" title="Close" aria-label="Close"></button>
                     </div>
-                    <div class="provider-brand"></div>
-                    <span class="info-value provider-name" title="${escapeHtml(info.provider)}">${escapeHtml(info.provider)}</span>
-                    <span class="provider-caption">${escapeHtml(providerRole)}</span>
+                    <div class="provider-heading"><div class="provider-brand"></div><span class="info-value provider-name" title="${escapeHtml(info.provider)}">${escapeHtml(info.provider)}</span><span class="provider-caption">${escapeHtml(providerRole)}</span></div>
                 </div>
                 ${cachePopMarkup}
                 <div class="server-line">
@@ -2570,7 +2543,7 @@
                     </div>
                 </div>
                 <div class="panel-footer">
-                    <span class="footer-caption">NETWORK MONITOR</span>
+                    <span class="footer-caption">${escapeHtml(protocol || 'HTTP')} · ${escapeHtml(connectionState)}</span>
                     <div class="footer-actions">
                         <button class="icon-btn drag-btn" title="Drag to move" aria-label="Drag to move"></button>
                         <button class="icon-btn expand-btn" title="Hide details" aria-label="Hide details" aria-expanded="true"></button>
@@ -2606,6 +2579,7 @@
                 <div class="settings-feedback" role="status" aria-live="polite"></div>
             </div>
         `;
+        panel.dataset.cache = cacheKey;
         shadowRoot.appendChild(panel);
         updateProviderBadge(host, info.provider);
 
@@ -2761,7 +2735,7 @@
                 const text = shadowRoot.querySelector(selector)?.textContent?.trim() || '';
                 return text && text !== '—' ? text : null;
             };
-            const cacheValue = readValue('.cache-value')?.replace(/^●\s*/, '') || info.cache;
+            const cacheValue = readValue('.cache-value') || info.cache;
             const details = {
                 url: window.location.href,
                 provider: readValue('.provider-name') || info.provider,
@@ -2895,25 +2869,13 @@
         if (caption) caption.textContent = getProviderRole(provider, server);
     }
 
-    function getSvgMaskUrl(svgMarkup) {
-        let svg = String(svgMarkup || '').replace(/currentColor/gi, '#000');
-        if (!/\sxmlns=/.test(svg)) {
-            svg = svg.replace(/<svg\b/, '<svg xmlns="http://www.w3.org/2000/svg"');
-        }
-        return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
-    }
-
-    function updateCollapsedOrbBrand(orb, icon, badgeMarkup) {
-        if (!orb) return;
-        if (!icon) {
-            orb.innerHTML = `<span class="orb-brand" aria-hidden="true">${badgeMarkup}</span>`;
-            return;
-        }
-        const logoWindow = document.createElement('span');
-        logoWindow.className = 'orb-logo-window';
-        logoWindow.setAttribute('aria-hidden', 'true');
-        logoWindow.style.setProperty('--orb-logo-mask', getSvgMaskUrl(icon));
-        orb.replaceChildren(logoWindow);
+    function updateCollapsedStatusTag(statusTag, icon, badgeMarkup) {
+        if (!statusTag) return;
+        const panel = statusTag.closest('#cdn-info-panel-enhanced');
+        const pop = panel?.querySelector('.pop-value')?.textContent?.trim() || '—';
+        const latency = panel?.querySelector('.latency-value')?.textContent?.trim() || '—';
+        const cache = statusTag.dataset.cache || 'N/A';
+        statusTag.innerHTML = `<span class="tag-brand" aria-hidden="true">${badgeMarkup}</span><span class="tag-readout"><span class="info-value tag-cache">${escapeHtml(cache)}</span><small class="tag-metrics">${escapeHtml(pop)} · ${escapeHtml(latency.replace(/\s+/g, ''))}</small></span>`;
     }
 
     function updateProviderBadge(host, provider) {
@@ -2923,13 +2885,13 @@
             ? icon
             : `<span class="provider-monogram" aria-hidden="true">${escapeHtml(getProviderMonogram(provider))}</span>`;
         host.shadowRoot.querySelector('.provider-brand').innerHTML = badgeMarkup;
-        const orb = host.shadowRoot.querySelector('.collapsed-orb');
-        updateCollapsedOrbBrand(orb, icon, badgeMarkup);
+        const statusTag = host.shadowRoot.querySelector('.status-tag');
+        updateCollapsedStatusTag(statusTag, icon, badgeMarkup);
         const cacheLabel =
-            orb.dataset.cache === 'N/A'
+            statusTag.dataset.cache === 'N/A'
                 ? 'Cache status unavailable'
-                : `Cache ${orb.dataset.cache || 'unknown'}`;
-        orb.setAttribute('aria-label', `${cacheLabel}. Expand ${provider} network details`);
+                : `Cache ${statusTag.dataset.cache || 'unknown'}`;
+        statusTag.setAttribute('aria-label', `${cacheLabel}. Expand ${provider} network details`);
     }
 
     function saveUserSettings() {
@@ -3005,7 +2967,7 @@
             saveUserSettings();
         }
         host.shadowRoot
-            .querySelector('.collapsed-orb')
+            .querySelector('.status-tag')
             .setAttribute('aria-expanded', String(!collapsed));
         requestAnimationFrame(() => {
             if (anchor) applyPanelAnchor(host, anchor);
@@ -3052,14 +3014,14 @@
     }
 
     function setupPanelCollapse(host, panel) {
-        const orb = host.shadowRoot.querySelector('.collapsed-orb');
+        const statusTag = host.shadowRoot.querySelector('.status-tag');
         const expandButton = host.shadowRoot.querySelector('.expand-btn');
-        orb.addEventListener('click', (event) => {
+        statusTag.addEventListener('click', (event) => {
             if (host.dataset.justDragged) return;
             event.stopPropagation();
             setPanelCollapsed(host, panel, false);
         });
-        orb.addEventListener('keydown', (event) => {
+        statusTag.addEventListener('keydown', (event) => {
             if (event.key !== 'Enter' && event.key !== ' ') return;
             event.preventDefault();
             setPanelCollapsed(host, panel, false);
@@ -3094,7 +3056,7 @@
         let hasMoved = false;
         let dragHandle = null;
         const dragTargets = [
-            element.shadowRoot.querySelector('.collapsed-orb'),
+            element.shadowRoot.querySelector('.status-tag'),
             element.shadowRoot.querySelector('.drag-btn'),
         ];
 
