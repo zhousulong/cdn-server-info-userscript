@@ -21,6 +21,7 @@ const {
     formatLatency,
     formatProtocol,
     loadRules,
+    themeFromValue,
 } = require('../cdn-server-info.user.js');
 
 loadRules();
@@ -217,6 +218,24 @@ check('Latency reports HTTP TTFB without claiming ICMP ping', () => {
     assert.equal(result.ttfbMs, 36);
     assert.equal(result.method, 'HEAD');
     assert.equal(result.networkMs, null);
+});
+
+check('Theme tokens recognize dark and light naming conventions', () => {
+    assert.equal(themeFromValue('dark'), 'dark');
+    assert.equal(themeFromValue('theme-dark'), 'dark');
+    assert.equal(themeFromValue('dark-mode'), 'dark');
+    assert.equal(themeFromValue('night'), 'dark');
+    assert.equal(themeFromValue('light'), 'light');
+    assert.equal(themeFromValue('theme-light'), 'light');
+    assert.equal(themeFromValue('light-mode'), 'light');
+});
+
+check('Theme tokens ignore unrelated class names', () => {
+    assert.equal(themeFromValue('highlight'), null);
+    assert.equal(themeFromValue('delight'), null);
+    assert.equal(themeFromValue('dark:bg-black'), null);
+    assert.equal(themeFromValue('light dark'), null);
+    assert.equal(themeFromValue('auto'), null);
 });
 
 check('GET fallback records its own request and network timing', () => {

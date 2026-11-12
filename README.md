@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-7.66.1-blue.svg)
+![Version](https://img.shields.io/badge/version-7.66.2-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Tampermonkey](https://img.shields.io/badge/Tampermonkey-Compatible-orange.svg)
 
@@ -208,6 +208,15 @@
 ---
 
 ## 📋 版本更新
+
+### v7.66.2 (2026-11-12) - 自动主题跟随修复
+
+#### 🎨 主题检测
+
+- **不再误判深色**：`color-scheme: light dark` 只表示页面同时支持两套配色，不再被当成固定深色；只有单一显式 `light` / `dark` 才直接生效。
+- **补齐主题属性**：自动监听 `data-mode`、`data-bs-theme`、`data-color-mode`、`data-color-scheme` 与 `data-appearance`，页面切换主题时面板同步刷新。
+- **扩展类名识别**：支持 `theme-dark`、`theme-light`、`dark-mode` 等常见写法，并继续以背景亮度和系统偏好作为回退。
+- **回归测试**：新增主题 token 测试，覆盖深色/浅色命名与误匹配场景。
 
 ### v7.66.1 (2026-11-12) - 头部对齐修复
 

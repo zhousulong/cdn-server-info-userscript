@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.66.1
-// @description  [v7.66.1] 折叠入口改为 130×46px 品牌状态签；展开为边缘航图面板，显示节点、TTFB 与缓存，并适配亮暗主题。
-// @description:en [v7.66.1] Replaces the collapsed orb with a 130×46px brand status tag and an edge-atlas panel showing node, TTFB and cache in light and dark themes.
+// @version      7.66.2
+// @description  [v7.66.2] 折叠入口改为 130×46px 品牌状态签；展开为边缘航图面板，显示节点、TTFB 与缓存，并适配亮暗主题。
+// @description:en [v7.66.2] Replaces the collapsed orb with a 130×46px brand status tag and an edge-atlas panel showing node, TTFB and cache in light and dark themes.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -15,7 +15,7 @@
 // @grant        GM_setValue
 // @grant        GM_getResourceText
 // @grant        GM_registerMenuCommand
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.66.1
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.66.2
 // @connect      dns.alidns.com
 // @connect      dns.google
 // @connect      1.1.1.1
@@ -1711,56 +1711,58 @@
         return rtlLanguages.some((rtl) => lang.toLowerCase().startsWith(rtl));
     }
 
+    const pageThemeAttributes = [
+        'data-theme',
+        'data-bs-theme',
+        'data-color-mode',
+        'data-color-scheme',
+        'data-mode',
+        'data-appearance',
+    ];
+
+    function themeFromValue(value) {
+        if (!value) return null;
+        const normalized = String(value).trim().toLowerCase();
+        if (!normalized) return null;
+        const isDark = /(^|[\s_-])(dark|darkmode|night)([\s_-]|$)/.test(normalized);
+        const isLight = /(^|[\s_-])(light|lightmode)([\s_-]|$)/.test(normalized);
+        if (isDark === isLight) return null;
+        return isDark ? 'dark' : 'light';
+    }
+
+    function themeFromElementAttributes(element) {
+        if (!element) return null;
+        for (const attribute of pageThemeAttributes) {
+            const theme = themeFromValue(element.getAttribute(attribute));
+            if (theme) return theme;
+        }
+        return null;
+    }
+
     // Detect if the current page is using dark or light theme
     function detectPageTheme() {
         try {
-            // Method 1: Check data-theme or data-bs-theme attributes (common in modern sites)
-            const htmlTheme =
-                document.documentElement.getAttribute('data-theme') ||
-                document.documentElement.getAttribute('data-bs-theme') ||
-                document.documentElement.getAttribute('data-color-mode');
-            if (htmlTheme) {
-                if (htmlTheme.toLowerCase().includes('dark')) return 'dark';
-                if (htmlTheme.toLowerCase().includes('light')) return 'light';
-            }
+            // Method 1: Check explicit theme attributes on html/body
+            const htmlTheme = themeFromElementAttributes(document.documentElement);
+            if (htmlTheme) return htmlTheme;
 
-            const bodyTheme =
-                document.body?.getAttribute('data-theme') ||
-                document.body?.getAttribute('data-bs-theme') ||
-                document.body?.getAttribute('data-color-mode');
-            if (bodyTheme) {
-                if (bodyTheme.toLowerCase().includes('dark')) return 'dark';
-                if (bodyTheme.toLowerCase().includes('light')) return 'light';
-            }
+            const bodyTheme = themeFromElementAttributes(document.body);
+            if (bodyTheme) return bodyTheme;
 
-            // Method 2: Check class names for dark/light keywords
-            const htmlClass = document.documentElement.className || '';
-            const bodyClass = document.body?.className || '';
-            const combinedClasses = (htmlClass + ' ' + bodyClass).toLowerCase();
+            // Method 2: Check class names such as dark, theme-dark or dark-mode
+            const combinedClasses =
+                `${document.documentElement.className || ''} ${document.body?.className || ''}`.toLowerCase();
+            const classTheme = themeFromValue(combinedClasses);
+            if (classTheme) return classTheme;
 
-            if (
-                combinedClasses.includes('dark-mode') ||
-                combinedClasses.includes('dark-theme') ||
-                combinedClasses.includes(' dark ') ||
-                combinedClasses.startsWith('dark ') ||
-                combinedClasses.endsWith(' dark')
-            ) {
-                return 'dark';
-            }
-            if (
-                combinedClasses.includes('light-mode') ||
-                combinedClasses.includes('light-theme') ||
-                combinedClasses.includes(' light ') ||
-                combinedClasses.startsWith('light ') ||
-                combinedClasses.endsWith(' light')
-            ) {
-                return 'light';
-            }
-
-            // Method 3: Check color-scheme CSS property
-            const colorScheme = getComputedStyle(document.documentElement).colorScheme;
-            if (colorScheme && colorScheme.includes('dark')) return 'dark';
-            if (colorScheme && colorScheme.includes('light')) return 'light';
+            // Method 3: Check an explicit color-scheme. "light dark" means both are
+            // supported and the used scheme follows the system, so it is not decisive.
+            const colorScheme = getComputedStyle(document.documentElement).colorScheme || '';
+            const explicitSchemes = colorScheme
+                .toLowerCase()
+                .split(/\s+/)
+                .filter((scheme) => scheme === 'dark' || scheme === 'light');
+            if (explicitSchemes.length === 1) return explicitSchemes[0];
 
             // Method 4: Analyze background color brightness
             const bgColor = getComputedStyle(document.body).backgroundColor;
@@ -3324,7 +3326,7 @@
                         currentPageTheme
                     );
 
-                    if (currentPageTheme && currentPageTheme !== lastPageTheme) {
+                    if (currentPageTheme !== lastPageTheme) {
                         console.log(
                             `[CDN Detector] Page theme changed: ${lastPageTheme} -> ${currentPageTheme}`
                         );
@@ -3341,13 +3343,13 @@
         if (document.documentElement) {
             pageThemeObserver.observe(document.documentElement, {
                 attributes: true,
-                attributeFilter: ['class', 'style', 'data-theme', 'data-color-scheme'],
+                attributeFilter: ['class', 'style', ...pageThemeAttributes],
             });
         }
         if (document.body) {
             pageThemeObserver.observe(document.body, {
                 attributes: true,
-                attributeFilter: ['class', 'style', 'data-theme', 'data-color-scheme'],
+                attributeFilter: ['class', 'style', ...pageThemeAttributes],
             });
         }
     }
@@ -3363,6 +3365,7 @@
             formatLatency,
             formatProtocol,
             loadRules,
+            themeFromValue,
         };
     }
 
