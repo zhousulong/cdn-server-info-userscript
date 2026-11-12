@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-7.66.2-blue.svg)
+![Version](https://img.shields.io/badge/version-7.66.3-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Tampermonkey](https://img.shields.io/badge/Tampermonkey-Compatible-orange.svg)
 
@@ -208,6 +208,15 @@
 ---
 
 ## 📋 版本更新
+
+### v7.66.3 (2026-11-12) - 石墨 Logo
+
+#### 🪨 品牌标识
+
+- **去除橙色**：展开头部与折叠状态签的厂商 Logo 从橙色改为石墨灰，亮色使用 `#4b5563`，暗色使用 `#cbd5e1`。
+- **统一变量**：Atlas 品牌色与旧面板变量同步更新，避免展开态和折叠态出现两种颜色。
+- **状态色保留**：HIT 绿、MISS 红、BYPASS / DYNAMIC 蓝继续只用于语义状态，不再与 Logo 抢视觉。
+- **双端复核**：桌面与移动端、亮色与暗色下的展开头部和折叠状态签均已验证。
 
 ### v7.66.2 (2026-11-12) - 自动主题跟随修复
 

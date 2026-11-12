@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.66.2
-// @description  [v7.66.2] 折叠入口改为 130×46px 品牌状态签；展开为边缘航图面板，显示节点、TTFB 与缓存，并适配亮暗主题。
-// @description:en [v7.66.2] Replaces the collapsed orb with a 130×46px brand status tag and an edge-atlas panel showing node, TTFB and cache in light and dark themes.
+// @version      7.66.3
+// @description  [v7.66.3] 折叠入口改为 130×46px 品牌状态签；展开为边缘航图面板，显示节点、TTFB 与缓存，并适配亮暗主题。
+// @description:en [v7.66.3] Replaces the collapsed orb with a 130×46px brand status tag and an edge-atlas panel showing node, TTFB and cache in light and dark themes.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -15,7 +15,7 @@
 // @grant        GM_setValue
 // @grant        GM_getResourceText
 // @grant        GM_registerMenuCommand
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.66.2
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.66.3
 // @connect      dns.alidns.com
 // @connect      dns.google
 // @connect      1.1.1.1
@@ -1835,7 +1835,7 @@
             --atlas-muted: ${isDarkTheme ? '#9aaabd' : '#718094'};
             --atlas-accent: ${isDarkTheme ? '#91bfff' : '#3476bf'};
             --atlas-accent-soft: ${isDarkTheme ? '#91bfff17' : '#e7f0fc'};
-            --atlas-brand: ${isDarkTheme ? '#ffad69' : '#e88032'};
+            --atlas-brand: ${isDarkTheme ? '#cbd5e1' : '#4b5563'};
             --atlas-map: ${isDarkTheme ? '#101720' : '#ffffff'};
             --atlas-map-grid: ${isDarkTheme ? '#2c3948' : '#e8edf2'};
             --atlas-map-line: ${isDarkTheme ? '#769aca' : '#6f97c3'};
@@ -1865,7 +1865,7 @@
             --panel-muted: ${isDarkTheme ? '#a5ad9a' : '#727b6d'};
             --panel-accent: ${isDarkTheme ? '#c3de9b' : '#6e8151'};
             --panel-accent-soft: ${isDarkTheme ? '#c3de9b12' : '#e2ead8'};
-            --panel-brand: ${isDarkTheme ? '#ffab60' : '#e98b3e'};
+            --panel-brand: ${isDarkTheme ? '#cbd5e1' : '#4b5563'};
             --panel-shadow: ${isDarkTheme ? '0 20px 50px #0005, inset 0 1px #777c6840' : '0 20px 50px #27302229, inset 0 1px #ffffff90'};
             z-index: 2147483647;
             ${getPositionCSS()}
