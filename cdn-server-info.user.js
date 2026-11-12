@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.65.0
-// @description  [v7.65.0] 折叠圆钮改为真实 CDN Logo 镂空透光窗，状态色从图标轮廓中透出，不再使用橙色贴纸式品牌标记。
-// @description:en [v7.65.0] Turns the collapsed orb into a clear logo cutout window, letting the status color shine through the real CDN mark instead of an orange sticker-style badge.
+// @version      7.65.1
+// @description  [v7.65.1] 纯白页面亮色圆钮改用冷银烟晶与中性深灰镜缘，云窗只保留状态色透光，同时加强浅色面板轮廓。
+// @description:en [v7.65.1] Gives the light orb a cool silver-smoke base and neutral rim for white pages, keeps only status light inside the logo cutout, and clarifies the light panel outline.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -15,7 +15,7 @@
 // @grant        GM_setValue
 // @grant        GM_getResourceText
 // @grant        GM_registerMenuCommand
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.65.0
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.65.1
 // @connect      dns.alidns.com
 // @connect      dns.google
 // @connect      1.1.1.1
@@ -1825,22 +1825,22 @@
         const blueColor = isDarkTheme ? '#a4c8e6' : '#466e90';
         const orbBackground = isDarkTheme
             ? 'radial-gradient(circle at 32% 21%, #a6b69738 0%, #3c46355c 34%, #20261c80 100%)'
-            : 'radial-gradient(circle at 32% 21%, #fffffffa 0%, #ffffff7a 20%, #ffffff14 52%, #c2d1ad57 100%)';
+            : 'radial-gradient(circle at 28% 18%, #ffffff 0%, #f5f7f6f5 16%, #d7dddaed 39%, #aab4b0c9 73%, #7d8d87c2 100%)';
         const orbShadow = isDarkTheme
             ? '0 16px 34px #12181047, inset 0 1px 1px #ffffff1f, inset 0 0 0 1px #d5e8c31a, inset 0 -6px 14px #0000002e'
-            : '0 16px 34px #313e2a24, 0 2px 5px #313e2a0f, inset 0 1px 1px #fffffff2, inset 0 0 0 1px #ffffff5c, inset 0 -6px 14px #7e90721a';
+            : '0 12px 24px #263d3633, 0 3px 7px #263d361a, inset 0 1px 1px #ffffffff, inset 0 0 0 1px #f9fffc99, inset 0 -9px 16px #344e4933';
         const orbBloom = isDarkTheme
             ? 'radial-gradient(circle, #c3de9b38 0%, #c3de9b00 68%)'
-            : 'radial-gradient(circle, #e98b3e45 0%, #e98b3e00 68%)';
+            : 'radial-gradient(circle, #e1eee940 0%, #e1eee900 68%)';
         const orbWindowBackground = isDarkTheme
             ? 'radial-gradient(circle at 35% 27%, #e7f5e024 0%, transparent 34%), linear-gradient(145deg, #dfefd60f, #0f150d1a)'
-            : 'radial-gradient(circle at 35% 27%, #ffffff57 0%, transparent 34%), linear-gradient(145deg, #f9fcf53d, #c6d3bf14)';
+            : 'radial-gradient(circle at 35% 27%, #f8fffc30 0%, transparent 34%), linear-gradient(145deg, #dce8e31f, #405a5340)';
         const orbWindowShadow = isDarkTheme
             ? 'inset 0 1px 1px #ffffff17, inset 0 -6px 12px #00000024'
-            : 'inset 0 1px 1px #ffffff61, inset 0 -6px 12px #1f2b1a0d';
+            : 'inset 0 1px 1px #ffffff66, inset 0 -6px 12px #203b3526';
         const orbWindowFilter = isDarkTheme
             ? 'blur(2.2px) saturate(0.16) brightness(0.52)'
-            : 'blur(2.2px) saturate(0.18) brightness(1.14)';
+            : 'blur(1.4px) saturate(0.12) brightness(0.72)';
 
         return `
         :host {
@@ -1849,31 +1849,31 @@
             display: block;
             width: ${panelWidth}px;
             --panel-surface: ${isDarkTheme ? '#262a24' : '#f5f6f1'};
-            --panel-shell: ${isDarkTheme ? '#343930' : '#d7dcd3'};
-            --panel-edge: ${isDarkTheme ? '#4b5047' : '#b8c0b4'};
-            --panel-line: ${isDarkTheme ? '#3b4036' : '#d5dbd0'};
+            --panel-shell: ${isDarkTheme ? '#343930' : '#d9ded7'};
+            --panel-edge: ${isDarkTheme ? '#4b5047' : '#a2afa3'};
+            --panel-line: ${isDarkTheme ? '#3b4036' : '#c9d1c6'};
             --panel-text: ${isDarkTheme ? '#edf0e6' : '#2b332b'};
             --panel-muted: ${isDarkTheme ? '#a5ad9a' : '#727b6d'};
             --panel-accent: ${isDarkTheme ? '#c3de9b' : '#6e8151'};
             --panel-accent-soft: ${isDarkTheme ? '#c3de9b12' : '#e2ead8'};
             --panel-brand: ${isDarkTheme ? '#ffab60' : '#e98b3e'};
             --panel-orb: ${orbBackground};
-            --panel-orb-edge: ${isDarkTheme ? '#d5e8c329' : '#ffffffdb'};
+            --panel-orb-edge: ${isDarkTheme ? '#d5e8c329' : '#435b5180'};
             --panel-orb-monogram: ${isDarkTheme ? '#d9e9c3' : '#526545'};
             --panel-orb-monogram-shadow: ${isDarkTheme ? '0 1px 1px #0000006b, 0 -1px 0 #ffffff14' : '0 1px 0 #ffffffe0, 0 -1px 0 #2c3a2514'};
-            --panel-orb-status-core: ${isDarkTheme ? '#7bef71c7' : '#1fae60e0'};
-            --panel-orb-status-mid: ${isDarkTheme ? '#4fbf6c99' : '#328f5499'};
-            --panel-orb-status-aura: ${isDarkTheme ? '#68dc7080' : '#2d99577a'};
-            --panel-orb-miss-core: ${isDarkTheme ? '#ff7d75cc' : '#e3483ee6'};
-            --panel-orb-miss-mid: ${isDarkTheme ? '#e8625c99' : '#c84b4299'};
-            --panel-orb-miss-aura: ${isDarkTheme ? '#ff716a80' : '#d8473e73'};
-            --panel-orb-cool-core: ${isDarkTheme ? '#65c3ffcc' : '#2a80cfe6'};
-            --panel-orb-cool-mid: ${isDarkTheme ? '#4aa3e699' : '#3a76b299'};
-            --panel-orb-cool-aura: ${isDarkTheme ? '#55b7ff80' : '#287bc073'};
-            --panel-orb-muted-core: ${isDarkTheme ? '#b5c0b7b3' : '#78867da8'};
-            --panel-orb-muted-mid: ${isDarkTheme ? '#929e9580' : '#7d89808c'};
-            --panel-orb-muted-aura: ${isDarkTheme ? '#9eaaa15c' : '#6b786f52'};
-            --panel-shadow: ${isDarkTheme ? '0 20px 50px #0005, inset 0 1px #777c6840' : '0 20px 50px #27302224, inset 0 1px #ffffff90'};
+            --panel-orb-status-core: ${isDarkTheme ? '#7bef71c7' : '#0eaa5df5'};
+            --panel-orb-status-mid: ${isDarkTheme ? '#4fbf6c99' : '#078c50bd'};
+            --panel-orb-status-aura: ${isDarkTheme ? '#68dc7080' : '#13844f47'};
+            --panel-orb-miss-core: ${isDarkTheme ? '#ff7d75cc' : '#f14742f5'};
+            --panel-orb-miss-mid: ${isDarkTheme ? '#e8625c99' : '#cc3636bd'};
+            --panel-orb-miss-aura: ${isDarkTheme ? '#ff716a80' : '#b9363640'};
+            --panel-orb-cool-core: ${isDarkTheme ? '#65c3ffcc' : '#208ceaf5'};
+            --panel-orb-cool-mid: ${isDarkTheme ? '#4aa3e699' : '#2172bdbd'};
+            --panel-orb-cool-aura: ${isDarkTheme ? '#55b7ff80' : '#2268a347'};
+            --panel-orb-muted-core: ${isDarkTheme ? '#b5c0b7b3' : '#4e6861e6'};
+            --panel-orb-muted-mid: ${isDarkTheme ? '#929e9580' : '#536961c2'};
+            --panel-orb-muted-aura: ${isDarkTheme ? '#9eaaa15c' : '#3d554c40'};
+            --panel-shadow: ${isDarkTheme ? '0 20px 50px #0005, inset 0 1px #777c6840' : '0 20px 50px #27302229, inset 0 1px #ffffff90'};
             --panel-orb-shadow: ${orbShadow};
             z-index: 2147483647;
             ${getPositionCSS()}
@@ -1925,7 +1925,7 @@
             border: 1px solid var(--panel-orb-edge);
             border-radius: 50%;
             background:
-                radial-gradient(ellipse 20% 9% at 68% 81%, ${isDarkTheme ? '#ffffff24' : '#ffffff80'} 0%, transparent 72%),
+                radial-gradient(ellipse 20% 9% at 68% 81%, ${isDarkTheme ? '#ffffff24' : '#f4fff9a6'} 0%, transparent 72%),
                 var(--panel-orb);
             color: var(--panel-brand);
             box-shadow:
@@ -1967,9 +1967,11 @@
             position: absolute;
             inset: 11% 9% 7% 13%;
             z-index: 2;
-            border: 1px solid ${isDarkTheme ? '#e8f6e01f' : '#ffffff5c'};
+            border: 1px solid ${isDarkTheme ? '#e8f6e01f' : '#f7fffc8a'};
             border-radius: 50%;
-            box-shadow: inset 0 0 12px ${isDarkTheme ? '#ffffff0d' : '#ffffff1f'};
+            box-shadow:
+                inset 0 0 12px ${isDarkTheme ? '#ffffff0d' : '#f8fffc47'},
+                0 0 0 1px ${isDarkTheme ? '#00000000' : '#36594d1f'};
             filter: blur(.3px);
             transform: rotate(-7deg);
             pointer-events: none;

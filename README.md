@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-7.65.0-blue.svg)
+![Version](https://img.shields.io/badge/version-7.65.1-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Tampermonkey](https://img.shields.io/badge/Tampermonkey-Compatible-orange.svg)
 
@@ -202,6 +202,16 @@
 ---
 
 ## 📋 版本更新
+
+### v7.65.1 (2026-11-12) - 纯白可见性修复
+
+#### 💠 亮色圆钮与面板
+
+- **白底轮廓**：亮色圆钮改为冷银烟晶基底与中性深灰镜缘，不再依赖会与纯白背景融为一体的白色外圈。
+- **状态透光**：移除云窗周围的橙色环境光，HIT / MISS / BYPASS 的纯色光只从 Logo 镂空轮廓透出。
+- **灰色可读性**：加强 N/A 状态的中性灰对比度，保留与彩色状态一致的玻璃层次。
+- **面板边界**：同步加强浅色展开面板的外轮廓和分隔线；暗色主题不变。
+- **双端回归**：在纯白和浅底色上复核四状态、移动端及右下角展开/收回锚点。
 
 ### v7.65.0 (2026-11-11) - 镂空云窗
 
