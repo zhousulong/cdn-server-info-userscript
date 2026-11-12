@@ -2,9 +2,9 @@
 // @name         CDN & Server Info Displayer (UI Overhaul)
 // @name:en      CDN & Server Info Displayer (UI Overhaul)
 // @namespace    http://tampermonkey.net/
-// @version      7.66.0
-// @description  [v7.66.0] 折叠入口改为 130×46px 品牌状态签；展开为边缘航图面板，显示节点、TTFB 与缓存，并适配亮暗主题。
-// @description:en [v7.66.0] Replaces the collapsed orb with a 130×46px brand status tag and an edge-atlas panel showing node, TTFB and cache in light and dark themes.
+// @version      7.66.1
+// @description  [v7.66.1] 折叠入口改为 130×46px 品牌状态签；展开为边缘航图面板，显示节点、TTFB 与缓存，并适配亮暗主题。
+// @description:en [v7.66.1] Replaces the collapsed orb with a 130×46px brand status tag and an edge-atlas panel showing node, TTFB and cache in light and dark themes.
 // @author       Zhou Sulong
 // @license      MIT
 // @match        *://*/*
@@ -15,7 +15,7 @@
 // @grant        GM_setValue
 // @grant        GM_getResourceText
 // @grant        GM_registerMenuCommand
-// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.66.0
+// @resource     cdn_rules https://raw.githubusercontent.com/zhousulong/cdn-server-info-userscript/main/cdn_rules.json?v=7.66.1
 // @connect      dns.alidns.com
 // @connect      dns.google
 // @connect      1.1.1.1
@@ -2265,6 +2265,7 @@
         const collapsedHeight = isMobile ? 48 : 46;
         const panelWidth = isMobile ? 278 : 302;
         const controlSize = isMobile ? 44 : 32;
+        const gutter = 10;
         return `
         :host { width: ${panelWidth}px; --panel-surface: var(--atlas-surface); --panel-shell: var(--atlas-shell); --panel-edge: var(--atlas-edge); --panel-line: var(--atlas-line); --panel-text: var(--atlas-text); --panel-muted: var(--atlas-muted); --panel-accent: var(--atlas-accent); --panel-accent-soft: var(--atlas-accent-soft); --panel-brand: var(--atlas-brand); --panel-shadow: var(--atlas-shadow); }
         :host { --panel-status: ${greenColor}; --panel-status-soft: ${greenSoft}; }
@@ -2327,26 +2328,27 @@
             flex-direction: row;
             align-items: center;
             justify-content: flex-start;
-            min-height: 48px;
-            padding: ${isMobile ? 52 : 9}px 14px 10px;
+            gap: 8px;
+            min-height: ${isMobile ? 48 : 50}px;
+            padding: 8px ${gutter}px;
             border-bottom: 1px solid var(--atlas-line);
             background: transparent;
         }
-        .provider-heading { display: flex; align-items: center; gap: 9px; width: 100%; min-width: 0; padding-right: ${isMobile ? 0 : 137}px; }
-        .provider-brand { display: flex; align-items: center; justify-content: center; flex: 0 0 30px; width: 30px; height: 22px; color: var(--atlas-brand); }
+        .provider-heading { display: flex; flex: 1 1 auto; align-items: center; gap: 8px; min-width: 0; overflow: hidden; }
+        .provider-brand { display: flex; align-items: center; justify-content: center; flex: 0 0 28px; width: 28px; height: 22px; margin: 0; color: var(--atlas-brand); }
         .provider-brand svg { display: block; width: 100%; height: 100%; overflow: visible; }
         .provider-monogram { display: flex; align-items: center; justify-content: center; width: 30px; height: 26px; padding: 0; border: 1px solid var(--atlas-line); border-radius: 6px; background: var(--atlas-accent-soft); color: var(--atlas-accent); font-size: 11px; font-weight: 650; letter-spacing: 0 !important; line-height: 1; box-shadow: none; white-space: nowrap; }
         .status-tag .tag-brand .provider-monogram { width: 100%; height: 24px; padding: 0; border: 0; border-radius: 0; background: transparent; font-size: 11px; font-weight: 650; letter-spacing: 0 !important; line-height: 24px; text-shadow: none; }
-        .info-value.provider-name { color: var(--atlas-text); font-size: 14px; font-weight: 600; line-height: 1.35; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .info-value.provider-name { flex: 1 1 auto; min-width: 0; color: var(--atlas-text); font-size: ${isMobile ? 13 : 14}px; font-weight: 600; line-height: 20px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .provider-caption { display: none; }
-        .minimize-btn { position: absolute; top: ${isMobile ? 2 : 7}px; ${isRTLLanguage() ? 'right' : 'left'}: 7px; z-index: 1; }
-        .hero-actions { position: absolute; top: ${isMobile ? 2 : 7}px; ${isRTLLanguage() ? 'left' : 'right'}: 7px; display: flex; gap: 0; }
-        .minimize-btn + .hero-actions { ${isRTLLanguage() ? 'left' : 'right'}: ${isMobile ? 51 : 39}px; }
+        .minimize-btn { position: static; }
+        .hero-actions { position: static; display: flex; flex: 0 0 auto; align-items: center; gap: 1px; margin-inline-start: auto; }
+        .hero-actions .icon-btn { flex: 0 0 ${isMobile ? 32 : 30}px; width: ${isMobile ? 32 : 30}px; height: ${isMobile ? 32 : 30}px; }
         .icon-btn { flex-basis: ${controlSize}px; width: ${controlSize}px; height: ${controlSize}px; }
         .edge-map {
             position: relative;
             height: ${isMobile ? 112 : 122}px;
-            margin: 14px;
+            margin: 14px ${gutter}px;
             border: 1px solid var(--atlas-line);
             border-radius: 9px;
             background-color: var(--atlas-map);
@@ -2361,7 +2363,7 @@
         .edge-route-cross { fill: none; stroke: var(--atlas-map); stroke-width: 1; }
         .edge-map-label { position: absolute; left: 12px; bottom: 10px; color: var(--atlas-muted); font-family: "SFMono-Regular", Menlo, monospace; font-size: 7px; letter-spacing: 0.9px !important; }
         .edge-map-code { position: absolute; top: 10px; right: 11px; max-width: 65%; color: var(--panel-status); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .atlas-summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 14px 14px; }
+        .atlas-summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 ${gutter}px 14px; }
         .latency-readout { min-width: 0; }
         .latency-readout .latency-value { overflow: visible; color: var(--atlas-text); font-size: 28px; font-weight: 450; letter-spacing: -1.5px !important; line-height: 1.1; }
         .latency-caption { display: block; margin-top: 5px; color: var(--atlas-muted); font-size: 8px; }
@@ -2369,14 +2371,14 @@
         #cdn-info-panel-enhanced[data-cache="MISS"] { --panel-status: ${redColor}; --panel-status-soft: ${redSoft}; }
         #cdn-info-panel-enhanced[data-cache="BYPASS"], #cdn-info-panel-enhanced[data-cache="DYNAMIC"] { --panel-status: ${blueColor}; --panel-status-soft: ${blueSoft}; }
         #cdn-info-panel-enhanced[data-cache="N/A"] { --panel-status: ${neutralColor}; --panel-status-soft: ${neutralSoft}; }
-        .origin-note { margin: 14px 0 0; border: 0; padding: 0 14px; }
+        .origin-note { margin: 14px 0 0; border: 0; padding: 0 ${gutter}px; }
         .origin-title { color: var(--atlas-muted); }
-        .server-line { padding: 9px 14px; border-top: 1px solid var(--atlas-line); }
+        .server-line { padding: 9px ${gutter}px; border-top: 1px solid var(--atlas-line); }
         .atlas-summary + .server-line { border-top: 0; }
         .server-line .info-label, .detail-line .info-label { font-size: 10px; letter-spacing: 0.7px !important; }
         .server-line .info-value, .detail-line .info-value { font-size: 10px; }
-        .detail-lines { margin: 0 14px; padding: 9px 0 11px; }
-        .panel-footer { padding: 4px 9px 6px 14px; border-top: 1px solid var(--atlas-line); }
+        .detail-lines { margin: 0 ${gutter}px; padding: 9px 0 11px; }
+        .panel-footer { padding: 4px ${gutter}px 6px; border-top: 1px solid var(--atlas-line); }
         #cdn-info-panel-enhanced.details-hidden .edge-map { display: none; }
         #cdn-info-panel-enhanced.details-hidden .atlas-summary { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--atlas-line); }
         .settings-popover { inset: 1px; border-radius: 13px; }
@@ -2519,13 +2521,13 @@
             <button class="status-tag" data-cache="${escapeHtml(cacheKey)}" title="Cache ${escapeHtml(cacheStatus)} — expand network details" aria-label="Cache ${escapeHtml(cacheStatus)}. Expand network details" aria-expanded="false"></button>
             <div class="panel-surface">
                 <div class="panel-hero">
-                    <button class="icon-btn minimize-btn" type="button" title="Collapse to brand status tag" aria-label="Collapse to brand status tag"></button>
+                    <div class="provider-heading"><div class="provider-brand"></div><span class="info-value provider-name" title="${escapeHtml(info.provider)}">${escapeHtml(info.provider)}</span><span class="provider-caption">${escapeHtml(providerRole)}</span></div>
                     <div class="hero-actions">
+                        <button class="icon-btn minimize-btn" type="button" title="Collapse to brand status tag" aria-label="Collapse to brand status tag"></button>
                         <button class="icon-btn settings-btn" type="button" title="Settings" aria-label="Settings" aria-haspopup="dialog" aria-expanded="false" aria-controls="cdn-panel-settings"></button>
                         <button class="icon-btn theme-btn" type="button" title="Toggle light / dark theme" aria-label="Toggle light / dark theme"></button>
                         <button class="icon-btn close-btn" type="button" title="Close" aria-label="Close"></button>
                     </div>
-                    <div class="provider-heading"><div class="provider-brand"></div><span class="info-value provider-name" title="${escapeHtml(info.provider)}">${escapeHtml(info.provider)}</span><span class="provider-caption">${escapeHtml(providerRole)}</span></div>
                 </div>
                 ${cachePopMarkup}
                 <div class="server-line">

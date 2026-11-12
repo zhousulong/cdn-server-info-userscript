@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-7.66.0-blue.svg)
+![Version](https://img.shields.io/badge/version-7.66.1-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Tampermonkey](https://img.shields.io/badge/Tampermonkey-Compatible-orange.svg)
 
@@ -208,6 +208,14 @@
 ---
 
 ## 📋 版本更新
+
+### v7.66.1 (2026-11-12) - 头部对齐修复
+
+#### 📐 面板网格
+
+- **单行头部**：Logo、厂商名与最小化 / 设置 / 主题 / 关闭四个按钮改为同一 flex 行，共用一条水平中线。
+- **清除旧间距**：移除 Logo 遗留的 `12px` 下边距，修复 Logo 比厂商名高 `6px` 的问题。
+- **统一内容网格**：地图、延迟摘要、服务器、明细与底部操作统一为 `10px` 左右内缩，桌面与移动端共用同一对齐基准。
 
 ### v7.66.0 (2026-11-12) - 边缘航图仪
 
